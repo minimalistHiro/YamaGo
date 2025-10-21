@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { auth, storage } from '@/lib/firebase';
-import { deletePlayer } from '@/lib/game';
+import { deletePlayer, getGame, Game } from '@/lib/game';
+import RoleAssignmentView from './RoleAssignmentView';
 
 interface SettingsViewProps {
   gameId: string;
@@ -23,6 +24,25 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [game, setGame] = useState<Game | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [showRoleAssignment, setShowRoleAssignment] = useState(false);
+
+  useEffect(() => {
+    loadGameInfo();
+  }, [gameId]);
+
+  const loadGameInfo = async () => {
+    try {
+      const gameData = await getGame(gameId);
+      setGame(gameData);
+      if (gameData) {
+        setIsOwner(gameData.ownerUid === currentUser.uid);
+      }
+    } catch (error) {
+      console.error('Error loading game info:', error);
+    }
+  };
 
   const handleExitGame = async () => {
     setShowExitConfirm(true);
@@ -108,6 +128,19 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
     }
   };
 
+  const handleRoleAssignment = () => {
+    setShowRoleAssignment(true);
+  };
+
+  const handleBackFromRoleAssignment = () => {
+    setShowRoleAssignment(false);
+  };
+
+  // Show role assignment view if requested
+  if (showRoleAssignment) {
+    return <RoleAssignmentView gameId={gameId} onBack={handleBackFromRoleAssignment} />;
+  }
+
   return (
     <div className="h-full bg-gray-50 overflow-y-auto">
       {/* Header */}
@@ -188,6 +221,19 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h3 className="text-md font-medium text-gray-800 mb-3">ゲーム設定</h3>
           <div className="space-y-3">
+            {/* Role Assignment - Only show for owner */}
+            {isOwner && (
+              <div 
+                className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={handleRoleAssignment}
+              >
+                <span className="text-gray-600">役職振り分け</span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            )}
+            
             <div className="flex items-center justify-between">
               <span className="text-gray-600">位置情報の共有</span>
               <div className="relative inline-block w-10 mr-2 align-middle select-none">
