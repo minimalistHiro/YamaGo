@@ -123,41 +123,84 @@ export async function updateGameOwner(gameId: string, newOwnerUid: string): Prom
 }
 
 // Player management functions
-export async function joinGame(gameId: string, uid: string, nickname: string, role: 'oni' | 'runner' = 'runner', avatarUrl?: string): Promise<void> {
+export async function joinGame(
+  gameId: string,
+  uid: string,
+  nickname: string,
+  role: 'oni' | 'runner' = 'runner',
+  avatarUrl?: string
+): Promise<void> {
   try {
     console.log('Joining game:', { gameId, uid, nickname, role, avatarUrl });
     const db = getDb();
     console.log('DB object:', db);
-    
+
+    const gameRef = doc(db, 'games', gameId);
+    const gameSnapshot = await getDoc(gameRef);
+
+    if (!gameSnapshot.exists()) {
+      throw new Error('Game not found');
+    }
+
+    const gameData = gameSnapshot.data() as Game;
+
     // Check if this is the first player joining the game
     const existingPlayers = await getPlayers(gameId);
-    const isFirstPlayer = existingPlayers.length === 0;
-    
+    const activePlayers = existingPlayers.filter(player => player.active);
+    const existingPlayerRef = doc(db, 'games', gameId, 'players', uid);
+    const existingPlayerSnapshot = await getDoc(existingPlayerRef);
+    const existingPlayerData = existingPlayerSnapshot.exists()
+      ? (existingPlayerSnapshot.data() as Player)
+      : null;
+
+    const isFirstActivePlayer = activePlayers.length === 0;
+    const isOwnerAlreadySet = !!gameData.ownerUid && gameData.ownerUid !== uid;
+
+    const shouldAssignOni = isFirstActivePlayer && !isOwnerAlreadySet;
+
     // If this is the first player, make them the owner and set role to 'oni'
-    if (isFirstPlayer) {
-      console.log('First player joining - making them owner and oni');
+    if (shouldAssignOni) {
+      console.log('First active player joining - assigning oni role');
       role = 'oni';
-      
-      // Update game owner
-      await updateGameOwner(gameId, uid);
-    }
-    
-    const playerRef = doc(db, 'games', gameId, 'players', uid);
-    const player: Player = {
-      uid,
-      nickname,
-      role,
-      active: true,
-      // Only include avatarUrl if it's provided and not undefined
-      ...(avatarUrl && { avatarUrl }),
-      stats: {
-        captures: 0,
-        capturedTimes: 0
+
+      // Update game owner only if not already set to this player
+      if (gameData.ownerUid !== uid) {
+        await updateGameOwner(gameId, uid);
       }
-    };
-    
+    } else if (existingPlayerData) {
+      // Preserve existing role if the player is rejoining
+      role = existingPlayerData.role;
+    }
+
+    const playerRef = existingPlayerRef;
+
+    const player: Player = existingPlayerData
+      ? {
+          ...existingPlayerData,
+          uid,
+          nickname,
+          role,
+          active: true,
+          stats: {
+            captures: existingPlayerData.stats?.captures ?? 0,
+            capturedTimes: existingPlayerData.stats?.capturedTimes ?? 0
+          },
+          ...(avatarUrl ? { avatarUrl } : {})
+        }
+      : {
+          uid,
+          nickname,
+          role,
+          active: true,
+          ...(avatarUrl ? { avatarUrl } : {}),
+          stats: {
+            captures: 0,
+            capturedTimes: 0
+          }
+        };
+
     console.log('Setting player document:', player);
-    await setDoc(playerRef, player);
+    await setDoc(playerRef, player, { merge: true });
     console.log('Player document set successfully');
   } catch (error) {
     console.error('Error joining game:', error);
