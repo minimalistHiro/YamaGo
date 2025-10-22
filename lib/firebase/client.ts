@@ -79,6 +79,10 @@ if (typeof window !== 'undefined') {
     console.error('Required variables: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID');
     console.error('For Vercel deployment, add these as environment variables in your Vercel project settings.');
     console.error('Current config:', firebaseConfig);
+    console.error('Environment variables status:', {
+      NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'SET' : 'NOT SET',
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'SET' : 'NOT SET',
+    });
   } else {
     try {
       // Initialize Firebase app using the recommended pattern
@@ -116,6 +120,8 @@ if (typeof window !== 'undefined') {
       }
     } catch (error) {
       console.error('Failed to initialize Firebase:', error);
+      console.error('This is likely due to invalid Firebase configuration or API key.');
+      console.error('Please check your Vercel environment variables.');
       // Don't throw error during build - just log it
     }
   }
