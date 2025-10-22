@@ -45,7 +45,7 @@ if (typeof window !== 'undefined') {
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     console.error('Firebase configuration is incomplete. Please check your environment variables.');
     console.error('Required variables: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID');
-    console.error('For Netlify deployment, add these as environment variables in your Netlify dashboard.');
+    console.error('For Vercel deployment, add these as environment variables in your Vercel project settings.');
     console.error('Current config:', firebaseConfig);
     
     // Try to use fallback values for development

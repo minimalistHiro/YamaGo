@@ -31,7 +31,7 @@ if (typeof window !== 'undefined') {
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     console.warn('Firebase configuration is incomplete. Please check your environment variables.');
     console.warn('Required variables: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID');
-    console.warn('For Netlify deployment, add these as environment variables in your Netlify dashboard.');
+    console.warn('For Vercel deployment, add these as environment variables in your Vercel project settings.');
   } else {
     try {
       // Initialize Firebase app
