@@ -75,13 +75,8 @@
 ### 1. 依存関係のインストール
 
 ```bash
-# メインプロジェクト
-npm install
-
-# Cloud Functions
-cd functions
-npm install
-cd ..
+# メインプロジェクト（functions/も自動でインストール）
+npm ci
 ```
 
 ### 2. Firebase設定
@@ -167,9 +162,31 @@ firebase emulators:start --debug
 
 Firebase Emulator UI (http://localhost:4000) でFirestoreデータを確認できます。
 
-## 🚀 デプロイ
+## 🚀 Build & Deploy
 
-### Vercel（推奨）
+### Local Build
+
+```bash
+# App build
+npm run build
+
+# Functions build (independent)
+cd functions && npm run build
+```
+
+### Netlify Deploy
+
+Netlify relies on root build; functions are independent of Next build.
+
+```bash
+# Build and deploy to Netlify
+npm run build
+
+# Functions deploy separately (if needed)
+cd functions && npm run deploy
+```
+
+### Vercel（Alternative）
 
 ```bash
 # Vercel CLIをインストール
@@ -181,16 +198,6 @@ vercel
 # 環境変数を設定
 vercel env add NEXT_PUBLIC_FIREBASE_API_KEY
 # ... 他の環境変数も同様に設定
-```
-
-### Firebase Hosting
-
-```bash
-# ビルド
-npm run build
-
-# デプロイ
-firebase deploy
 ```
 
 ## 📱 PWA機能
@@ -214,15 +221,3 @@ firebase deploy
 
 MIT License
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.

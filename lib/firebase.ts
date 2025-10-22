@@ -81,7 +81,7 @@ if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULAT
     console.log('Firebase emulators connected successfully (Storage using production)');
   } catch (error) {
     // Emulators already connected or connection failed
-    console.log('Firebase emulators connection:', error.message || 'Already connected');
+    console.log('Firebase emulators connection:', (error as Error).message || 'Already connected');
   }
 } else {
   console.log('Firebase connected to production environment');
