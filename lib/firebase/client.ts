@@ -13,8 +13,22 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  // measurementId is optional for Analytics
+  ...(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID && {
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  })
 };
+
+// Debug logging for environment variables
+console.log('Firebase config debug:', {
+  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'undefined',
+  authDomain: firebaseConfig.authDomain || 'undefined',
+  projectId: firebaseConfig.projectId || 'undefined',
+  storageBucket: firebaseConfig.storageBucket || 'undefined',
+  messagingSenderId: firebaseConfig.messagingSenderId || 'undefined',
+  appId: firebaseConfig.appId || 'undefined',
+  measurementId: firebaseConfig.measurementId || 'undefined',
+});
 
 // Client-side only Firebase initialization
 // This prevents build-time crashes during SSG when environment variables are missing
@@ -29,9 +43,56 @@ let storage: FirebaseStorage | null = null;
 if (typeof window !== 'undefined') {
   // Check if required configuration is available
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-    console.warn('Firebase configuration is incomplete. Please check your environment variables.');
-    console.warn('Required variables: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID');
-    console.warn('For Netlify deployment, add these as environment variables in your Netlify dashboard.');
+    console.error('Firebase configuration is incomplete. Please check your environment variables.');
+    console.error('Required variables: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID');
+    console.error('For Netlify deployment, add these as environment variables in your Netlify dashboard.');
+    console.error('Current config:', firebaseConfig);
+    
+    // Try to use fallback values for development
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Using fallback Firebase configuration for development...');
+      const fallbackConfig = {
+        apiKey: "AIzaSyC00i-DxjmLQz82xiubMkpfotc-k6MBuEI",
+        authDomain: "yamago-2ae8d.firebaseapp.com",
+        projectId: "yamago-2ae8d",
+        storageBucket: "yamago-2ae8d.firebasestorage.app",
+        messagingSenderId: "598692971255",
+        appId: "1:598692971255:web:9f5977110f979b13e609f2",
+        measurementId: "G-NL6CP18NNK"
+      };
+      
+      try {
+        app = getApps().length ? getApps()[0] : initializeApp(fallbackConfig);
+        console.log('Firebase app initialized with fallback config');
+
+        // Initialize Firebase services
+        auth = getAuth(app);
+        db = getFirestore(app);
+        functions = getFunctions(app);
+        storage = getStorage(app);
+        
+        // Initialize Analytics only if measurementId is available
+        if (firebaseConfig.measurementId) {
+          analytics = getAnalytics(app);
+        }
+        
+        // Connect to emulators for fallback config too
+        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
+          try {
+            connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+            connectFirestoreEmulator(db, 'localhost', 8080);
+            connectFunctionsEmulator(functions, 'localhost', 5001);
+            console.log('Firebase emulators connected successfully with fallback config');
+          } catch (error) {
+            console.log('Firebase emulators connection (fallback):', (error as Error).message || 'Already connected');
+          }
+        }
+        
+        console.log('Firebase services initialized successfully with fallback config');
+      } catch (error) {
+        console.error('Failed to initialize Firebase with fallback config:', error);
+      }
+    }
   } else {
     try {
       // Initialize Firebase app using the recommended pattern
@@ -44,8 +105,10 @@ if (typeof window !== 'undefined') {
       functions = getFunctions(app);
       storage = getStorage(app);
       
-      // Initialize Analytics only in browser environment
-      analytics = getAnalytics(app);
+      // Initialize Analytics only if measurementId is available
+      if (firebaseConfig.measurementId) {
+        analytics = getAnalytics(app);
+      }
       
       console.log('Firebase services initialized successfully');
 
@@ -53,9 +116,9 @@ if (typeof window !== 'undefined') {
       if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
         try {
           // Connect to emulators without checking existing connections
-          connectAuthEmulator(auth, 'http://localhost:9199', { disableWarnings: true });
-          connectFirestoreEmulator(db, 'localhost', 8180);
-          connectFunctionsEmulator(functions, 'localhost', 5101);
+          connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+          connectFirestoreEmulator(db, 'localhost', 8080);
+          connectFunctionsEmulator(functions, 'localhost', 5001);
           // Storage is using production environment
           console.log('Firebase emulators connected successfully (Storage using production)');
         } catch (error) {
@@ -85,7 +148,28 @@ export const isFirebaseInitialized = (): boolean => {
 
 // Helper function to get Firebase services with error handling
 export const getFirebaseServices = () => {
+  if (typeof window === 'undefined') {
+    throw new Error('Firebase services can only be accessed on the client side.');
+  }
+  
   if (!isFirebaseInitialized()) {
+    console.error('Firebase initialization check failed:', {
+      app: !!app,
+      auth: !!auth,
+      db: !!db,
+      functions: !!functions,
+      analytics: !!analytics,
+      storage: !!storage,
+      config: {
+        apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        projectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        authDomain: !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        storageBucket: !!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: !!process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        measurementId: !!process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+      }
+    });
     throw new Error('Firebase is not initialized. Make sure you are running this code on the client side and environment variables are set.');
   }
   

@@ -148,7 +148,8 @@ export async function joinGame(gameId: string, uid: string, nickname: string, ro
       nickname,
       role,
       active: true,
-      avatarUrl,
+      // Only include avatarUrl if it's provided and not undefined
+      ...(avatarUrl && { avatarUrl }),
       stats: {
         captures: 0,
         capturedTimes: 0
