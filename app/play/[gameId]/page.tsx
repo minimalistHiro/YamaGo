@@ -72,6 +72,7 @@ export default function PlayPage() {
 
     // Get current player data
     const getCurrentPlayerData = async () => {
+      if (!user) return;
       const playerData = await getPlayer(gameId, user.uid);
       setCurrentPlayer(playerData);
     };
@@ -94,7 +95,7 @@ export default function PlayPage() {
     }
 
     try {
-      await updateLocation(gameId, user.uid, { lat, lng, accM: accuracy });
+      await updateLocation(gameId, user!.uid, { lat, lng, accM: accuracy });
     } catch (err) {
       console.error('Location update error:', err);
     }
@@ -109,7 +110,7 @@ export default function PlayPage() {
         // Check if oni is within capture radius of any runner
         players.forEach(player => {
           if (player.role === 'runner' && player.active) {
-            const oniLocation = locations[user.uid];
+            const oniLocation = user ? locations[user.uid] : null;
             const runnerLocation = locations[player.uid];
             
             if (oniLocation && runnerLocation) {
@@ -218,7 +219,7 @@ export default function PlayPage() {
           <ChatView
             gameId={gameId}
             currentUser={{
-              uid: user.uid,
+              uid: user?.uid || '',
               nickname: currentPlayer.nickname
             }}
           />
@@ -228,7 +229,7 @@ export default function PlayPage() {
           <SettingsView
             gameId={gameId}
             currentUser={{
-              uid: user.uid,
+              uid: user?.uid || '',
               nickname: currentPlayer.nickname,
               role: currentPlayer.role,
               avatarUrl: currentPlayer.avatarUrl
@@ -259,7 +260,7 @@ export default function PlayPage() {
             </div>
             
             <div className="text-gray-500">
-              精度: {locations[user.uid] ? `${Math.round(locations[user.uid].accM)}m` : 'N/A'}
+              精度: {user && locations[user.uid] ? `${Math.round(locations[user.uid].accM)}m` : 'N/A'}
             </div>
           </div>
         </div>

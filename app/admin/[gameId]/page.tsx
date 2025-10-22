@@ -56,7 +56,7 @@ export default function AdminPage() {
       }
       
       // Check if user is owner
-      setIsOwner(gameData.ownerUid === user.uid);
+      setIsOwner(user ? gameData.ownerUid === user.uid : false);
     });
 
     // Subscribe to players
