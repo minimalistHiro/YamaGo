@@ -5,19 +5,39 @@ import { getFunctions, connectFunctionsEmulator, Functions } from 'firebase/func
 import { getAnalytics, Analytics } from 'firebase/analytics';
 import { getStorage, connectStorageEmulator, FirebaseStorage } from 'firebase/storage';
 
-// Firebase configuration for production
+// Public Firebase configuration that can safely live in the client bundle.
+// Environment variables take precedence, but we fall back to the production
+// values so that preview deployments (e.g. freshly created Vercel projects)
+// still work even if the environment variables have not been configured yet.
+const defaultFirebaseConfig = {
+  apiKey: 'AIzaSyC00i-DxjmLQz82xiubMkpfotc-k6MBuEI',
+  authDomain: 'yamago-2ae8d.firebaseapp.com',
+  projectId: 'yamago-2ae8d',
+  storageBucket: 'yamago-2ae8d.appspot.com',
+  messagingSenderId: '598692971255',
+  appId: '1:598692971255:web:9f5977110f979b13e609f2',
+  measurementId: 'G-NL6CP18NNK'
+} as const;
+
+// Firebase configuration for production (env vars override the defaults).
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? defaultFirebaseConfig.apiKey,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? defaultFirebaseConfig.authDomain,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? defaultFirebaseConfig.projectId,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? defaultFirebaseConfig.storageBucket,
+  messagingSenderId:
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? defaultFirebaseConfig.messagingSenderId,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? defaultFirebaseConfig.appId,
   // measurementId is optional for Analytics
-  ...(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID && {
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-  })
+  ...(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    ? { measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }
+    : defaultFirebaseConfig.measurementId
+    ? { measurementId: defaultFirebaseConfig.measurementId }
+    : {})
 };
+
+const usingFallbackConfig =
+  !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
 // Debug logging for environment variables
 console.log('Firebase config debug:', {
@@ -27,7 +47,8 @@ console.log('Firebase config debug:', {
   storageBucket: firebaseConfig.storageBucket || 'undefined',
   messagingSenderId: firebaseConfig.messagingSenderId || 'undefined',
   appId: firebaseConfig.appId || 'undefined',
-  measurementId: firebaseConfig.measurementId || 'undefined',
+  measurementId: (firebaseConfig as { measurementId?: string }).measurementId || 'undefined',
+  usingFallbackConfig
 });
 
 // Client-side only Firebase initialization
@@ -41,58 +62,12 @@ let storage: FirebaseStorage | null = null;
 
 // Initialize Firebase only on the client side
 if (typeof window !== 'undefined') {
-  // Check if required configuration is available
+  // Check if required configuration is available (should always be true after applying fallbacks).
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     console.error('Firebase configuration is incomplete. Please check your environment variables.');
     console.error('Required variables: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID');
     console.error('For Vercel deployment, add these as environment variables in your Vercel project settings.');
     console.error('Current config:', firebaseConfig);
-    
-    // Try to use fallback values for development
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('Using fallback Firebase configuration for development...');
-      const fallbackConfig = {
-        apiKey: "AIzaSyC00i-DxjmLQz82xiubMkpfotc-k6MBuEI",
-        authDomain: "yamago-2ae8d.firebaseapp.com",
-        projectId: "yamago-2ae8d",
-        storageBucket: "yamago-2ae8d.firebasestorage.app",
-        messagingSenderId: "598692971255",
-        appId: "1:598692971255:web:9f5977110f979b13e609f2",
-        measurementId: "G-NL6CP18NNK"
-      };
-      
-      try {
-        app = getApps().length ? getApps()[0] : initializeApp(fallbackConfig);
-        console.log('Firebase app initialized with fallback config');
-
-        // Initialize Firebase services
-        auth = getAuth(app);
-        db = getFirestore(app);
-        functions = getFunctions(app);
-        storage = getStorage(app);
-        
-        // Initialize Analytics only if measurementId is available
-        if (firebaseConfig.measurementId) {
-          analytics = getAnalytics(app);
-        }
-        
-        // Connect to emulators for fallback config too
-        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
-          try {
-            connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-            connectFirestoreEmulator(db, 'localhost', 8080);
-            connectFunctionsEmulator(functions, 'localhost', 5001);
-            console.log('Firebase emulators connected successfully with fallback config');
-          } catch (error) {
-            console.log('Firebase emulators connection (fallback):', (error as Error).message || 'Already connected');
-          }
-        }
-        
-        console.log('Firebase services initialized successfully with fallback config');
-      } catch (error) {
-        console.error('Failed to initialize Firebase with fallback config:', error);
-      }
-    }
   } else {
     try {
       // Initialize Firebase app using the recommended pattern
@@ -104,12 +79,12 @@ if (typeof window !== 'undefined') {
       db = getFirestore(app);
       functions = getFunctions(app);
       storage = getStorage(app);
-      
+
       // Initialize Analytics only if measurementId is available
-      if (firebaseConfig.measurementId) {
+      if ((firebaseConfig as { measurementId?: string }).measurementId) {
         analytics = getAnalytics(app);
       }
-      
+
       console.log('Firebase services initialized successfully');
 
       // Connect to emulators only if explicitly enabled
