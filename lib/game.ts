@@ -132,13 +132,33 @@ export async function joinGame(
 ): Promise<void> {
   try {
     console.log('Joining game:', { gameId, uid, nickname, role, avatarUrl });
+    console.log('Environment check:', {
+      isClient: typeof window !== 'undefined',
+      nodeEnv: process.env.NODE_ENV,
+      firebaseProjectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      usingFallback: !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    });
+    
     const db = getDb();
     console.log('DB object:', db);
+    console.log('DB project ID:', db.app.options.projectId);
 
     const gameRef = doc(db, 'games', gameId);
+    console.log('Game reference path:', gameRef.path);
     const gameSnapshot = await getDoc(gameRef);
+    console.log('Game snapshot exists:', gameSnapshot.exists());
+    console.log('Game snapshot data:', gameSnapshot.data());
 
     if (!gameSnapshot.exists()) {
+      console.error('Game not found - checking if it exists in different project or collection');
+      // Try to list games to see what's available
+      try {
+        const gamesRef = collection(db, 'games');
+        const gamesSnapshot = await getDocs(gamesRef);
+        console.log('Available games:', gamesSnapshot.docs.map(doc => ({ id: doc.id, data: doc.data() })));
+      } catch (listError) {
+        console.error('Error listing games:', listError);
+      }
       throw new Error('Game not found');
     }
 
