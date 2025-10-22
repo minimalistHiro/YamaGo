@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
-import { getFirebaseServices } from '@/lib/firebaseClient';
+import { getFirebaseServices } from '@/lib/firebase/client';
 import { deletePlayer, getGame, Game } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
 

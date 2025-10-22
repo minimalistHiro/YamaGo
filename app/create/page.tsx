@@ -1,9 +1,11 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInAnonymously, User } from 'firebase/auth';
-import { getFirebaseServices } from '@/lib/firebaseClient';
+import { getFirebaseServices } from '@/lib/firebase/client';
 import { createGame, joinGame, getGame } from '@/lib/game';
 
 // Note: For Netlify deployment, ensure the following environment variables are set in your Netlify dashboard:

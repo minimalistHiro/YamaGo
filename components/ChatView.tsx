@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   Timestamp 
 } from 'firebase/firestore';
-import { getFirebaseServices } from '../lib/firebaseClient';
+import { getFirebaseServices } from '../lib/firebase/client';
 import { getPlayer } from '../lib/game';
 
 interface ChatMessage {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { getFirebaseServices } from '@/lib/firebaseClient';
+import { getFirebaseServices } from '@/lib/firebase/client';
 import { 
   subscribeToGame, 
   subscribeToPlayers, 
