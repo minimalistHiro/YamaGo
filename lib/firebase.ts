@@ -1,9 +1,9 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
-import { getAnalytics } from 'firebase/analytics';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import { getAuth, connectAuthEmulator, Auth } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator, Firestore } from 'firebase/firestore';
+import { getFunctions, connectFunctionsEmulator, Functions } from 'firebase/functions';
+import { getAnalytics, Analytics } from 'firebase/analytics';
+import { getStorage, connectStorageEmulator, FirebaseStorage } from 'firebase/storage';
 
 // Firebase configuration for production
 const firebaseConfig = {
@@ -33,7 +33,12 @@ try {
 }
 
 // Initialize Firebase services
-let auth, db, functions, analytics, storage;
+let auth: Auth;
+let db: Firestore;
+let functions: Functions;
+let analytics: Analytics | undefined;
+let storage: FirebaseStorage;
+
 try {
   auth = getAuth(app);
   db = getFirestore(app);

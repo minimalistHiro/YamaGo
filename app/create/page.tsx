@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { createGame, joinGame, getGame } from '@/lib/game';
 
