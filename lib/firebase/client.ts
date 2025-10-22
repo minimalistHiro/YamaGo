@@ -42,6 +42,15 @@ if (process.env.NODE_ENV === 'production' && (!process.env.NEXT_PUBLIC_FIREBASE_
   Object.assign(firebaseConfig, defaultFirebaseConfig);
 }
 
+// Additional fallback for Vercel deployment issues
+if (process.env.NODE_ENV === 'production') {
+  console.log('Production environment detected, ensuring Firebase config is valid');
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
+    console.warn('API key is invalid, using default config');
+    Object.assign(firebaseConfig, defaultFirebaseConfig);
+  }
+}
+
 const usingFallbackConfig =
   !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
