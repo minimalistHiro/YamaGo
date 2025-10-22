@@ -8,7 +8,7 @@
 - **Backend**: Firebase (Auth, Firestore, Cloud Functions)
 - **Map**: MapLibre GL JS (OpenStreetMap)
 - **PWA**: Service Worker, Web App Manifest
-- **Deployment**: Vercel対応
+- **Deployment**: Vercel (App Router最適化)
 
 ## 📁 プロジェクト構成
 
@@ -174,30 +174,40 @@ npm run build
 cd functions && npm run build
 ```
 
-### Netlify Deploy
+### Vercel Deploy
 
-Netlify relies on root build; functions are independent of Next build.
-
-```bash
-# Build and deploy to Netlify
-npm run build
-
-# Functions deploy separately (if needed)
-cd functions && npm run deploy
-```
-
-### Vercel（Alternative）
+Vercel でのデプロイを前提としています。GitHub リポジトリを接続するか、Vercel CLI から直接デプロイしてください。
 
 ```bash
-# Vercel CLIをインストール
+# (任意) Vercel CLIをインストール
 npm install -g vercel
 
-# デプロイ
-vercel
+# 初回のみ、プロジェクトをVercelにリンク
+vercel link
 
-# 環境変数を設定
-vercel env add NEXT_PUBLIC_FIREBASE_API_KEY
-# ... 他の環境変数も同様に設定
+# 本番デプロイ
+vercel deploy --prod
+```
+
+#### 必須環境変数
+
+Vercel プロジェクトの **Settings > Environment Variables** で、以下の変数を `Production` と `Preview` に設定してください。
+
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+- `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` (Analytics を使う場合のみ)
+- `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`
+
+Firebase のバックエンド (Cloud Functions 等) を利用する場合は、Firebase CLI で別途デプロイしてください。
+
+```bash
+cd functions
+npm run build
+firebase deploy --only functions
 ```
 
 ## 📱 PWA機能
