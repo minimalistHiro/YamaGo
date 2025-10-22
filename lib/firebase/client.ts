@@ -36,6 +36,12 @@ const firebaseConfig = {
     : {})
 };
 
+// Force use default config if environment variables are not working
+if (process.env.NODE_ENV === 'production' && (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)) {
+  console.warn('Environment variables not found, using default Firebase config');
+  Object.assign(firebaseConfig, defaultFirebaseConfig);
+}
+
 const usingFallbackConfig =
   !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
