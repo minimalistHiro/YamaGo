@@ -179,7 +179,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="メッセージを入力..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent pr-12"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
               maxLength={200}
               disabled={isLoading}
               autoComplete="off"
@@ -193,7 +193,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
           <button
             type="submit"
             disabled={isLoading || !newMessage.trim()}
-            className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center min-w-[60px]"
+            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center min-w-[60px]"
           >
             {isLoading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
