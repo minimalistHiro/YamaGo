@@ -1,20 +1,21 @@
-import { 
-  doc, 
-  setDoc, 
-  getDoc, 
+import {
+  doc,
+  setDoc,
+  getDoc,
   getDocs,
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  query, 
-  where, 
-  orderBy, 
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
   serverTimestamp,
-  Timestamp 
+  Timestamp,
+  Firestore
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { getFirebaseServices } from './firebase/client';
 
 // Types
 export interface Game {
@@ -54,23 +55,24 @@ export interface Capture {
 }
 
 // Game management functions
+const getDb = (): Firestore => {
+  try {
+    const { db } = getFirebaseServices();
+    return db;
+  } catch (error) {
+    console.error('Firestore service is unavailable:', error);
+    throw new Error('Firestore database is not initialized');
+  }
+};
+
 export async function createGame(ownerUid: string, gameData: Partial<Game> = {}): Promise<string> {
   try {
     console.log('Creating game for owner:', ownerUid);
+    const db = getDb();
     console.log('DB object:', db);
     console.log('DB type:', typeof db);
     console.log('DB constructor:', db?.constructor?.name);
-    
-    if (!db) {
-      console.error('Firestore database is not initialized - db is null/undefined');
-      throw new Error('Firestore database is not initialized');
-    }
-    
-    if (typeof db !== 'object') {
-      console.error('Firestore database is not an object:', typeof db);
-      throw new Error('Firestore database is not properly initialized');
-    }
-    
+
     console.log('Creating game document reference...');
     const gameRef = doc(collection(db, 'games'));
     console.log('Game reference created:', gameRef);
@@ -101,6 +103,7 @@ export async function createGame(ownerUid: string, gameData: Partial<Game> = {})
 }
 
 export async function getGame(gameId: string): Promise<Game | null> {
+  const db = getDb();
   const gameDoc = await getDoc(doc(db, 'games', gameId));
   if (!gameDoc.exists()) return null;
   
@@ -108,10 +111,12 @@ export async function getGame(gameId: string): Promise<Game | null> {
 }
 
 export async function updateGame(gameId: string, updates: Partial<Game>): Promise<void> {
+  const db = getDb();
   await updateDoc(doc(db, 'games', gameId), updates);
 }
 
 export async function updateGameOwner(gameId: string, newOwnerUid: string): Promise<void> {
+  const db = getDb();
   await updateDoc(doc(db, 'games', gameId), {
     ownerUid: newOwnerUid
   });
@@ -121,11 +126,8 @@ export async function updateGameOwner(gameId: string, newOwnerUid: string): Prom
 export async function joinGame(gameId: string, uid: string, nickname: string, role: 'oni' | 'runner' = 'runner', avatarUrl?: string): Promise<void> {
   try {
     console.log('Joining game:', { gameId, uid, nickname, role, avatarUrl });
+    const db = getDb();
     console.log('DB object:', db);
-    
-    if (!db) {
-      throw new Error('Firestore database is not initialized');
-    }
     
     // Check if this is the first player joining the game
     const existingPlayers = await getPlayers(gameId);
@@ -163,6 +165,7 @@ export async function joinGame(gameId: string, uid: string, nickname: string, ro
 }
 
 export async function getPlayer(gameId: string, uid: string): Promise<Player | null> {
+  const db = getDb();
   const playerDoc = await getDoc(doc(db, 'games', gameId, 'players', uid));
   if (!playerDoc.exists()) return null;
   
@@ -170,11 +173,13 @@ export async function getPlayer(gameId: string, uid: string): Promise<Player | n
 }
 
 export async function updatePlayer(gameId: string, uid: string, updates: Partial<Player>): Promise<void> {
+  const db = getDb();
   await updateDoc(doc(db, 'games', gameId, 'players', uid), updates);
 }
 
 export async function getPlayers(gameId: string): Promise<Player[]> {
   try {
+    const db = getDb();
     const playersRef = collection(db, 'games', gameId, 'players');
     const playersSnapshot = await getDocs(playersRef);
     
@@ -192,6 +197,7 @@ export async function getPlayers(gameId: string): Promise<Player[]> {
 
 // Location management functions
 export async function updateLocation(gameId: string, uid: string, location: Omit<Location, 'at'>): Promise<void> {
+  const db = getDb();
   const locationRef = doc(db, 'games', gameId, 'locations', uid);
   await setDoc(locationRef, {
     ...location,
@@ -200,6 +206,7 @@ export async function updateLocation(gameId: string, uid: string, location: Omit
 }
 
 export async function getLocation(gameId: string, uid: string): Promise<Location | null> {
+  const db = getDb();
   const locationDoc = await getDoc(doc(db, 'games', gameId, 'locations', uid));
   if (!locationDoc.exists()) return null;
   
@@ -208,6 +215,7 @@ export async function getLocation(gameId: string, uid: string): Promise<Location
 
 // Capture management functions
 export async function recordCapture(gameId: string, attackerUid: string, victimUid: string): Promise<string> {
+  const db = getDb();
   const captureRef = await addDoc(collection(db, 'games', gameId, 'captures'), {
     attackerUid,
     victimUid,
@@ -219,6 +227,7 @@ export async function recordCapture(gameId: string, attackerUid: string, victimU
 
 // Real-time subscriptions
 export function subscribeToGame(gameId: string, callback: (game: Game | null) => void): () => void {
+  const db = getDb();
   return onSnapshot(doc(db, 'games', gameId), (doc) => {
     if (doc.exists()) {
       callback({ id: doc.id, ...doc.data() } as Game);
@@ -229,6 +238,7 @@ export function subscribeToGame(gameId: string, callback: (game: Game | null) =>
 }
 
 export function subscribeToPlayers(gameId: string, callback: (players: Player[]) => void): () => void {
+  const db = getDb();
   const playersRef = collection(db, 'games', gameId, 'players');
   return onSnapshot(playersRef, (snapshot) => {
     const players = snapshot.docs.map(doc => doc.data() as Player);
@@ -237,6 +247,7 @@ export function subscribeToPlayers(gameId: string, callback: (players: Player[])
 }
 
 export function subscribeToLocations(gameId: string, callback: (locations: { [uid: string]: Location }) => void): () => void {
+  const db = getDb();
   const locationsRef = collection(db, 'games', gameId, 'locations');
   return onSnapshot(locationsRef, (snapshot) => {
     const locations: { [uid: string]: Location } = {};
@@ -250,11 +261,8 @@ export function subscribeToLocations(gameId: string, callback: (locations: { [ui
 export async function deletePlayer(gameId: string, uid: string): Promise<void> {
   try {
     console.log('Deleting player:', { gameId, uid });
-    
-    if (!db) {
-      throw new Error('Firestore database is not initialized');
-    }
-    
+    const db = getDb();
+
     // Delete player document
     const playerRef = doc(db, 'games', gameId, 'players', uid);
     await deleteDoc(playerRef);
