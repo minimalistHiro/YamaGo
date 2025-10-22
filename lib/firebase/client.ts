@@ -25,52 +25,62 @@ let functions: Functions | null = null;
 let analytics: Analytics | null = null;
 let storage: FirebaseStorage | null = null;
 
-// Initialize Firebase only on the client side
-if (typeof window !== 'undefined') {
-  // Check if required configuration is available
+const initializeFirebase = () => {
+  if (app && auth && db && functions && storage) {
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    throw new Error('Firebase can only be initialized in the browser runtime.');
+  }
+
   if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-    console.warn('Firebase configuration is incomplete. Please check your environment variables.');
-    console.warn('Required variables: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID');
-    console.warn('For Netlify deployment, add these as environment variables in your Netlify dashboard.');
-  } else {
+    throw new Error('Firebase configuration is incomplete. Please set the required environment variables.');
+  }
+
+  try {
+    // Initialize Firebase app using the recommended pattern
+    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    console.log('Firebase app initialized successfully');
+
+    // Initialize Firebase services
+    auth = getAuth(app);
+    db = getFirestore(app);
+    functions = getFunctions(app);
+    storage = getStorage(app);
+
+    // Initialize Analytics only when measurement ID is available
     try {
-      // Initialize Firebase app using the recommended pattern
-      app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-      console.log('Firebase app initialized successfully');
-
-      // Initialize Firebase services
-      auth = getAuth(app);
-      db = getFirestore(app);
-      functions = getFunctions(app);
-      storage = getStorage(app);
-      
-      // Initialize Analytics only in browser environment
-      analytics = getAnalytics(app);
-      
-      console.log('Firebase services initialized successfully');
-
-      // Connect to emulators only if explicitly enabled
-      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
-        try {
-          // Connect to emulators without checking existing connections
-          connectAuthEmulator(auth, 'http://localhost:9199', { disableWarnings: true });
-          connectFirestoreEmulator(db, 'localhost', 8180);
-          connectFunctionsEmulator(functions, 'localhost', 5101);
-          // Storage is using production environment
-          console.log('Firebase emulators connected successfully (Storage using production)');
-        } catch (error) {
-          // Emulators already connected or connection failed
-          console.log('Firebase emulators connection:', (error as Error).message || 'Already connected');
-        }
-      } else {
-        console.log('Firebase connected to production environment');
+      if (firebaseConfig.measurementId) {
+        analytics = getAnalytics(app);
       }
     } catch (error) {
-      console.error('Failed to initialize Firebase:', error);
-      // Don't throw error during build - just log it
+      console.log('Firebase analytics initialization skipped:', (error as Error).message);
     }
+
+    console.log('Firebase services initialized successfully');
+
+    // Connect to emulators only if explicitly enabled
+    if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
+      try {
+        // Connect to emulators without checking existing connections
+        connectAuthEmulator(auth, 'http://localhost:9199', { disableWarnings: true });
+        connectFirestoreEmulator(db, 'localhost', 8180);
+        connectFunctionsEmulator(functions, 'localhost', 5101);
+        // Storage is using production environment
+        console.log('Firebase emulators connected successfully (Storage using production)');
+      } catch (error) {
+        // Emulators already connected or connection failed
+        console.log('Firebase emulators connection:', (error as Error).message || 'Already connected');
+      }
+    } else {
+      console.log('Firebase connected to production environment');
+    }
+  } catch (error) {
+    console.error('Failed to initialize Firebase:', error);
+    throw error;
   }
-}
+};
 
 // Export services (will be null if not initialized)
 export { auth, db, functions, analytics, storage };
@@ -86,9 +96,13 @@ export const isFirebaseInitialized = (): boolean => {
 // Helper function to get Firebase services with error handling
 export const getFirebaseServices = () => {
   if (!isFirebaseInitialized()) {
+    initializeFirebase();
+  }
+
+  if (!isFirebaseInitialized()) {
     throw new Error('Firebase is not initialized. Make sure you are running this code on the client side and environment variables are set.');
   }
-  
+
   return {
     auth: auth!,
     db: db!,
