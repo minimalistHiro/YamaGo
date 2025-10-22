@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   Timestamp 
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getFirebaseServices } from '../lib/firebaseClient';
 import { getPlayer } from '../lib/game';
 
 interface ChatMessage {
@@ -57,7 +57,11 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
 
   // Subscribe to chat messages from Firestore (role-specific)
   useEffect(() => {
-    if (!gameId || !db || !playerRole) return;
+    if (!gameId || !playerRole) return;
+
+    // Get Firebase services (client-side only)
+    const { db } = getFirebaseServices();
+    if (!db) return;
 
     const messagesRef = collection(db, 'games', gameId, `messages_${playerRole}`);
     const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'));
@@ -93,7 +97,11 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !db || !playerRole) return;
+    if (!newMessage.trim() || !playerRole) return;
+
+    // Get Firebase services (client-side only)
+    const { db } = getFirebaseServices();
+    if (!db) return;
 
     setIsLoading(true);
     

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebaseClient';
 import { 
   subscribeToGame, 
   subscribeToPlayers, 
@@ -36,6 +36,9 @@ export default function PlayPage() {
   const [activeTab, setActiveTab] = useState<TabType>('map');
 
   useEffect(() => {
+    // Get Firebase services (client-side only)
+    const { auth } = getFirebaseServices();
+    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (!user) {

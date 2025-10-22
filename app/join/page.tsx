@@ -4,8 +4,17 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInAnonymously, User } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, storage } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebaseClient';
 import { joinGame, createGame } from '@/lib/game';
+
+// Note: For Netlify deployment, ensure the following environment variables are set in your Netlify dashboard:
+// - NEXT_PUBLIC_FIREBASE_API_KEY
+// - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+// - NEXT_PUBLIC_FIREBASE_PROJECT_ID
+// - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+// - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+// - NEXT_PUBLIC_FIREBASE_APP_ID
+// - NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 
 export default function JoinPage() {
   const router = useRouter();
@@ -49,6 +58,9 @@ export default function JoinPage() {
     try {
       console.log('Starting image upload...', { fileName: file.name, size: file.size });
       
+      // Get Firebase services (client-side only)
+      const { storage } = getFirebaseServices();
+      
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop() || 'jpg';
       const fileName = `avatars/${uid}_${timestamp}.${fileExtension}`;
@@ -79,6 +91,9 @@ export default function JoinPage() {
     setError('');
 
     try {
+      // Get Firebase services (client-side only)
+      const { auth } = getFirebaseServices();
+      
       // Anonymous authentication
       const userCredential = await signInAnonymously(auth);
       const uid = userCredential.user.uid;
@@ -117,6 +132,9 @@ export default function JoinPage() {
 
     try {
       console.log('Starting game creation process...');
+      
+      // Get Firebase services (client-side only)
+      const { auth } = getFirebaseServices();
       
       // Anonymous authentication
       console.log('Authenticating user...');

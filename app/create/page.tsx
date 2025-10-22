@@ -3,8 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInAnonymously, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebaseClient';
 import { createGame, joinGame, getGame } from '@/lib/game';
+
+// Note: For Netlify deployment, ensure the following environment variables are set in your Netlify dashboard:
+// - NEXT_PUBLIC_FIREBASE_API_KEY
+// - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+// - NEXT_PUBLIC_FIREBASE_PROJECT_ID
+// - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+// - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+// - NEXT_PUBLIC_FIREBASE_APP_ID
+// - NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 
 export default function CreatePage() {
   const router = useRouter();
@@ -27,6 +36,9 @@ export default function CreatePage() {
 
     try {
       console.log('Starting game creation...');
+      
+      // Get Firebase services (client-side only)
+      const { auth } = getFirebaseServices();
       console.log('Firebase auth object:', auth);
       
       // Anonymous authentication

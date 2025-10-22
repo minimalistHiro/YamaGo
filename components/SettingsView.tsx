@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
-import { auth, storage } from '@/lib/firebase';
+import { getFirebaseServices } from '@/lib/firebaseClient';
 import { deletePlayer, getGame, Game } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
 
@@ -67,6 +67,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
       
       // Delete user account
       console.log('Deleting user account...');
+      const { auth } = getFirebaseServices();
       const user = auth.currentUser;
       if (user) {
         await deleteUser(user);
@@ -96,6 +97,9 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
 
   const deleteAvatarFromStorage = async (avatarUrl: string) => {
     try {
+      // Get Firebase services (client-side only)
+      const { storage } = getFirebaseServices();
+      
       // Extract the file path from the avatar URL
       // Firebase Storage URLs typically look like:
       // https://firebasestorage.googleapis.com/v0/b/bucket/o/path%2Fto%2Ffile?alt=media&token=...
