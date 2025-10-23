@@ -26,6 +26,29 @@ service cloud.firestore {
         allow read: if true; // Anyone can read capture data
         allow write: if false; // Only Cloud Functions can write captures
       }
+
+      // Chat messages subcollections (role-based)
+      match /messages_oni/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null &&
+          request.resource.data.uid == request.auth.uid &&
+          request.resource.data.message is string &&
+          request.resource.data.message.size() > 0 &&
+          request.resource.data.message.size() <= 200;
+        allow delete: if false;
+        allow update: if false;
+      }
+
+      match /messages_runner/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null &&
+          request.resource.data.uid == request.auth.uid &&
+          request.resource.data.message is string &&
+          request.resource.data.message.size() > 0 &&
+          request.resource.data.message.size() <= 200;
+        allow delete: if false;
+        allow update: if false;
+      }
     }
   }
 }
