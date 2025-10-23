@@ -131,6 +131,7 @@ export async function joinGame(
   avatarUrl?: string
 ): Promise<void> {
   try {
+    console.log('=== JOIN GAME DEBUG ===');
     console.log('Joining game:', { gameId, uid, nickname, role, avatarUrl });
     console.log('Environment check:', {
       isClient: typeof window !== 'undefined',
@@ -139,9 +140,11 @@ export async function joinGame(
       usingFallback: !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
     });
     
+    console.log('Getting Firebase database...');
     const db = getDb();
     console.log('DB object:', db);
     console.log('DB project ID:', db.app.options.projectId);
+    console.log('=== END JOIN GAME DEBUG ===');
 
     const gameRef = doc(db, 'games', gameId);
     console.log('Game reference path:', gameRef.path);
