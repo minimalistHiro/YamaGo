@@ -20,21 +20,24 @@ const defaultFirebaseConfig = {
 } as const;
 
 // Firebase configuration for production (env vars override the defaults).
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? defaultFirebaseConfig.apiKey,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? defaultFirebaseConfig.authDomain,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? defaultFirebaseConfig.projectId,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? defaultFirebaseConfig.storageBucket,
-  messagingSenderId:
-    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? defaultFirebaseConfig.messagingSenderId,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? defaultFirebaseConfig.appId,
-  // measurementId is optional for Analytics
-  ...(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-    ? { measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }
-    : defaultFirebaseConfig.measurementId
-    ? { measurementId: defaultFirebaseConfig.measurementId }
-    : {})
-};
+// For Vercel deployment, force use default config to avoid environment variable issues
+const firebaseConfig = process.env.NODE_ENV === 'production' 
+  ? defaultFirebaseConfig 
+  : {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? defaultFirebaseConfig.apiKey,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? defaultFirebaseConfig.authDomain,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? defaultFirebaseConfig.projectId,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? defaultFirebaseConfig.storageBucket,
+      messagingSenderId:
+        process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? defaultFirebaseConfig.messagingSenderId,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? defaultFirebaseConfig.appId,
+      // measurementId is optional for Analytics
+      ...(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+        ? { measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }
+        : defaultFirebaseConfig.measurementId
+        ? { measurementId: defaultFirebaseConfig.measurementId }
+        : {})
+    };
 
 // Force use default config if environment variables are not working
 if (process.env.NODE_ENV === 'production' && (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)) {
@@ -56,34 +59,11 @@ const usingFallbackConfig =
 
 // Debug logging for environment variables
 console.log('=== FIREBASE CONFIG DEBUG ===');
-console.log('Firebase config debug:', {
+console.log('Using production config:', process.env.NODE_ENV === 'production');
+console.log('Firebase config:', {
   apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'undefined',
-  authDomain: firebaseConfig.authDomain || 'undefined',
   projectId: firebaseConfig.projectId || 'undefined',
-  storageBucket: firebaseConfig.storageBucket || 'undefined',
-  messagingSenderId: firebaseConfig.messagingSenderId || 'undefined',
-  appId: firebaseConfig.appId || 'undefined',
-  measurementId: (firebaseConfig as { measurementId?: string }).measurementId || 'undefined',
-  usingFallbackConfig,
   environment: process.env.NODE_ENV,
-  isClient: typeof window !== 'undefined',
-});
-
-console.log('=== ENVIRONMENT VARIABLES STATUS ===');
-console.log('Environment variables status:', {
-  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'SET' : 'NOT SET',
-  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'SET' : 'NOT SET',
-  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'SET' : 'NOT SET',
-  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? 'SET' : 'NOT SET',
-  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ? 'SET' : 'NOT SET',
-  NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ? 'SET' : 'NOT SET',
-  NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ? 'SET' : 'NOT SET',
-});
-
-console.log('=== RAW ENVIRONMENT VARIABLES ===');
-console.log('Raw env vars:', {
-  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
 });
 console.log('=== END DEBUG ===');
 
