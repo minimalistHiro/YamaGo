@@ -5,31 +5,37 @@ import { getFunctions, connectFunctionsEmulator, Functions } from 'firebase/func
 import { getAnalytics, Analytics } from 'firebase/analytics';
 import { getStorage, connectStorageEmulator, FirebaseStorage } from 'firebase/storage';
 
-// Firebase configuration - use consistent config for all environments
-// This ensures the same configuration is used regardless of environment variables
-// Version: v2.0 - Fixed API key validation issue
+// Firebase configuration - read from environment variables provided by Next.js
 const firebaseConfig = {
-  apiKey: 'AIzaSyC00i-DxjmLQz82xiubMkpfotc-k6MBuEI',
-  authDomain: 'yamago-2ae8d.firebaseapp.com',
-  projectId: 'yamago-2ae8d',
-  storageBucket: 'yamago-2ae8d.appspot.com',
-  messagingSenderId: '598692971255',
-  appId: '1:598692971255:web:9f5977110f979b13e609f2',
-  measurementId: 'G-NL6CP18NNK'
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Debug logging for Firebase configuration
-console.log('=== FIREBASE CONFIG DEBUG v2.0 ===');
-console.log('Environment:', process.env.NODE_ENV);
-console.log('Firebase config:', {
-  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...${firebaseConfig.apiKey.substring(firebaseConfig.apiKey.length - 3)}` : 'undefined',
-  projectId: firebaseConfig.projectId || 'undefined',
-  authDomain: firebaseConfig.authDomain || 'undefined',
-  storageBucket: firebaseConfig.storageBucket || 'undefined',
-  appId: firebaseConfig.appId || 'undefined',
-});
-console.log('Full API Key (for debugging):', firebaseConfig.apiKey);
-console.log('=== END DEBUG ===');
+// Validate Firebase configuration to fail fast if env vars are missing
+const requiredKeys: Array<keyof typeof firebaseConfig> = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId',
+];
+
+const missingKeys = requiredKeys.filter((key) => !firebaseConfig[key]);
+
+if (missingKeys.length > 0) {
+  console.error('Firebase configuration is missing required keys:', missingKeys);
+  console.error(
+    'Please ensure NEXT_PUBLIC_FIREBASE_* environment variables are configured correctly.'
+  );
+}
+
+const isConfigValid = missingKeys.length === 0;
 
 // Client-side only Firebase initialization
 // This prevents build-time crashes during SSG when environment variables are missing
@@ -41,7 +47,7 @@ let analytics: Analytics | null = null;
 let storage: FirebaseStorage | null = null;
 
 // Initialize Firebase only on the client side
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && isConfigValid) {
   try {
     // Initialize Firebase app using the recommended pattern
     app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
