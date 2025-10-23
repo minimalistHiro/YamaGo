@@ -12,7 +12,7 @@ const firebaseConfig = {
   apiKey: 'AIzaSyC00i-DxjmLQz82xiubMkpfotc-k6MBuEI',
   authDomain: 'yamago-2ae8d.firebaseapp.com',
   projectId: 'yamago-2ae8d',
-  storageBucket: 'yamago-2ae8d.firebasestorage.app',
+  storageBucket: 'yamago-2ae8d.appspot.com',
   messagingSenderId: '598692971255',
   appId: '1:598692971255:web:9f5977110f979b13e609f2',
   measurementId: 'G-NL6CP18NNK'
