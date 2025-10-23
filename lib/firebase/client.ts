@@ -39,6 +39,15 @@ const firebaseConfig = process.env.NODE_ENV === 'production'
         : {})
     };
 
+// Additional verification for production
+if (process.env.NODE_ENV === 'production') {
+  console.log('=== PRODUCTION FIREBASE CONFIG VERIFICATION ===');
+  console.log('Using default config:', firebaseConfig === defaultFirebaseConfig);
+  console.log('API Key:', firebaseConfig.apiKey);
+  console.log('Project ID:', firebaseConfig.projectId);
+  console.log('=== END VERIFICATION ===');
+}
+
 // Force use default config if environment variables are not working
 if (process.env.NODE_ENV === 'production' && (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)) {
   console.warn('Environment variables not found, using default Firebase config');
