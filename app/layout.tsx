@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import type { Metadata } from 'next';
 import './globals.css';
 
@@ -36,6 +37,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="bg-gray-50 min-h-screen">
+        <Script src="/yamago-logger.js" strategy="beforeInteractive" />
         {children}
       </body>
     </html>
