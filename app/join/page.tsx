@@ -8,7 +8,6 @@ import { signInAnonymously, User } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { joinGame, createGame } from '@/lib/game';
-import FirebaseDebug from '@/components/FirebaseDebug';
 
 // Note: For Vercel deployment, ensure the following environment variables are set in your Vercel project:
 // - NEXT_PUBLIC_FIREBASE_API_KEY
@@ -305,7 +304,6 @@ export default function JoinPage() {
           <p>• ゲーム開始30分後に鬼が有効化されます</p>
         </div>
       </div>
-      <FirebaseDebug />
     </div>
   );
 }
