@@ -248,7 +248,7 @@ export default function PlayPage() {
   return (
     <div className="h-screen flex flex-col">
       {/* Main Content */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {renderActiveTab()}
       </div>
 
