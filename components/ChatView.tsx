@@ -151,7 +151,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       </div>
 
       {/* Messages - Only this section should scroll */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 pb-20">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -197,8 +197,8 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input - Fixed at bottom */}
-      <div className="bg-white border-t border-gray-200 p-4 flex-shrink-0">
+      {/* Message Input - Fixed at bottom with more padding */}
+      <div className="bg-white border-t border-gray-200 p-4 pb-6 flex-shrink-0">
         <form onSubmit={handleSendMessage} className="flex space-x-2">
           <div className="flex-1 relative">
             <input
