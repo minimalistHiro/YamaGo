@@ -503,7 +503,7 @@ export default function MapView({
       <button
         onClick={getCurrentLocation}
         disabled={isLocating}
-        className="absolute bottom-4 right-4 bg-white hover:bg-gray-50 disabled:bg-gray-200 text-gray-700 rounded-full shadow-lg p-3 transition-colors"
+        className="absolute bottom-20 right-4 bg-white hover:bg-gray-50 disabled:bg-gray-200 text-gray-700 rounded-full shadow-lg p-3 transition-colors"
         title="現在地を表示"
       >
         {isLocating ? (
@@ -518,7 +518,7 @@ export default function MapView({
 
       {/* Current Location Indicator */}
       {currentLocation && (
-        <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3 max-w-xs">
+        <div className="absolute bottom-20 left-4 bg-white rounded-lg shadow-lg p-3 max-w-xs">
           <div className="flex items-center space-x-2 mb-1">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span className="text-sm font-medium text-gray-700">現在地</span>

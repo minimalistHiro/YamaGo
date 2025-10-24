@@ -163,7 +163,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
         <h2 className="text-lg font-semibold text-gray-800">設定</h2>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 pb-20">
         {/* Player Info */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h3 className="text-md font-medium text-gray-800 mb-3">プレイヤー情報</h3>
