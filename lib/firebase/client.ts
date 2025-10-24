@@ -16,6 +16,14 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+type FirebaseClientConfig = typeof firebaseConfig;
+
+declare global {
+  interface Window {
+    __FIREBASE_CONFIG__?: FirebaseClientConfig;
+  }
+}
+
 // Validate Firebase configuration to fail fast if env vars are missing
 const requiredKeys: Array<keyof typeof firebaseConfig> = [
   'apiKey',
@@ -39,7 +47,7 @@ const isConfigValid = missingKeys.length === 0;
 
 // Expose config for debugging so DevTools から確認できる
 if (typeof window !== 'undefined') {
-  (window as Record<string, unknown>).__FIREBASE_CONFIG__ = firebaseConfig;
+  window.__FIREBASE_CONFIG__ = firebaseConfig;
   if (process.env.NODE_ENV === 'development') {
     console.log('[YamaGo] Firebase API Key:', firebaseConfig.apiKey);
   }
