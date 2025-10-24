@@ -42,7 +42,7 @@ export default function BottomTabNavigation({ activeTab, onTabChange }: BottomTa
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-pb">
+    <div className="bg-white border-t border-gray-200 safe-area-pb">
       <div className="flex">
         {tabs.map((tab) => (
           <button
