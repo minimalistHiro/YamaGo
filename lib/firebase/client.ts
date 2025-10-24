@@ -37,6 +37,14 @@ if (missingKeys.length > 0) {
 
 const isConfigValid = missingKeys.length === 0;
 
+// Expose config for debugging so DevTools から確認できる
+if (typeof window !== 'undefined') {
+  (window as Record<string, unknown>).__FIREBASE_CONFIG__ = firebaseConfig;
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[YamaGo] Firebase API Key:', firebaseConfig.apiKey);
+  }
+}
+
 // Client-side only Firebase initialization
 // This prevents build-time crashes during SSG when environment variables are missing
 let app: FirebaseApp | null = null;
