@@ -36,6 +36,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [playerRole, setPlayerRole] = useState<'oni' | 'runner' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Get player role
   useEffect(() => {
@@ -136,16 +137,9 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   }
 
   return (
-    <div
-      className="relative min-h-[100dvh] overflow-hidden bg-white"
-      style={{
-        '--header-h': '56px',
-        '--input-h': '56px',
-        '--tab-h': '56px',
-      } as React.CSSProperties}
-    >
+    <div className="relative h-screen overflow-hidden bg-white flex flex-col">
       {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b">
+      <header className="flex-shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 z-40">
         <div className="flex items-center justify-center px-4 py-3">
           <span className={`px-4 py-2 rounded-full text-white font-medium text-sm ${
             playerRole === 'oni' 
@@ -157,13 +151,13 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
         </div>
       </header>
 
-      {/* Scrollable Messages */}
-      <main
-        className="overflow-y-auto [overscroll-behavior-y:contain]"
+      {/* Scrollable Messages Container */}
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto overscroll-contain"
         style={{
-          paddingTop: 'var(--header-h)',
-          paddingBottom: 'calc(var(--input-h) + var(--tab-h) + env(safe-area-inset-bottom))',
-          height: 'calc(100dvh - var(--header-h))',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#d1d5db transparent',
         }}
       >
         <div className="p-4 space-y-3">
@@ -211,18 +205,12 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
           ))}
           <div ref={messagesEndRef} />
         </div>
-      </main>
+      </div>
 
       {/* Fixed Message Input */}
-      <div
-        className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur border-t"
-        style={{
-          bottom: 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
-          height: 'var(--input-h)',
-        }}
-      >
-        <div className="p-4 h-full flex items-center">
-          <form onSubmit={handleSendMessage} className="flex space-x-2 w-full">
+      <div className="flex-shrink-0 bg-white/95 backdrop-blur border-t border-gray-200 z-40">
+        <div className="p-4">
+          <form onSubmit={handleSendMessage} className="flex space-x-2">
             <div className="flex-1 relative">
               <input
                 type="text"
