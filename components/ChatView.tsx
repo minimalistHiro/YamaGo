@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   collection, 
   addDoc, 
@@ -20,6 +20,7 @@ interface ChatMessage {
   message: string;
   timestamp: Timestamp;
   type: 'user' | 'system';
+  role: 'oni' | 'runner';
 }
 
 interface ChatViewProps {
@@ -35,8 +36,15 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [playerRole, setPlayerRole] = useState<'oni' | 'runner' | null>(null);
+  const [activeTab, setActiveTab] = useState<'oni' | 'runner'>('oni');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Layout constants
+  const HEADER_HEIGHT = 56;
+  const TAB_HEIGHT = 44;
+  const INPUT_HEIGHT = 52;
+  const TABBAR_HEIGHT = 60;
 
   // Get player role
   useEffect(() => {
@@ -56,37 +64,78 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
     fetchPlayerRole();
   }, [gameId, currentUser.uid]);
 
-  // Subscribe to chat messages from Firestore (role-specific)
+  // Subscribe to chat messages from Firestore (both roles)
   useEffect(() => {
-    if (!gameId || !playerRole) return;
+    if (!gameId) return;
 
     // Get Firebase services (client-side only)
     const { db } = getFirebaseServices();
     if (!db) return;
 
-    const messagesRef = collection(db, 'games', gameId, `messages_${playerRole}`);
-    const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'));
-
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const chatMessages: ChatMessage[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        chatMessages.push({
-          id: doc.id,
-          uid: data.uid,
-          nickname: data.nickname,
-          message: data.message,
-          timestamp: data.timestamp,
-          type: data.type || 'user'
+    const unsubscribeOni = onSnapshot(
+      query(collection(db, 'games', gameId, 'messages_oni'), orderBy('timestamp', 'asc')),
+      (snapshot) => {
+        const oniMessages: ChatMessage[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          oniMessages.push({
+            id: doc.id,
+            uid: data.uid,
+            nickname: data.nickname,
+            message: data.message,
+            timestamp: data.timestamp,
+            type: data.type || 'user',
+            role: 'oni'
+          });
         });
-      });
-      setMessages(chatMessages);
-    }, (error) => {
-      console.error('Error fetching messages:', error);
-    });
+        
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.role !== 'oni');
+          return [...filtered, ...oniMessages].sort((a, b) => 
+            a.timestamp?.toMillis() - b.timestamp?.toMillis()
+          );
+        });
+      },
+      (error) => console.error('Error fetching oni messages:', error)
+    );
 
-    return () => unsubscribe();
-  }, [gameId, playerRole]);
+    const unsubscribeRunner = onSnapshot(
+      query(collection(db, 'games', gameId, 'messages_runner'), orderBy('timestamp', 'asc')),
+      (snapshot) => {
+        const runnerMessages: ChatMessage[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          runnerMessages.push({
+            id: doc.id,
+            uid: data.uid,
+            nickname: data.nickname,
+            message: data.message,
+            timestamp: data.timestamp,
+            type: data.type || 'user',
+            role: 'runner'
+          });
+        });
+        
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.role !== 'runner');
+          return [...filtered, ...runnerMessages].sort((a, b) => 
+            a.timestamp?.toMillis() - b.timestamp?.toMillis()
+          );
+        });
+      },
+      (error) => console.error('Error fetching runner messages:', error)
+    );
+
+    return () => {
+      unsubscribeOni();
+      unsubscribeRunner();
+    };
+  }, [gameId]);
+
+  // Filter messages based on active tab
+  const filteredMessages = useMemo(() => {
+    return messages.filter(message => message.role === activeTab);
+  }, [messages, activeTab]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -94,11 +143,11 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [filteredMessages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !playerRole) return;
+    if (!newMessage.trim()) return;
 
     // Get Firebase services (client-side only)
     const { db } = getFirebaseServices();
@@ -107,14 +156,14 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
     setIsLoading(true);
     
     try {
-      const messagesRef = collection(db, 'games', gameId, `messages_${playerRole}`);
+      const messagesRef = collection(db, 'games', gameId, `messages_${activeTab}`);
       await addDoc(messagesRef, {
         uid: currentUser.uid,
         nickname: currentUser.nickname,
         message: newMessage.trim(),
         timestamp: serverTimestamp(),
         type: 'user',
-        role: playerRole
+        role: activeTab
       });
       
       setNewMessage('');
@@ -151,6 +200,35 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
         </div>
       </header>
 
+      {/* Fixed Top Tabs */}
+      <div 
+        className="flex-shrink-0 bg-white border-b border-gray-200 z-30"
+        style={{ height: TAB_HEIGHT }}
+      >
+        <div className="flex h-full">
+          <button
+            onClick={() => setActiveTab('oni')}
+            className={`flex-1 flex items-center justify-center text-sm font-medium transition-colors ${
+              activeTab === 'oni'
+                ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            鬼チャット
+          </button>
+          <button
+            onClick={() => setActiveTab('runner')}
+            className={`flex-1 flex items-center justify-center text-sm font-medium transition-colors ${
+              activeTab === 'runner'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            逃走者チャット
+          </button>
+        </div>
+      </div>
+
       {/* Scrollable Messages Container */}
       <div 
         ref={messagesContainerRef}
@@ -158,10 +236,11 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
         style={{
           scrollbarWidth: 'thin',
           scrollbarColor: '#d1d5db transparent',
+          paddingTop: HEADER_HEIGHT + TAB_HEIGHT,
         }}
       >
         <div className="p-4 space-y-3">
-          {messages.map((message) => (
+          {filteredMessages.map((message) => (
             <div
               key={message.id}
               className={`flex flex-col ${
@@ -185,7 +264,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
                   message.type === 'system'
                     ? 'bg-yellow-100 text-yellow-800 mx-auto'
                     : message.uid === currentUser.uid
-                    ? playerRole === 'oni'
+                    ? message.role === 'oni'
                       ? 'bg-red-500 text-white'
                       : 'bg-green-500 text-white'
                     : 'bg-white text-gray-800 border border-gray-200'
@@ -216,7 +295,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="メッセージを入力..."
+                placeholder={`${activeTab === 'oni' ? '鬼' : '逃走者'}チャットにメッセージを入力...`}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
                 maxLength={200}
                 disabled={isLoading}
