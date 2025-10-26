@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   collection, 
   addDoc, 
@@ -36,15 +36,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [playerRole, setPlayerRole] = useState<'oni' | 'runner' | null>(null);
-  const [activeTab, setActiveTab] = useState<'oni' | 'runner'>('oni');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-  // Layout constants
-  const HEADER_HEIGHT = 56;
-  const TAB_HEIGHT = 44;
-  const INPUT_HEIGHT = 52;
-  const TABBAR_HEIGHT = 60;
 
   // Get player role
   useEffect(() => {
@@ -64,78 +56,42 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
     fetchPlayerRole();
   }, [gameId, currentUser.uid]);
 
-  // Subscribe to chat messages from Firestore (both roles)
+  // Subscribe to chat messages from Firestore (single channel based on role)
   useEffect(() => {
-    if (!gameId) return;
+    if (!gameId || !playerRole) return;
 
     // Get Firebase services (client-side only)
     const { db } = getFirebaseServices();
     if (!db) return;
 
-    const unsubscribeOni = onSnapshot(
-      query(collection(db, 'games', gameId, 'messages_oni'), orderBy('timestamp', 'asc')),
+    const channel = playerRole; // 'oni' or 'runner'
+    
+    const unsubscribe = onSnapshot(
+      query(collection(db, 'games', gameId, `messages_${channel}`), orderBy('timestamp', 'asc')),
       (snapshot) => {
-        const oniMessages: ChatMessage[] = [];
+        const channelMessages: ChatMessage[] = [];
         snapshot.forEach((doc) => {
           const data = doc.data();
-          oniMessages.push({
+          channelMessages.push({
             id: doc.id,
             uid: data.uid,
             nickname: data.nickname,
             message: data.message,
             timestamp: data.timestamp,
             type: data.type || 'user',
-            role: 'oni'
+            role: channel
           });
         });
         
-        setMessages(prev => {
-          const filtered = prev.filter(m => m.role !== 'oni');
-          return [...filtered, ...oniMessages].sort((a, b) => 
-            a.timestamp?.toMillis() - b.timestamp?.toMillis()
-          );
-        });
+        setMessages(channelMessages);
       },
-      (error) => console.error('Error fetching oni messages:', error)
-    );
-
-    const unsubscribeRunner = onSnapshot(
-      query(collection(db, 'games', gameId, 'messages_runner'), orderBy('timestamp', 'asc')),
-      (snapshot) => {
-        const runnerMessages: ChatMessage[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          runnerMessages.push({
-            id: doc.id,
-            uid: data.uid,
-            nickname: data.nickname,
-            message: data.message,
-            timestamp: data.timestamp,
-            type: data.type || 'user',
-            role: 'runner'
-          });
-        });
-        
-        setMessages(prev => {
-          const filtered = prev.filter(m => m.role !== 'runner');
-          return [...filtered, ...runnerMessages].sort((a, b) => 
-            a.timestamp?.toMillis() - b.timestamp?.toMillis()
-          );
-        });
-      },
-      (error) => console.error('Error fetching runner messages:', error)
+      (error) => console.error(`Error fetching ${channel} messages:`, error)
     );
 
     return () => {
-      unsubscribeOni();
-      unsubscribeRunner();
+      unsubscribe();
     };
-  }, [gameId]);
-
-  // Filter messages based on active tab
-  const filteredMessages = useMemo(() => {
-    return messages.filter(message => message.role === activeTab);
-  }, [messages, activeTab]);
+  }, [gameId, playerRole]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -143,11 +99,11 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [filteredMessages]);
+  }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !playerRole) return;
 
     // Get Firebase services (client-side only)
     const { db } = getFirebaseServices();
@@ -156,20 +112,19 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
     setIsLoading(true);
     
     try {
-      const messagesRef = collection(db, 'games', gameId, `messages_${activeTab}`);
+      const messagesRef = collection(db, 'games', gameId, `messages_${playerRole}`);
       await addDoc(messagesRef, {
         uid: currentUser.uid,
         nickname: currentUser.nickname,
         message: newMessage.trim(),
         timestamp: serverTimestamp(),
         type: 'user',
-        role: activeTab
+        role: playerRole
       });
       
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
-      // You might want to show an error message to the user here
     } finally {
       setIsLoading(false);
     }
@@ -178,72 +133,34 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   // Show loading state while fetching player role
   if (playerRole === null) {
     return (
-      <div className="flex flex-col h-full bg-gray-50 items-center justify-center">
+      <div className="flex flex-col h-[100dvh] bg-white items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
         <p className="mt-2 text-gray-600">チャットを読み込み中...</p>
       </div>
     );
   }
 
+  // Only show chat for players with valid roles
+  if (playerRole !== 'oni' && playerRole !== 'runner') {
+    return null;
+  }
+
   return (
-    <div className="relative h-screen overflow-hidden bg-white flex flex-col">
+    <main className="flex flex-col h-[100dvh] overflow-hidden bg-white">
       {/* Fixed Header */}
-      <header className="flex-shrink-0 bg-white/95 backdrop-blur border-b border-gray-200 z-40">
-        <div className="flex items-center justify-center px-4 py-3">
-          <span className={`px-4 py-2 rounded-full text-white font-medium text-sm ${
-            playerRole === 'oni' 
-              ? 'bg-red-500' 
-              : 'bg-green-500'
-          }`}>
-            {playerRole === 'oni' ? '鬼' : '逃走者'}
-          </span>
-        </div>
+      <header className="sticky top-0 z-10 bg-white/95 backdrop-blur px-4 py-2 border-b">
+        <h1 className="text-base font-semibold">
+          {playerRole === 'oni' ? '鬼チャット' : '逃走者チャット'}
+        </h1>
       </header>
 
-      {/* Fixed Top Tabs */}
-      <div 
-        className="flex-shrink-0 bg-white border-b border-gray-200 z-30"
-        style={{ height: TAB_HEIGHT }}
-      >
-        <div className="flex h-full">
-          <button
-            onClick={() => setActiveTab('oni')}
-            className={`flex-1 flex items-center justify-center text-sm font-medium transition-colors ${
-              activeTab === 'oni'
-                ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-          >
-            鬼チャット
-          </button>
-          <button
-            onClick={() => setActiveTab('runner')}
-            className={`flex-1 flex items-center justify-center text-sm font-medium transition-colors ${
-              activeTab === 'runner'
-                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-          >
-            逃走者チャット
-          </button>
-        </div>
-      </div>
-
       {/* Scrollable Messages Container */}
-      <div 
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto overscroll-contain"
-        style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#d1d5db transparent',
-          paddingTop: HEADER_HEIGHT + TAB_HEIGHT,
-        }}
-      >
-        <div className="p-4 space-y-3">
-          {filteredMessages.map((message) => (
+      <section id="messages" className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-24">
+        <div className="space-y-3">
+          {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex flex-col ${
+              className={`flex flex-col first:mt-0 ${
                 message.uid === currentUser.uid ? 'items-end' : 'items-start'
               }`}
             >
@@ -284,43 +201,41 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
           ))}
           <div ref={messagesEndRef} />
         </div>
-      </div>
+      </section>
 
       {/* Fixed Message Input */}
-      <div className="flex-shrink-0 bg-white/95 backdrop-blur border-t border-gray-200 z-40">
-        <div className="p-4">
-          <form onSubmit={handleSendMessage} className="flex space-x-2">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={`${activeTab === 'oni' ? '鬼' : '逃走者'}チャットにメッセージを入力...`}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
-                maxLength={200}
-                disabled={isLoading}
-                autoComplete="off"
-              />
-              {newMessage.length > 0 && (
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
-                  {newMessage.length}/200
-                </div>
-              )}
-            </div>
-            <button
-              type="submit"
-              disabled={isLoading || !newMessage.trim()}
-              className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center min-w-[60px]"
-            >
-              {isLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                '送信'
-              )}
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
+      <footer className="sticky bottom-0 z-10 bg-white/95 backdrop-blur border-t px-3 py-2">
+        <form onSubmit={handleSendMessage} className="flex space-x-2">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder={`${playerRole === 'oni' ? '鬼' : '逃走者'}チャットにメッセージを入力...`}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+              maxLength={200}
+              disabled={isLoading}
+              autoComplete="off"
+            />
+            {newMessage.length > 0 && (
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                {newMessage.length}/200
+              </div>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading || !newMessage.trim()}
+            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center min-w-[60px]"
+          >
+            {isLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              '送信'
+            )}
+          </button>
+        </form>
+      </footer>
+    </main>
   );
 }
