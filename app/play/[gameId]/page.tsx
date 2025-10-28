@@ -39,6 +39,27 @@ export default function PlayPage() {
   const [activeTab, setActiveTab] = useState<TabType>('map');
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [rescuablePlayer, setRescuablePlayer] = useState<Player | null>(null);
+  
+  // Fetch current player data when switching to map or settings tab
+  useEffect(() => {
+    const fetchCurrentPlayer = async () => {
+      if (!user || !gameId) return;
+      
+      try {
+        const playerData = await getPlayer(gameId, user.uid);
+        if (playerData) {
+          setCurrentPlayer(playerData);
+        }
+      } catch (error) {
+        console.error('Error fetching current player:', error);
+      }
+    };
+    
+    // Fetch when switching to map or settings tabs
+    if (activeTab === 'map' || activeTab === 'settings') {
+      fetchCurrentPlayer();
+    }
+  }, [user, gameId, activeTab]);
 
   useEffect(() => {
     // Get Firebase services (client-side only)

@@ -38,10 +38,89 @@ export default function MapView({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const currentLocationMarker = useRef<maplibregl.Marker | null>(null);
+  const currentRadiusCircleRef = useRef<maplibregl.Popup | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isOutOfBounds, setIsOutOfBounds] = useState(false);
+
+  // Create a circle polygon for 50m radius
+  const createCirclePolygon = (lat: number, lng: number, radiusMeters: number, segments: number = 64) => {
+    const R = 6371e3; // Earth's radius in meters
+    const lat1 = lat * Math.PI / 180;
+    const lng1 = lng * Math.PI / 180;
+    
+    const d = radiusMeters / R;
+    const coordinates: Array<[number, number]> = [];
+    
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * 2 * Math.PI;
+      const lat2 = Math.asin(Math.sin(lat1) * Math.cos(d) + 
+                     Math.cos(lat1) * Math.sin(d) * Math.cos(angle));
+      const lng2 = lng1 + Math.atan2(Math.sin(angle) * Math.sin(d) * Math.cos(lat1),
+                      Math.cos(d) - Math.sin(lat1) * Math.sin(lat2));
+      
+      coordinates.push([lng2 * 180 / Math.PI, lat2 * 180 / Math.PI]);
+    }
+    
+    return coordinates;
+  };
+
+  // Update radius circle
+  const updateRadiusCircle = (lat: number, lng: number) => {
+    if (!map.current || !isMapLoaded) return;
+    
+    const circleCoords = createCirclePolygon(lat, lng, 50, 64);
+    
+    const source = map.current.getSource('current-radius-circle');
+    if (source) {
+      // Update existing source
+      (source as any).setData({
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [circleCoords]
+        },
+        properties: {}
+      });
+    } else {
+      // Add new source and layers
+      const color = currentUserRole === 'oni' ? '#ef4444' : '#22c55e';
+      
+      map.current.addSource('current-radius-circle', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [circleCoords]
+          },
+          properties: {}
+        }
+      });
+
+      map.current.addLayer({
+        id: 'current-radius-circle-fill',
+        type: 'fill',
+        source: 'current-radius-circle',
+        paint: {
+          'fill-color': color,
+          'fill-opacity': 0.15
+        }
+      });
+
+      map.current.addLayer({
+        id: 'current-radius-circle-stroke',
+        type: 'line',
+        source: 'current-radius-circle',
+        paint: {
+          'line-color': color,
+          'line-opacity': 0.4,
+          'line-width': 2
+        }
+      });
+    }
+  };
 
   // Check if current location is within Yamanote bounds
   const isWithinYamanoteBounds = (lat: number, lng: number): boolean => {
@@ -204,7 +283,22 @@ export default function MapView({
       el.style.overflow = 'hidden';
       el.style.position = 'relative';
       
-      // Add state-based styling
+      // Set role-based colors
+      if (player.role === 'oni') {
+        // Red for oni
+        el.style.backgroundColor = '#ef4444';
+        if (player.state !== 'downed' && player.state !== 'eliminated') {
+          el.style.border = '4px solid #dc2626'; // Darker red border for oni
+        }
+      } else {
+        // Green for runner
+        el.style.backgroundColor = '#22c55e';
+        if (player.state !== 'downed' && player.state !== 'eliminated') {
+          el.style.border = '4px solid #16a34a'; // Darker green border for runner
+        }
+      }
+      
+      // Add state-based styling (overrides border if needed)
       if (player.state === 'downed') {
         el.style.border = '4px solid yellow';
       } else if (player.state === 'eliminated') {
@@ -213,18 +307,11 @@ export default function MapView({
       }
       
       if (player.avatarUrl) {
-        // Use avatar image
+        // Use avatar image over the colored background
         el.style.backgroundImage = `url(${player.avatarUrl})`;
         el.style.backgroundSize = 'cover';
         el.style.backgroundPosition = 'center';
-        el.style.backgroundColor = '#f3f4f6';
-      } else {
-        // Use color based on role
-        if (player.role === 'oni') {
-          el.style.backgroundColor = '#ef4444';
-        } else {
-          el.style.backgroundColor = '#22c55e';
-        }
+        // Border color is already set above based on role
       }
 
       el.addEventListener('click', () => {
@@ -341,7 +428,8 @@ export default function MapView({
               currentLocationEl.style.width = '24px';
               currentLocationEl.style.height = '24px';
               currentLocationEl.style.borderRadius = '50%';
-              currentLocationEl.style.backgroundColor = '#ef4444';
+              // Set color based on role
+              currentLocationEl.style.backgroundColor = currentUserRole === 'oni' ? '#ef4444' : '#22c55e';
               currentLocationEl.style.border = '4px solid white';
               currentLocationEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
               currentLocationEl.style.cursor = 'pointer';
@@ -367,6 +455,9 @@ export default function MapView({
                 .addTo(map.current);
                 
               console.log('Current location marker added successfully!');
+
+              // Update radius circle
+              updateRadiusCircle(latitude, longitude);
 
               // Add popup to current location marker
               currentLocationEl.addEventListener('click', () => {
@@ -485,6 +576,9 @@ export default function MapView({
         if (map.current && currentLocationMarker.current) {
           currentLocationMarker.current.setLngLat([longitude, latitude]);
         }
+        
+        // Update radius circle during tracking
+        updateRadiusCircle(latitude, longitude);
         
         onLocationUpdate(latitude, longitude, accuracy);
       },
