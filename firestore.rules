@@ -4,8 +4,16 @@ service cloud.firestore {
     // Games collection
     match /games/{gameId} {
       allow read: if true; // Anyone can read game data
-      allow write: if request.auth != null && 
-        (resource == null || resource.data.ownerUid == request.auth.uid);
+      // Allow update to ownerUid if game has no players yet
+      allow update: if request.auth != null && (
+        resource.data.ownerUid == request.auth.uid ||
+        (
+          request.resource.data.keys().hasOnly(['ownerUid']) &&
+          !exists(/databases/$(database)/documents/games/$(gameId)/players)
+        )
+      );
+      // Allow create and delete
+      allow create, delete: if request.auth != null;
       
       // Players subcollection
       match /players/{playerId} {

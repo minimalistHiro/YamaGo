@@ -194,7 +194,6 @@ export async function joinGame(
 
     // Check if this is the first player joining the game
     const existingPlayers = await getPlayers(gameId);
-    const activePlayers = existingPlayers.filter(player => player.active);
     const existingPlayerRef = doc(db, 'games', gameId, 'players', uid);
     const existingPlayerSnapshot = await getDoc(existingPlayerRef);
     const existingPlayerData = existingPlayerSnapshot.exists()
@@ -203,12 +202,15 @@ export async function joinGame(
 
     // Count total players in the game (including inactive ones)
     const totalPlayerCount = existingPlayers.length;
-    const isFirstPlayer = totalPlayerCount === 0;
+    // Consider this player already exists in the count if they're rejoining
+    const isNewPlayer = !existingPlayerSnapshot.exists();
+    const isFirstPlayer = totalPlayerCount === 0 && isNewPlayer;
 
     console.log('Player count check:', { 
-      totalPlayers: totalPlayerCount, 
-      activePlayers: activePlayers.length,
-      isFirstPlayer 
+      totalPlayers: totalPlayerCount,
+      isNewPlayer,
+      isFirstPlayer,
+      uid
     });
 
     // If this is the first player joining the game (no players exist), make them the owner
@@ -216,14 +218,27 @@ export async function joinGame(
       console.log('First player joining - assigning oni role and updating ownerUid');
       role = 'oni';
 
-      // Update the game document's ownerUid field
-      try {
-        await updateDoc(gameRef, { ownerUid: uid });
-        console.log('Successfully updated ownerUid to:', uid);
-      } catch (error) {
-        console.warn('Could not update game ownerUid, but continuing with player creation:', error);
-        // Continue even if we can't update the owner
-        // This allows players to join games where they cannot become the owner due to security rules
+      // Check current game owner to determine if we should update
+      const currentGameData = gameSnapshot.data() as Game;
+      const currentOwnerUid = currentGameData?.ownerUid;
+      
+      console.log('Current owner check:', { 
+        currentOwnerUid, 
+        shouldUpdate: !currentOwnerUid || currentOwnerUid === 'Q07YEGZTOSfvSfENHTs5yZwrf1e2' 
+      });
+
+      // Update the game document's ownerUid field only if needed
+      if (!currentOwnerUid || currentOwnerUid === 'Q07YEGZTOSfvSfENHTs5yZwrf1e2') {
+        try {
+          await updateDoc(gameRef, { ownerUid: uid });
+          console.log('Successfully updated ownerUid to:', uid);
+        } catch (error) {
+          console.warn('Could not update game ownerUid, but continuing with player creation:', error);
+          // Continue even if we can't update the owner
+          // This allows players to join games where they cannot become the owner due to security rules
+        }
+      } else {
+        console.log('Current owner is valid, not updating:', currentOwnerUid);
       }
     } else if (existingPlayerData) {
       // Preserve existing role if the player is rejoining
