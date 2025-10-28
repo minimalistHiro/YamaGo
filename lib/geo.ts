@@ -24,8 +24,9 @@ export function haversine(lat1: number, lon1: number, lat2: number, lon2: number
  */
 export function isWithinYamanoteLine(lat: number, lng: number): boolean {
   // Simplified rectangular boundary around Yamanote Line
+  // Extended north to include Kawaguchi City (川口市)
   const minLat = 35.65; // Southern boundary
-  const maxLat = 35.75; // Northern boundary
+  const maxLat = 35.85; // Northern boundary (extended to Kawaguchi)
   const minLng = 139.65; // Western boundary
   const maxLng = 139.8; // Eastern boundary
 
@@ -37,7 +38,7 @@ export function isWithinYamanoteLine(lat: number, lng: number): boolean {
  */
 export function getYamanoteCenter(): { lat: number; lng: number } {
   return {
-    lat: 35.7,
+    lat: 35.75, // Shifted north to accommodate Kawaguchi
     lng: 139.725
   };
 }
@@ -48,6 +49,6 @@ export function getYamanoteCenter(): { lat: number; lng: number } {
 export function getYamanoteBounds(): [[number, number], [number, number]] {
   return [
     [139.65, 35.65], // Southwest corner
-    [139.8, 35.75]   // Northeast corner
+    [139.8, 35.85]   // Northeast corner (extended to Kawaguchi)
   ];
 }

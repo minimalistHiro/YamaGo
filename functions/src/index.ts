@@ -27,9 +27,10 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 }
 
 // Check if point is within Yamanote Line boundary
+// Extended north to include Kawaguchi City (川口市)
 function isWithinYamanoteLine(lat: number, lng: number): boolean {
   const minLat = 35.65;
-  const maxLat = 35.75;
+  const maxLat = 35.85; // Extended to Kawaguchi
   const minLng = 139.65;
   const maxLng = 139.8;
 
