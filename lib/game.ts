@@ -202,19 +202,14 @@ export async function joinGame(
       : null;
 
     const isFirstActivePlayer = activePlayers.length === 0;
-    const isOwnerAlreadySet = !!gameData.ownerUid && gameData.ownerUid !== uid;
 
-    const shouldAssignOni = isFirstActivePlayer && !isOwnerAlreadySet;
-
-    // If this is the first player, make them the owner and set role to 'oni'
-    if (shouldAssignOni) {
-      console.log('First active player joining - assigning oni role');
+    // If this is the first active player joining the game (0 active players), make them the owner
+    if (isFirstActivePlayer) {
+      console.log('First active player joining - assigning oni role and owner status');
       role = 'oni';
 
-      // Update game owner only if not already set to this player
-      if (gameData.ownerUid !== uid) {
-        await updateGameOwner(gameId, uid);
-      }
+      // Set this player as the owner
+      await updateGameOwner(gameId, uid);
     } else if (existingPlayerData) {
       // Preserve existing role if the player is rejoining
       role = existingPlayerData.role;
