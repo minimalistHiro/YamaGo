@@ -284,18 +284,10 @@ export default function MapView({
       el.style.position = 'relative';
       
       // Set role-based colors
-      if (player.role === 'oni') {
-        // Red for oni
-        el.style.backgroundColor = '#ef4444';
-        if (player.state !== 'downed' && player.state !== 'eliminated') {
-          el.style.border = '4px solid #dc2626'; // Darker red border for oni
-        }
-      } else {
-        // Green for runner
-        el.style.backgroundColor = '#22c55e';
-        if (player.state !== 'downed' && player.state !== 'eliminated') {
-          el.style.border = '4px solid #16a34a'; // Darker green border for runner
-        }
+      const pinColor = player.role === 'oni' ? 'red' : 'green';
+      el.style.backgroundColor = pinColor;
+      if (player.state !== 'downed' && player.state !== 'eliminated') {
+        el.style.border = `4px solid ${pinColor}`;
       }
       
       // Add state-based styling (overrides border if needed)
@@ -429,7 +421,7 @@ export default function MapView({
               currentLocationEl.style.height = '24px';
               currentLocationEl.style.borderRadius = '50%';
               // Set color based on role
-              currentLocationEl.style.backgroundColor = currentUserRole === 'oni' ? '#ef4444' : '#22c55e';
+              currentLocationEl.style.backgroundColor = currentUserRole === 'oni' ? 'red' : 'green';
               currentLocationEl.style.border = '4px solid white';
               currentLocationEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
               currentLocationEl.style.cursor = 'pointer';
