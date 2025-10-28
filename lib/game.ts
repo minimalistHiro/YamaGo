@@ -209,7 +209,14 @@ export async function joinGame(
       role = 'oni';
 
       // Set this player as the owner
-      await updateGameOwner(gameId, uid);
+      // Note: We only update ownerUid if we have permission (either we're already the owner, or security rules allow it)
+      try {
+        await updateGameOwner(gameId, uid);
+      } catch (error) {
+        console.warn('Could not update game owner, but continuing with player creation:', error);
+        // Continue even if we can't update the owner
+        // This allows players to join games where they cannot become the owner due to security rules
+      }
     } else if (existingPlayerData) {
       // Preserve existing role if the player is rejoining
       role = existingPlayerData.role;
