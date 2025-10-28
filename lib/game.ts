@@ -201,19 +201,27 @@ export async function joinGame(
       ? (existingPlayerSnapshot.data() as Player)
       : null;
 
-    const isFirstActivePlayer = activePlayers.length === 0;
+    // Count total players in the game (including inactive ones)
+    const totalPlayerCount = existingPlayers.length;
+    const isFirstPlayer = totalPlayerCount === 0;
 
-    // If this is the first active player joining the game (0 active players), make them the owner
-    if (isFirstActivePlayer) {
-      console.log('First active player joining - assigning oni role and owner status');
+    console.log('Player count check:', { 
+      totalPlayers: totalPlayerCount, 
+      activePlayers: activePlayers.length,
+      isFirstPlayer 
+    });
+
+    // If this is the first player joining the game (no players exist), make them the owner
+    if (isFirstPlayer) {
+      console.log('First player joining - assigning oni role and updating ownerUid');
       role = 'oni';
 
-      // Set this player as the owner
-      // Note: We only update ownerUid if we have permission (either we're already the owner, or security rules allow it)
+      // Update the game document's ownerUid field
       try {
-        await updateGameOwner(gameId, uid);
+        await updateDoc(gameRef, { ownerUid: uid });
+        console.log('Successfully updated ownerUid to:', uid);
       } catch (error) {
-        console.warn('Could not update game owner, but continuing with player creation:', error);
+        console.warn('Could not update game ownerUid, but continuing with player creation:', error);
         // Continue even if we can't update the owner
         // This allows players to join games where they cannot become the owner due to security rules
       }
