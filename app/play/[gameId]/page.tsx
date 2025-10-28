@@ -8,11 +8,13 @@ import {
   subscribeToGame, 
   subscribeToPlayers, 
   subscribeToLocations, 
+  subscribeToAlerts,
   updateLocation,
   getPlayer,
   Game,
   Player,
-  Location
+  Location,
+  Alert
 } from '@/lib/game';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
@@ -34,6 +36,8 @@ export default function PlayPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('map');
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [rescuablePlayer, setRescuablePlayer] = useState<Player | null>(null);
 
   useEffect(() => {
     // Get Firebase services (client-side only)
@@ -73,6 +77,20 @@ export default function PlayPage() {
       setLocations(locationsData);
     });
 
+    // Subscribe to alerts (if user is authenticated)
+    let unsubscribeAlerts: (() => void) | undefined;
+    if (user) {
+      unsubscribeAlerts = subscribeToAlerts(gameId, user.uid, (alertsData) => {
+        setAlerts(alertsData);
+        
+        // Handle alert notifications
+        if (alertsData.length > 0) {
+          const latestAlert = alertsData[0];
+          handleAlertNotification(latestAlert);
+        }
+      });
+    }
+
     // Get current player data
     const getCurrentPlayerData = async () => {
       if (!user) return;
@@ -85,8 +103,24 @@ export default function PlayPage() {
       unsubscribeGame();
       unsubscribePlayers();
       unsubscribeLocations();
+      if (unsubscribeAlerts) unsubscribeAlerts();
     };
   }, [user, gameId]);
+
+  const handleAlertNotification = (alert: Alert) => {
+    // Trigger vibration
+    if (navigator.vibrate) {
+      navigator.vibrate([80, 40, 80]);
+    }
+
+    // Show toast notification (simple alert for now)
+    const message = alert.type === 'killer-near' 
+      ? `鬼が${Math.round(alert.distanceM)}m以内に接近しています！` 
+      : `逃走者が${Math.round(alert.distanceM)}m以内にいます`;
+    
+    console.log('Alert:', message);
+    // You can implement a proper toast notification here
+  };
 
   const handleLocationUpdate = async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
@@ -104,37 +138,48 @@ export default function PlayPage() {
     }
   };
 
-  // Check for captures (simplified version - in production this would be in Cloud Functions)
+  // Check for rescuable players (downed runners within rescue radius)
   useEffect(() => {
     if (!currentPlayer || !game || game.status !== 'running') return;
+    if (currentPlayer.role !== 'runner') return;
+    if (!user) return;
 
-    const checkCaptures = () => {
-      if (currentPlayer.role === 'oni') {
-        // Check if oni is within capture radius of any runner
-        players.forEach(player => {
-          if (player.role === 'runner' && player.active) {
-            const oniLocation = user ? locations[user.uid] : null;
-            const runnerLocation = locations[player.uid];
-            
-            if (oniLocation && runnerLocation) {
-              const distance = haversine(
-                oniLocation.lat, oniLocation.lng,
-                runnerLocation.lat, runnerLocation.lng
-              );
-              
-              if (distance <= game.captureRadiusM) {
-                console.log(`Capture! ${player.nickname} is within ${distance}m`);
-                // In production, this would trigger a Cloud Function
-              }
-            }
-          }
-        });
-      }
-    };
+    const currentLocation = locations[user.uid];
+    if (!currentLocation) return;
 
-    const interval = setInterval(checkCaptures, 2000); // Check every 2 seconds
-    return () => clearInterval(interval);
+    const rescueable = players.find(player => {
+      if (player.uid === user.uid) return false;
+      if (player.state !== 'downed') return false;
+      
+      const otherLocation = locations[player.uid];
+      if (!otherLocation) return false;
+
+      const distance = haversine(
+        currentLocation.lat, currentLocation.lng,
+        otherLocation.lat, otherLocation.lng
+      );
+
+      return distance <= 50; // RESCUE_RADIUS_M
+    });
+
+    setRescuablePlayer(rescueable || null);
   }, [currentPlayer, game, players, locations, user]);
+
+  const handleRescue = async () => {
+    if (!rescuablePlayer || !user) return;
+
+    try {
+      const { getFirebaseServices } = await import('@/lib/firebase/client');
+      const { functions } = getFirebaseServices();
+      const rescueFunction = functions.httpsCallable('rescue');
+      
+      await rescueFunction({ gameId, victimUid: rescuablePlayer.uid });
+      console.log('Rescue successful');
+    } catch (error) {
+      console.error('Rescue failed:', error);
+      alert('救助に失敗しました');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -184,7 +229,9 @@ export default function PlayPage() {
       role: player.role,
       lat: locations[player.uid].lat,
       lng: locations[player.uid].lng,
-      avatarUrl: player.avatarUrl
+      avatarUrl: player.avatarUrl,
+      state: player.state,
+      lastRevealUntil: player.lastRevealUntil
     }));
 
   const oniCount = players.filter(p => p.role === 'oni' && p.active).length;
@@ -203,6 +250,7 @@ export default function PlayPage() {
               onLocationUpdate={handleLocationUpdate}
               players={mapPlayers}
               currentUserRole={currentPlayer.role}
+              currentUserId={user?.uid}
               gameStatus={game.status}
             />
             
@@ -215,6 +263,18 @@ export default function PlayPage() {
               captures={currentPlayer.stats.captures}
               capturedTimes={currentPlayer.stats.capturedTimes}
             />
+
+            {/* Rescue Button */}
+            {rescuablePlayer && (
+              <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
+                <button
+                  onClick={handleRescue}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
+                >
+                  🚑 救助する
+                </button>
+              </div>
+            )}
           </div>
         );
       case 'chat':

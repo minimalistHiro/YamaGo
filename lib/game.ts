@@ -33,6 +33,12 @@ export interface Player {
   nickname: string;
   role: 'oni' | 'runner';
   active: boolean;
+  state?: 'active' | 'downed' | 'eliminated';
+  downs?: number;
+  lastDownAt?: Date | null;
+  lastRescuedAt?: Date | null;
+  lastRevealUntil?: Date | null;
+  cooldownUntil?: Date | null;
   avatarUrl?: string;
   stats: {
     captures: number;
@@ -52,6 +58,25 @@ export interface Capture {
   attackerUid: string;
   victimUid: string;
   at: Timestamp;
+}
+
+export interface Alert {
+  id: string;
+  toUid: string;
+  type: 'killer-near' | 'runner-near';
+  distanceM: number;
+  at: Timestamp;
+  meta?: any;
+}
+
+export interface GameEvent {
+  id: string;
+  type: 'capture' | 'rescue' | 'elimination' | 'game-start' | 'game-end';
+  gameId: string;
+  actorUid?: string;
+  targetUid?: string;
+  at: Timestamp;
+  data?: any;
 }
 
 // Game management functions
@@ -204,6 +229,8 @@ export async function joinGame(
           nickname,
           role,
           active: true,
+          state: existingPlayerData.state || 'active',
+          downs: existingPlayerData.downs || 0,
           stats: {
             captures: existingPlayerData.stats?.captures ?? 0,
             capturedTimes: existingPlayerData.stats?.capturedTimes ?? 0
@@ -215,6 +242,8 @@ export async function joinGame(
           nickname,
           role,
           active: true,
+          state: 'active',
+          downs: 0,
           ...(avatarUrl ? { avatarUrl } : {}),
           stats: {
             captures: 0,
@@ -323,6 +352,36 @@ export function subscribeToLocations(gameId: string, callback: (locations: { [ui
     });
     callback(locations);
   });
+}
+
+export function subscribeToAlerts(gameId: string, uid: string, callback: (alerts: Alert[]) => void): () => void {
+  const db = getDb();
+  const alertsRef = collection(db, 'games', gameId, 'alerts');
+  return onSnapshot(
+    query(alertsRef, where('toUid', '==', uid), orderBy('at', 'desc')),
+    (snapshot) => {
+      const alerts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Alert));
+      callback(alerts);
+    }
+  );
+}
+
+export function subscribeToEvents(gameId: string, callback: (events: GameEvent[]) => void): () => void {
+  const db = getDb();
+  const eventsRef = collection(db, 'games', gameId, 'events');
+  return onSnapshot(
+    query(eventsRef, orderBy('at', 'desc')),
+    (snapshot) => {
+      const events = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as GameEvent));
+      callback(events);
+    }
+  );
 }
 
 export async function deletePlayer(gameId: string, uid: string): Promise<void> {

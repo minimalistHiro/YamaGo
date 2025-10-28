@@ -33,11 +33,19 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGameStats = exports.onGameStart = exports.onLocationWrite = void 0;
+exports.getGameStats = exports.onGameStart = exports.onLocationWrite = exports.rescue = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 const db = admin.firestore();
+// DbD Mode Constants
+const CAPTURE_RADIUS_M = 50;
+const RUNNER_SEE_KILLER_RADIUS_M = 200;
+const KILLER_DETECT_RUNNER_RADIUS_M = 500;
+const RESCUE_RADIUS_M = 50;
+const MAX_DOWNS = 3;
+const REVEAL_DURATION_SEC = 120;
+const RESCUE_COOLDOWN_SEC = 30;
 // Helper function to calculate distance between two points
 function haversine(lat1, lon1, lat2, lon2) {
     const R = 6371e3; // Earth's radius in meters
@@ -56,6 +64,143 @@ function isWithinYamanoteLine(lat, lng) {
     const maxLng = 139.8;
     return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
 }
+// Helper: Enqueue an alert
+async function enqueueAlert(gameId, toUid, type, distanceM, meta) {
+    try {
+        await db.collection('games').doc(gameId).collection('alerts').add({
+            toUid,
+            type,
+            distanceM,
+            at: admin.firestore.FieldValue.serverTimestamp(),
+            meta: meta || {}
+        });
+    }
+    catch (error) {
+        console.error(`Failed to enqueue alert for ${toUid}:`, error);
+    }
+}
+// Helper: Record a game event
+async function recordEvent(gameId, type, actorUid, targetUid, data) {
+    try {
+        await db.collection('games').doc(gameId).collection('events').add({
+            type,
+            gameId,
+            actorUid,
+            targetUid,
+            at: admin.firestore.FieldValue.serverTimestamp(),
+            data: data || {}
+        });
+    }
+    catch (error) {
+        console.error(`Failed to record event ${type}:`, error);
+    }
+}
+// Helper: Handle capture logic
+async function capture(gameId, attackerUid, victimUid) {
+    const now = admin.firestore.Timestamp.now();
+    const revealUntil = admin.firestore.Timestamp.fromMillis(now.toMillis() + REVEAL_DURATION_SEC * 1000);
+    const cooldownUntil = admin.firestore.Timestamp.fromMillis(now.toMillis() + RESCUE_COOLDOWN_SEC * 1000);
+    // Get victim data
+    const victimRef = db.collection('games').doc(gameId).collection('players').doc(victimUid);
+    const victimDoc = await victimRef.get();
+    if (!victimDoc.exists)
+        return;
+    const victimData = victimDoc.data();
+    if (!victimData || victimData.state === 'eliminated')
+        return;
+    // Increment downs
+    const newDowns = (victimData.downs || 0) + 1;
+    const newState = newDowns >= MAX_DOWNS ? 'eliminated' : 'downed';
+    // Update victim
+    await victimRef.update({
+        downs: newDowns,
+        state: newState,
+        lastDownAt: now,
+        lastRevealUntil: revealUntil,
+        cooldownUntil: cooldownUntil,
+        'stats.capturedTimes': admin.firestore.FieldValue.increment(1)
+    });
+    // Update attacker stats
+    const attackerRef = db.collection('games').doc(gameId).collection('players').doc(attackerUid);
+    await attackerRef.update({
+        'stats.captures': admin.firestore.FieldValue.increment(1)
+    });
+    // Record event
+    await recordEvent(gameId, 'capture', attackerUid, victimUid, {
+        downs: newDowns,
+        state: newState
+    });
+    console.log(`Capture! ${attackerUid} captured ${victimUid} (downs: ${newDowns}/${MAX_DOWNS})`);
+    if (newState === 'eliminated') {
+        await recordEvent(gameId, 'elimination', attackerUid, victimUid);
+    }
+}
+// Callable: Rescue function
+exports.rescue = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    const { gameId, victimUid } = data;
+    const rescuerUid = context.auth.uid;
+    if (!gameId || !victimUid) {
+        throw new functions.https.HttpsError('invalid-argument', 'gameId and victimUid are required');
+    }
+    try {
+        // Get rescuer location
+        const rescuerLocationDoc = await db.collection('games').doc(gameId).collection('locations').doc(rescuerUid).get();
+        if (!rescuerLocationDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'Rescuer location not found');
+        }
+        const rescuerLocation = rescuerLocationDoc.data();
+        if (!rescuerLocation) {
+            throw new functions.https.HttpsError('not-found', 'Rescuer location data not found');
+        }
+        // Get victim location
+        const victimLocationDoc = await db.collection('games').doc(gameId).collection('locations').doc(victimUid).get();
+        if (!victimLocationDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'Victim location not found');
+        }
+        const victimLocation = victimLocationDoc.data();
+        if (!victimLocation) {
+            throw new functions.https.HttpsError('not-found', 'Victim location data not found');
+        }
+        // Check distance
+        const distance = haversine(rescuerLocation.lat, rescuerLocation.lng, victimLocation.lat, victimLocation.lng);
+        if (distance > RESCUE_RADIUS_M) {
+            throw new functions.https.HttpsError('failed-precondition', `Victim is ${Math.round(distance)}m away (need ${RESCUE_RADIUS_M}m)`);
+        }
+        // Get victim data
+        const victimRef = db.collection('games').doc(gameId).collection('players').doc(victimUid);
+        const victimDoc = await victimRef.get();
+        if (!victimDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'Victim not found');
+        }
+        const victimData = victimDoc.data();
+        if (!victimData) {
+            throw new functions.https.HttpsError('not-found', 'Victim data not found');
+        }
+        if (victimData.state !== 'downed') {
+            throw new functions.https.HttpsError('failed-precondition', 'Victim is not in downed state');
+        }
+        // Perform rescue
+        const now = admin.firestore.Timestamp.now();
+        await victimRef.update({
+            state: 'active',
+            lastRescuedAt: now
+        });
+        // Record event
+        await recordEvent(gameId, 'rescue', rescuerUid, victimUid);
+        console.log(`Rescue! ${rescuerUid} rescued ${victimUid}`);
+        return { success: true, distance };
+    }
+    catch (error) {
+        console.error('Rescue error:', error);
+        if (error instanceof functions.https.HttpsError) {
+            throw error;
+        }
+        throw new functions.https.HttpsError('internal', 'Failed to perform rescue');
+    }
+});
 // Triggered when a location is updated
 exports.onLocationWrite = functions.firestore
     .document('games/{gameId}/locations/{uid}')
@@ -72,13 +217,11 @@ exports.onLocationWrite = functions.firestore
     // Check if player is within Yamanote Line boundary
     if (!isWithinYamanoteLine(lat, lng)) {
         console.log(`Player ${uid} is outside Yamanote Line boundary`);
-        // Get player data
         const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
         const playerDoc = await playerRef.get();
         if (playerDoc.exists) {
             const playerData = playerDoc.data();
             if (playerData && playerData.role === 'runner') {
-                // Convert runner to oni
                 await playerRef.update({
                     role: 'oni',
                     'stats.captures': admin.firestore.FieldValue.increment(0)
@@ -104,43 +247,58 @@ exports.onLocationWrite = functions.firestore
     const playerData = playerDoc.data();
     if (!playerData || !playerData.active)
         return;
-    // If player is oni, check for captures
-    if (playerData.role === 'oni') {
-        const captureRadius = gameData.captureRadiusM || 50;
-        // Get all other players' locations
-        const locationsSnapshot = await db.collection('games').doc(gameId).collection('locations').get();
-        for (const locationDoc of locationsSnapshot.docs) {
-            if (locationDoc.id === uid)
-                continue; // Skip self
-            const otherLocationData = locationDoc.data();
-            if (!otherLocationData)
-                continue;
-            // Get other player data
-            const otherPlayerRef = db.collection('games').doc(gameId).collection('players').doc(locationDoc.id);
-            const otherPlayerDoc = await otherPlayerRef.get();
-            if (!otherPlayerDoc.exists)
-                continue;
-            const otherPlayerData = otherPlayerDoc.data();
-            if (!otherPlayerData || !otherPlayerData.active || otherPlayerData.role !== 'runner')
-                continue;
-            // Calculate distance
-            const distance = haversine(lat, lng, otherLocationData.lat, otherLocationData.lng);
-            if (distance <= captureRadius) {
-                // Record capture
-                await db.collection('games').doc(gameId).collection('captures').add({
-                    attackerUid: uid,
-                    victimUid: locationDoc.id,
-                    at: admin.firestore.FieldValue.serverTimestamp()
-                });
-                // Update stats
-                await playerRef.update({
-                    'stats.captures': admin.firestore.FieldValue.increment(1)
-                });
-                await otherPlayerRef.update({
-                    'stats.capturedTimes': admin.firestore.FieldValue.increment(1)
-                });
-                console.log(`Capture! ${uid} captured ${locationDoc.id} at distance ${distance}m`);
+    // Get all other players' locations
+    const locationsSnapshot = await db.collection('games').doc(gameId).collection('locations').get();
+    for (const locationDoc of locationsSnapshot.docs) {
+        if (locationDoc.id === uid)
+            continue; // Skip self
+        const otherLocationData = locationDoc.data();
+        if (!otherLocationData)
+            continue;
+        // Get other player data
+        const otherPlayerRef = db.collection('games').doc(gameId).collection('players').doc(locationDoc.id);
+        const otherPlayerDoc = await otherPlayerRef.get();
+        if (!otherPlayerDoc.exists)
+            continue;
+        const otherPlayerData = otherPlayerDoc.data();
+        if (!otherPlayerData || !otherPlayerData.active)
+            continue;
+        // Calculate distance
+        const distance = haversine(lat, lng, otherLocationData.lat, otherLocationData.lng);
+        // Check if in cooldown
+        const now = admin.firestore.Timestamp.now();
+        const inCooldown = otherPlayerData.cooldownUntil && otherPlayerData.cooldownUntil.toMillis() > now.toMillis();
+        // DbD Logic Branches
+        // 1. CAPTURE: Oni catches runner within 50m (if not in cooldown)
+        if (playerData.role === 'oni' && otherPlayerData.role === 'runner' &&
+            otherPlayerData.state !== 'eliminated' && otherPlayerData.state !== 'downed' && !inCooldown) {
+            if (distance <= CAPTURE_RADIUS_M) {
+                await capture(gameId, uid, locationDoc.id);
             }
+        }
+        // 2. KILLER → RUNNER detection (500m radius)
+        if (playerData.role === 'oni' && otherPlayerData.role === 'runner' &&
+            otherPlayerData.state === 'active') {
+            if (distance <= KILLER_DETECT_RUNNER_RADIUS_M) {
+                // Killer can see runners within 500m (handled by frontend map visualization)
+                // No alert needed - map will show them
+            }
+        }
+        // 3. RUNNER → KILLER detection (500m alert, 200m precise)
+        if (playerData.role === 'runner' && otherPlayerData.role === 'oni') {
+            if (distance <= KILLER_DETECT_RUNNER_RADIUS_M) {
+                // Runner within 500m - send alert
+                await enqueueAlert(gameId, uid, 'runner-near', distance);
+            }
+            // If within 200m, frontend will show precise position
+        }
+        // 4. MUTUAL VISIBILITY during reveal period
+        const nowTS = admin.firestore.Timestamp.now();
+        const isRevealed = otherPlayerData.lastRevealUntil &&
+            otherPlayerData.lastRevealUntil.toMillis() > nowTS.toMillis();
+        if (isRevealed && playerData.state === 'active') {
+            // During reveal, both parties see each other (handled by frontend)
+            // No additional logic needed
         }
     }
 });
@@ -154,23 +312,22 @@ exports.onGameStart = functions.firestore
         const gameId = context.params.gameId;
         const startDelaySec = after.startDelaySec || 1800; // 30 minutes default
         console.log(`Game ${gameId} started, oni will be enabled in ${startDelaySec} seconds`);
-        // Schedule oni activation
-        setTimeout(async () => {
-            try {
-                // Get all players
-                const playersSnapshot = await db.collection('games').doc(gameId).collection('players').get();
-                for (const playerDoc of playersSnapshot.docs) {
-                    const playerData = playerDoc.data();
-                    if (playerData && playerData.active && playerData.role === 'oni') {
-                        // Activate oni (in a real implementation, you might want to add an 'active' field)
-                        console.log(`Activating oni: ${playerDoc.id}`);
-                    }
-                }
-            }
-            catch (error) {
-                console.error('Error activating oni:', error);
-            }
-        }, startDelaySec * 1000);
+        // Record game start event
+        await recordEvent(gameId, 'game-start');
+        // Initialize all players to active state with no downs
+        const playersSnapshot = await db.collection('games').doc(gameId).collection('players').get();
+        const batch = db.batch();
+        for (const playerDoc of playersSnapshot.docs) {
+            batch.update(playerDoc.ref, {
+                state: 'active',
+                downs: 0,
+                lastDownAt: null,
+                lastRescuedAt: null,
+                lastRevealUntil: null,
+                cooldownUntil: null
+            });
+        }
+        await batch.commit();
     }
 });
 // HTTP function to get game stats
@@ -193,12 +350,19 @@ exports.getGameStats = functions.https.onRequest(async (req, res) => {
         // Get captures count
         const capturesSnapshot = await db.collection('games').doc(gameId).collection('captures').get();
         const captures = capturesSnapshot.docs.map(doc => doc.data());
+        // Get events count
+        const eventsSnapshot = await db.collection('games').doc(gameId).collection('events').get();
+        const events = eventsSnapshot.docs.map(doc => doc.data());
         res.json({
             game: gameData,
             players: players.length,
             oniCount: players.filter(p => p.role === 'oni' && p.active).length,
             runnerCount: players.filter(p => p.role === 'runner' && p.active).length,
-            captures: captures.length
+            captures: captures.length,
+            events: events.length,
+            activePlayers: players.filter(p => p.state === 'active').length,
+            downedPlayers: players.filter(p => p.state === 'downed').length,
+            eliminatedPlayers: players.filter(p => p.state === 'eliminated').length
         });
     }
     catch (error) {

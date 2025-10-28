@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getYamanoteCenter, getYamanoteBounds } from '@/lib/geo';
+import { haversine } from '@/lib/geo';
+import { 
+  RUNNER_SEE_KILLER_RADIUS_M, 
+  KILLER_DETECT_RUNNER_RADIUS_M,
+  RESCUE_RADIUS_M 
+} from '@/lib/constants';
 
 interface MapViewProps {
   onLocationUpdate?: (lat: number, lng: number, accuracy: number) => void;
@@ -14,8 +20,11 @@ interface MapViewProps {
     lat: number;
     lng: number;
     avatarUrl?: string;
+    state?: 'active' | 'downed' | 'eliminated';
+    lastRevealUntil?: Date | null;
   }>;
   currentUserRole?: 'oni' | 'runner';
+  currentUserId?: string;
   gameStatus?: 'pending' | 'running' | 'ended';
 }
 
@@ -23,6 +32,7 @@ export default function MapView({
   onLocationUpdate, 
   players = [], 
   currentUserRole,
+  currentUserId,
   gameStatus 
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -140,8 +150,49 @@ export default function MapView({
     const existingMarkers = document.querySelectorAll('.player-marker');
     existingMarkers.forEach(marker => marker.remove());
 
+    // Get current user's location for distance calculations
+    const currentUserLocation = currentLocation;
+
+    // Filter and display players based on DbD visibility rules
+    const visiblePlayers = players.filter(player => {
+      // Don't show self
+      if (player.uid === currentUserId) return false;
+
+      // If no current location, don't show any remote players
+      if (!currentUserLocation) return false;
+
+      // Calculate distance
+      const distance = haversine(
+        currentUserLocation.lat, currentUserLocation.lng,
+        player.lat, player.lng
+      );
+
+      // DbD Visibility Rules
+      if (currentUserRole === 'oni') {
+        // Killer can see all runners within detection radius
+        if (player.role === 'runner' && player.state !== 'eliminated') {
+          return distance <= KILLER_DETECT_RUNNER_RADIUS_M;
+        }
+        // Killer can see other killers
+        if (player.role === 'oni') {
+          return true;
+        }
+      } else if (currentUserRole === 'runner') {
+        // Runner can see other runners at all times
+        if (player.role === 'runner') {
+          return true;
+        }
+        // Runner can see killers only within specific radius (200m precise, 500m alert)
+        if (player.role === 'oni') {
+          return distance <= RUNNER_SEE_KILLER_RADIUS_M;
+        }
+      }
+
+      return false;
+    });
+
     // Add new markers
-    players.forEach(player => {
+    visiblePlayers.forEach(player => {
       const el = document.createElement('div');
       el.className = 'player-marker';
       el.style.width = '32px';
@@ -152,6 +203,14 @@ export default function MapView({
       el.style.cursor = 'pointer';
       el.style.overflow = 'hidden';
       el.style.position = 'relative';
+      
+      // Add state-based styling
+      if (player.state === 'downed') {
+        el.style.border = '4px solid yellow';
+      } else if (player.state === 'eliminated') {
+        el.style.opacity = '0.3';
+        el.style.border = '3px solid gray';
+      }
       
       if (player.avatarUrl) {
         // Use avatar image
@@ -196,7 +255,7 @@ export default function MapView({
         .setLngLat([player.lng, player.lat])
         .addTo(map.current!);
     });
-  }, [players, isMapLoaded]);
+  }, [players, isMapLoaded, currentUserId, currentUserRole, currentLocation]);
 
   // Get current location function with improved error handling and retry mechanism
   const getCurrentLocation = () => {
