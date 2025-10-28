@@ -155,7 +155,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       </header>
 
       {/* Scrollable Messages Container */}
-      <section id="messages" className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-24">
+      <section id="messages" className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-2">
         <div className="space-y-3">
           {messages.map((message) => (
             <div

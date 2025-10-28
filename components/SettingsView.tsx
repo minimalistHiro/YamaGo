@@ -157,13 +157,15 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
   }
 
   return (
-    <div className="h-full bg-gray-50 overflow-y-auto">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4">
+    <div className="h-full bg-gray-50 flex flex-col">
+      {/* Header - 固定表示 */}
+      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <h2 className="text-lg font-semibold text-gray-800">設定</h2>
       </div>
 
-      <div className="p-4 space-y-6 pb-20">
+      {/* 設定コンテンツ部分 - スクロール可能 */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-6 pb-20">
         {/* Player Info */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h3 className="text-md font-medium text-gray-800 mb-3">プレイヤー情報</h3>
@@ -335,6 +337,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
               <span>Yamago Team</span>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
