@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInAnonymously, User } from 'firebase/auth';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { joinGame, createGame } from '@/lib/game';
@@ -94,7 +95,7 @@ export default function JoinPage() {
 
     try {
       // Get Firebase services (client-side only)
-      const { auth } = getFirebaseServices();
+      const { auth, db } = getFirebaseServices();
       
       // Anonymous authentication
       const userCredential = await signInAnonymously(auth);
@@ -104,6 +105,30 @@ export default function JoinPage() {
       let avatarUrl = '';
       if (selectedImage) {
         avatarUrl = await uploadImageToStorage(selectedImage, uid);
+      }
+
+      // Check current player count and update owner if this is the first player
+      try {
+        const gameRef = doc(db, 'games', gameId);
+        const gameSnap = await getDoc(gameRef);
+
+        if (gameSnap.exists()) {
+          const gameData = gameSnap.data();
+          const playersField = gameData?.players;
+          const playerCount = Array.isArray(playersField)
+            ? playersField.length
+            : typeof playersField === 'number'
+              ? playersField
+              : playersField && typeof playersField === 'object'
+                ? Object.keys(playersField).length
+                : 0;
+
+          if (playerCount === 0) {
+            await updateDoc(gameRef, { ownerUid: uid });
+          }
+        }
+      } catch (firestoreError) {
+        console.warn('Failed to update owner before joining game:', firestoreError);
       }
 
       // Join existing game
