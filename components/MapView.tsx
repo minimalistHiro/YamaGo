@@ -29,8 +29,21 @@ interface MapViewProps {
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
-  oni: 'red',
-  runner: 'green',
+  oni: '#ef4444',
+  runner: '#16a34a',
+};
+
+const ROLE_PIN_STYLES: Record<'oni' | 'runner', { fill: string; border: string; label: string }> = {
+  oni: {
+    fill: ROLE_COLORS.oni,
+    border: '#7f1d1d',
+    label: '鬼',
+  },
+  runner: {
+    fill: ROLE_COLORS.runner,
+    border: '#14532d',
+    label: '投',
+  },
 };
 
 export default function MapView({
@@ -49,6 +62,99 @@ export default function MapView({
   const [isLocating, setIsLocating] = useState(false);
   const [isOutOfBounds, setIsOutOfBounds] = useState(false);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
+  const createPlayerMarkerElement = (player: NonNullable<MapViewProps['players']>[number]) => {
+    const style = ROLE_PIN_STYLES[player.role];
+    const markerElement = document.createElement('div');
+    markerElement.className = 'player-marker';
+    markerElement.style.width = '34px';
+    markerElement.style.height = '44px';
+    markerElement.style.position = 'relative';
+    markerElement.style.display = 'flex';
+    markerElement.style.alignItems = 'center';
+    markerElement.style.justifyContent = 'center';
+    markerElement.style.pointerEvents = 'auto';
+    markerElement.style.cursor = 'pointer';
+    markerElement.style.transition = 'transform 0.15s ease';
+    markerElement.style.transformOrigin = 'bottom center';
+    markerElement.title = player.nickname;
+
+    const pinHead = document.createElement('div');
+    pinHead.style.width = '30px';
+    pinHead.style.height = '30px';
+    pinHead.style.borderRadius = '50%';
+    pinHead.style.background = style.fill;
+    pinHead.style.border = `3px solid ${style.border}`;
+    pinHead.style.boxShadow = '0 4px 12px rgba(0,0,0,0.35)';
+    pinHead.style.display = 'flex';
+    pinHead.style.alignItems = 'center';
+    pinHead.style.justifyContent = 'center';
+    pinHead.style.color = '#fff';
+    pinHead.style.fontSize = '12px';
+    pinHead.style.fontWeight = 'bold';
+    pinHead.style.position = 'relative';
+    pinHead.style.overflow = 'hidden';
+
+    if (player.avatarUrl) {
+      const avatarImg = document.createElement('img');
+      avatarImg.src = player.avatarUrl;
+      avatarImg.alt = player.nickname;
+      avatarImg.style.width = '100%';
+      avatarImg.style.height = '100%';
+      avatarImg.style.objectFit = 'cover';
+      pinHead.appendChild(avatarImg);
+    } else {
+      const initials = document.createElement('span');
+      const firstChar = player.nickname?.charAt(0) ?? '';
+      initials.textContent = firstChar.toUpperCase();
+      initials.style.textShadow = '0 1px 2px rgba(0,0,0,0.35)';
+      pinHead.appendChild(initials);
+    }
+
+    const roleBadge = document.createElement('div');
+    roleBadge.textContent = style.label;
+    roleBadge.style.position = 'absolute';
+    roleBadge.style.bottom = '-12px';
+    roleBadge.style.left = '50%';
+    roleBadge.style.transform = 'translateX(-50%)';
+    roleBadge.style.background = '#0f172a';
+    roleBadge.style.color = '#fff';
+    roleBadge.style.fontSize = '10px';
+    roleBadge.style.fontWeight = 'bold';
+    roleBadge.style.padding = '2px 6px';
+    roleBadge.style.borderRadius = '999px';
+    roleBadge.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+
+    const pinPointer = document.createElement('div');
+    pinPointer.style.position = 'absolute';
+    pinPointer.style.bottom = '0';
+    pinPointer.style.left = '50%';
+    pinPointer.style.transform = 'translate(-50%, 4px)';
+    pinPointer.style.width = '0';
+    pinPointer.style.height = '0';
+    pinPointer.style.borderLeft = '9px solid transparent';
+    pinPointer.style.borderRight = '9px solid transparent';
+    pinPointer.style.borderTop = `14px solid ${style.fill}`;
+    pinPointer.style.filter = 'drop-shadow(0 3px 4px rgba(0,0,0,0.25))';
+
+    if (player.state === 'downed') {
+      pinHead.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.75)';
+    } else if (player.state === 'eliminated') {
+      markerElement.style.opacity = '0.3';
+    }
+
+    markerElement.appendChild(pinHead);
+    markerElement.appendChild(roleBadge);
+    markerElement.appendChild(pinPointer);
+
+    markerElement.addEventListener('mouseenter', () => {
+      markerElement.style.transform = 'translateY(-4px) scale(1.05)';
+    });
+    markerElement.addEventListener('mouseleave', () => {
+      markerElement.style.transform = 'translateY(0) scale(1)';
+    });
+
+    return markerElement;
+  };
 
   // Create a circle polygon for 50m radius
   const createCirclePolygon = (lat: number, lng: number, radiusMeters: number, segments: number = 64) => {
@@ -278,34 +384,7 @@ export default function MapView({
 
     // Add new markers
     visiblePlayers.forEach(player => {
-      const pinColor = getPinColor(player.role);
-      const markerElement = document.createElement('div');
-      markerElement.className = 'player-marker';
-      markerElement.style.width = '18px';
-      markerElement.style.height = '18px';
-      markerElement.style.borderRadius = '50%';
-      markerElement.style.background = pinColor;
-      markerElement.style.border = '2px solid #000';
-      markerElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-      markerElement.style.boxSizing = 'border-box';
-      markerElement.style.cursor = 'pointer';
-      markerElement.style.display = 'flex';
-      markerElement.style.alignItems = 'center';
-      markerElement.style.justifyContent = 'center';
-      markerElement.style.color = '#fff';
-      markerElement.style.fontSize = '10px';
-      markerElement.style.fontWeight = 'bold';
-
-      // De-emphasize special states while keeping pin color visible
-      if (player.state === 'downed') {
-        markerElement.style.border = '2px solid yellow';
-      } else if (player.state === 'eliminated') {
-        markerElement.style.opacity = '0.3';
-      }
-
-      markerElement.title = player.nickname;
-      markerElement.textContent = player.role === 'oni' ? 'O' : 'R';
-
+      const markerElement = createPlayerMarkerElement(player);
       markerElement.addEventListener('click', () => {
         new maplibregl.Popup()
           .setLngLat([player.lng, player.lat])
@@ -330,7 +409,7 @@ export default function MapView({
           .addTo(map.current!);
       });
 
-      new maplibregl.Marker(markerElement)
+      new maplibregl.Marker({ element: markerElement, anchor: 'bottom' })
         .setLngLat([player.lng, player.lat])
         .addTo(map.current!);
     });
