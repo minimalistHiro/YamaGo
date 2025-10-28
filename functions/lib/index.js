@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGameStats = exports.onGameStart = exports.onLocationWrite = exports.rescue = void 0;
+exports.getGameStats = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.rescue = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
@@ -328,6 +328,59 @@ exports.onGameStart = functions.firestore
             });
         }
         await batch.commit();
+    }
+});
+// When the first active player joins a game, make them the owner if the game
+// currently has no active players (or no players at all). This mirrors the
+// client-side behavior but runs with admin privileges so it isn't blocked by
+// security rules.
+exports.setOwnerOnFirstPlayerJoin = functions.firestore
+    .document('games/{gameId}/players/{playerId}')
+    .onCreate(async (snapshot, context) => {
+    var _a;
+    const gameId = context.params.gameId;
+    const playerId = context.params.playerId;
+    const playerData = snapshot.data();
+    if (!playerData) {
+        console.warn(`[owner-update] Player data missing for ${gameId}/${playerId}`);
+        return;
+    }
+    // Only consider players who are joining as active participants.
+    if (playerData.active === false) {
+        console.log(`[owner-update] Player ${playerId} joined inactive; skipping owner update.`);
+        return;
+    }
+    try {
+        const playersRef = db.collection('games').doc(gameId).collection('players');
+        const playersSnapshot = await playersRef.get();
+        // Determine if there are any other active players besides the one that just joined.
+        const otherActivePlayers = playersSnapshot.docs.filter(doc => {
+            if (doc.id === playerId) {
+                return false;
+            }
+            const data = doc.data();
+            return data && data.active !== false;
+        });
+        if (otherActivePlayers.length > 0) {
+            console.log(`[owner-update] Game ${gameId} already has other active players; skipping owner update.`);
+            return;
+        }
+        const gameRef = db.collection('games').doc(gameId);
+        const gameDoc = await gameRef.get();
+        if (!gameDoc.exists) {
+            console.warn(`[owner-update] Game ${gameId} not found while assigning owner.`);
+            return;
+        }
+        const currentOwnerUid = (_a = gameDoc.data()) === null || _a === void 0 ? void 0 : _a.ownerUid;
+        if (currentOwnerUid === playerId) {
+            console.log(`[owner-update] Player ${playerId} is already the owner of game ${gameId}.`);
+            return;
+        }
+        await gameRef.update({ ownerUid: playerId });
+        console.log(`[owner-update] Game ${gameId} owner set to ${playerId}.`);
+    }
+    catch (error) {
+        console.error(`[owner-update] Failed to set owner for game ${gameId}:`, error);
     }
 });
 // HTTP function to get game stats
