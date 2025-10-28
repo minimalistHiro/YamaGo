@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { 
   subscribeToGame, 
@@ -169,9 +170,8 @@ export default function PlayPage() {
     if (!rescuablePlayer || !user) return;
 
     try {
-      const { getFirebaseServices } = await import('@/lib/firebase/client');
       const { functions } = getFirebaseServices();
-      const rescueFunction = functions.httpsCallable('rescue');
+      const rescueFunction = httpsCallable(functions, 'rescue');
       
       await rescueFunction({ gameId, victimUid: rescuablePlayer.uid });
       console.log('Rescue successful');
