@@ -758,23 +758,6 @@ export default function MapView({
         )}
       </button>
 
-      {/* Current Location Indicator */}
-      {currentLocation && (
-        <div className="absolute bottom-20 left-4 bg-white rounded-lg shadow-lg p-3 max-w-xs">
-          <div className="flex items-center space-x-2 mb-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-sm font-medium text-gray-700">現在地</span>
-          </div>
-          <div className="text-xs text-gray-600">
-            <div>緯度: {currentLocation.lat.toFixed(6)}</div>
-            <div>経度: {currentLocation.lng.toFixed(6)}</div>
-            {currentLocation.accuracy && (
-              <div>精度: ±{currentLocation.accuracy.toFixed(0)}m</div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Out of bounds overlay */}
       {isOutOfBounds && (
         <>
