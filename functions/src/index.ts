@@ -350,6 +350,68 @@ export const onGameStart = functions.firestore
     }
   });
 
+// When the first active player joins a game, make them the owner if the game
+// currently has no active players (or no players at all). This mirrors the
+// client-side behavior but runs with admin privileges so it isn't blocked by
+// security rules.
+export const setOwnerOnFirstPlayerJoin = functions.firestore
+  .document('games/{gameId}/players/{playerId}')
+  .onCreate(async (snapshot, context) => {
+    const gameId = context.params.gameId as string;
+    const playerId = context.params.playerId as string;
+    const playerData = snapshot.data();
+
+    if (!playerData) {
+      console.warn(`[owner-update] Player data missing for ${gameId}/${playerId}`);
+      return;
+    }
+
+    // Only consider players who are joining as active participants.
+    if (playerData.active === false) {
+      console.log(`[owner-update] Player ${playerId} joined inactive; skipping owner update.`);
+      return;
+    }
+
+    try {
+      const playersRef = db.collection('games').doc(gameId).collection('players');
+      const playersSnapshot = await playersRef.get();
+
+      // Determine if there are any other active players besides the one that just joined.
+      const otherActivePlayers = playersSnapshot.docs.filter(doc => {
+        if (doc.id === playerId) {
+          return false;
+        }
+
+        const data = doc.data();
+        return data && data.active !== false;
+      });
+
+      if (otherActivePlayers.length > 0) {
+        console.log(`[owner-update] Game ${gameId} already has other active players; skipping owner update.`);
+        return;
+      }
+
+      const gameRef = db.collection('games').doc(gameId);
+      const gameDoc = await gameRef.get();
+
+      if (!gameDoc.exists) {
+        console.warn(`[owner-update] Game ${gameId} not found while assigning owner.`);
+        return;
+      }
+
+      const currentOwnerUid = gameDoc.data()?.ownerUid;
+      if (currentOwnerUid === playerId) {
+        console.log(`[owner-update] Player ${playerId} is already the owner of game ${gameId}.`);
+        return;
+      }
+
+      await gameRef.update({ ownerUid: playerId });
+      console.log(`[owner-update] Game ${gameId} owner set to ${playerId}.`);
+    } catch (error) {
+      console.error(`[owner-update] Failed to set owner for game ${gameId}:`, error);
+    }
+  });
+
 // HTTP function to get game stats
 export const getGameStats = functions.https.onRequest(async (req, res) => {
   const gameId = req.query.gameId as string;
