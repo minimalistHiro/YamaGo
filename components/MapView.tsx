@@ -29,20 +29,22 @@ interface MapViewProps {
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
-  oni: '#ef4444',
-  runner: '#16a34a',
+  oni: '#dc2626', // 鮮やかな赤色（鬼）
+  runner: '#22c55e', // 鮮やかな緑色（逃走者）
 };
 
-const ROLE_PIN_STYLES: Record<'oni' | 'runner', { fill: string; border: string; label: string }> = {
+const ROLE_PIN_STYLES: Record<'oni' | 'runner', { fill: string; border: string; label: string; icon: string }> = {
   oni: {
     fill: ROLE_COLORS.oni,
-    border: '#7f1d1d',
-    label: '鬼',
+    border: '#991b1b', // より濃い赤のボーダー
+    label: '👹', // 鬼の絵文字
+    icon: '👹',
   },
   runner: {
     fill: ROLE_COLORS.runner,
-    border: '#14532d',
-    label: '投',
+    border: '#15803d', // より濃い緑のボーダー
+    label: '🏃', // 走る人の絵文字
+    icon: '🏃',
   },
 };
 
@@ -66,8 +68,8 @@ export default function MapView({
     const style = ROLE_PIN_STYLES[player.role];
     const markerElement = document.createElement('div');
     markerElement.className = 'player-marker';
-    markerElement.style.width = '34px';
-    markerElement.style.height = '44px';
+    markerElement.style.width = '40px';
+    markerElement.style.height = '50px';
     markerElement.style.position = 'relative';
     markerElement.style.display = 'flex';
     markerElement.style.alignItems = 'center';
@@ -76,70 +78,83 @@ export default function MapView({
     markerElement.style.cursor = 'pointer';
     markerElement.style.transition = 'transform 0.15s ease';
     markerElement.style.transformOrigin = 'bottom center';
-    markerElement.title = player.nickname;
+    markerElement.title = `${player.nickname} - ${player.role === 'oni' ? '鬼' : '逃走者'}`;
 
     const pinHead = document.createElement('div');
-    pinHead.style.width = '30px';
-    pinHead.style.height = '30px';
+    pinHead.style.width = '36px';
+    pinHead.style.height = '36px';
     pinHead.style.borderRadius = '50%';
     pinHead.style.background = style.fill;
-    pinHead.style.border = `3px solid ${style.border}`;
-    pinHead.style.boxShadow = '0 4px 12px rgba(0,0,0,0.35)';
+    pinHead.style.border = `4px solid ${style.border}`;
+    pinHead.style.boxShadow = `0 4px 16px ${style.fill}80, 0 2px 8px rgba(0,0,0,0.3)`;
     pinHead.style.display = 'flex';
     pinHead.style.alignItems = 'center';
     pinHead.style.justifyContent = 'center';
     pinHead.style.color = '#fff';
-    pinHead.style.fontSize = '12px';
+    pinHead.style.fontSize = '18px';
     pinHead.style.fontWeight = 'bold';
     pinHead.style.position = 'relative';
     pinHead.style.overflow = 'hidden';
+    pinHead.style.transition = 'all 0.2s ease';
 
+    // 役割アイコンを表示
+    const roleIcon = document.createElement('span');
+    roleIcon.textContent = style.icon;
+    roleIcon.style.fontSize = '20px';
+    roleIcon.style.lineHeight = '1';
+    roleIcon.style.textShadow = '0 2px 4px rgba(0,0,0,0.3)';
+    pinHead.appendChild(roleIcon);
+
+    // アバター画像がある場合は上に表示（小さく）
     if (player.avatarUrl) {
-      const avatarImg = document.createElement('img');
-      avatarImg.src = player.avatarUrl;
-      avatarImg.alt = player.nickname;
-      avatarImg.style.width = '100%';
-      avatarImg.style.height = '100%';
-      avatarImg.style.objectFit = 'cover';
-      pinHead.appendChild(avatarImg);
-    } else {
-      const initials = document.createElement('span');
-      const firstChar = player.nickname?.charAt(0) ?? '';
-      initials.textContent = firstChar.toUpperCase();
-      initials.style.textShadow = '0 1px 2px rgba(0,0,0,0.35)';
-      pinHead.appendChild(initials);
+      const avatarOverlay = document.createElement('img');
+      avatarOverlay.src = player.avatarUrl;
+      avatarOverlay.alt = player.nickname;
+      avatarOverlay.style.position = 'absolute';
+      avatarOverlay.style.bottom = '2px';
+      avatarOverlay.style.right = '2px';
+      avatarOverlay.style.width = '16px';
+      avatarOverlay.style.height = '16px';
+      avatarOverlay.style.borderRadius = '50%';
+      avatarOverlay.style.border = '2px solid white';
+      avatarOverlay.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
+      avatarOverlay.style.objectFit = 'cover';
+      pinHead.appendChild(avatarOverlay);
     }
 
     const roleBadge = document.createElement('div');
-    roleBadge.textContent = style.label;
+    roleBadge.textContent = player.role === 'oni' ? '鬼' : '逃';
     roleBadge.style.position = 'absolute';
-    roleBadge.style.bottom = '-12px';
+    roleBadge.style.bottom = '-14px';
     roleBadge.style.left = '50%';
     roleBadge.style.transform = 'translateX(-50%)';
-    roleBadge.style.background = '#0f172a';
+    roleBadge.style.background = style.border;
     roleBadge.style.color = '#fff';
-    roleBadge.style.fontSize = '10px';
+    roleBadge.style.fontSize = '9px';
     roleBadge.style.fontWeight = 'bold';
     roleBadge.style.padding = '2px 6px';
-    roleBadge.style.borderRadius = '999px';
+    roleBadge.style.borderRadius = '8px';
     roleBadge.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+    roleBadge.style.whiteSpace = 'nowrap';
 
     const pinPointer = document.createElement('div');
     pinPointer.style.position = 'absolute';
     pinPointer.style.bottom = '0';
     pinPointer.style.left = '50%';
-    pinPointer.style.transform = 'translate(-50%, 4px)';
+    pinPointer.style.transform = 'translateX(-50%)';
     pinPointer.style.width = '0';
     pinPointer.style.height = '0';
-    pinPointer.style.borderLeft = '9px solid transparent';
-    pinPointer.style.borderRight = '9px solid transparent';
-    pinPointer.style.borderTop = `14px solid ${style.fill}`;
-    pinPointer.style.filter = 'drop-shadow(0 3px 4px rgba(0,0,0,0.25))';
+    pinPointer.style.borderLeft = '10px solid transparent';
+    pinPointer.style.borderRight = '10px solid transparent';
+    pinPointer.style.borderTop = `16px solid ${style.fill}`;
+    pinPointer.style.filter = 'drop-shadow(0 3px 4px rgba(0,0,0,0.35))';
 
     if (player.state === 'downed') {
-      pinHead.style.boxShadow = '0 0 0 3px rgba(250,204,21,0.75)';
+      pinHead.style.boxShadow = '0 0 0 4px rgba(250,204,21,0.8), 0 4px 16px rgba(0,0,0,0.5)';
+      pinHead.style.animation = 'pulse 2s infinite';
     } else if (player.state === 'eliminated') {
-      markerElement.style.opacity = '0.3';
+      markerElement.style.opacity = '0.4';
+      pinHead.style.filter = 'grayscale(100%)';
     }
 
     markerElement.appendChild(pinHead);
@@ -147,10 +162,12 @@ export default function MapView({
     markerElement.appendChild(pinPointer);
 
     markerElement.addEventListener('mouseenter', () => {
-      markerElement.style.transform = 'translateY(-4px) scale(1.05)';
+      markerElement.style.transform = 'translateY(-6px) scale(1.1)';
+      pinHead.style.boxShadow = `0 6px 20px ${style.fill}a0, 0 2px 8px rgba(0,0,0,0.4)`;
     });
     markerElement.addEventListener('mouseleave', () => {
       markerElement.style.transform = 'translateY(0) scale(1)';
+      pinHead.style.boxShadow = `0 4px 16px ${style.fill}80, 0 2px 8px rgba(0,0,0,0.3)`;
     });
 
     return markerElement;
@@ -496,14 +513,14 @@ export default function MapView({
 
               const currentLocationEl = document.createElement('div');
               currentLocationEl.className = 'current-location-marker';
-              currentLocationEl.style.width = '24px';
-              currentLocationEl.style.height = '24px';
+              currentLocationEl.style.width = '28px';
+              currentLocationEl.style.height = '28px';
               currentLocationEl.style.borderRadius = '50%';
-              // Set color based on role
-              const pinColor = currentUserRole ? getPinColor(currentUserRole) : 'green';
+              // Set color based on role - 赤色（鬼）または緑色（逃走者）
+              const pinColor = currentUserRole ? getPinColor(currentUserRole) : ROLE_COLORS.runner;
               currentLocationEl.style.backgroundColor = pinColor;
-              currentLocationEl.style.border = '4px solid white';
-              currentLocationEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
+              currentLocationEl.style.border = `5px solid ${pinColor === ROLE_COLORS.oni ? '#991b1b' : '#15803d'}`;
+              currentLocationEl.style.boxShadow = `0 4px 16px ${pinColor}80, 0 2px 8px rgba(0,0,0,0.3)`;
               currentLocationEl.style.cursor = 'pointer';
               currentLocationEl.style.position = 'relative';
               
