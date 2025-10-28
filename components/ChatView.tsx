@@ -37,6 +37,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [playerRole, setPlayerRole] = useState<'oni' | 'runner' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Get player role
   useEffect(() => {
@@ -94,7 +95,12 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   }, [gameId, playerRole]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
@@ -161,7 +167,11 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       </header>
 
       {/* Scrollable Messages Container */}
-      <section id="messages" className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-2">
+      <section
+        id="messages"
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-2"
+      >
         <div className="space-y-3">
           {messages.map((message) => (
             <div
