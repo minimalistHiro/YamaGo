@@ -28,6 +28,11 @@ interface MapViewProps {
   gameStatus?: 'pending' | 'running' | 'ended';
 }
 
+const ROLE_COLORS: Record<'oni' | 'runner', string> = {
+  oni: 'red',
+  runner: 'green',
+};
+
 export default function MapView({
   onLocationUpdate,
   players = [],
@@ -43,7 +48,7 @@ export default function MapView({
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isOutOfBounds, setIsOutOfBounds] = useState(false);
-  const getPinColor = (role: 'oni' | 'runner') => role === 'oni' ? 'red' : 'green';
+  const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
   // Create a circle polygon for 50m radius
   const createCirclePolygon = (lat: number, lng: number, radiusMeters: number, segments: number = 64) => {
@@ -273,41 +278,35 @@ export default function MapView({
 
     // Add new markers
     visiblePlayers.forEach(player => {
-      const el = document.createElement('div');
-      el.className = 'player-marker';
-      el.style.width = '32px';
-      el.style.height = '32px';
-      el.style.borderRadius = '50%';
-      el.style.border = '3px solid white';
-      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-      el.style.cursor = 'pointer';
-      el.style.overflow = 'hidden';
-      el.style.position = 'relative';
-      
-      // Set role-based colors
       const pinColor = getPinColor(player.role);
-      el.style.backgroundColor = pinColor;
-      if (player.state !== 'downed' && player.state !== 'eliminated') {
-        el.style.border = `4px solid ${pinColor}`;
-      }
-      
-      // Add state-based styling (overrides border if needed)
+      const markerElement = document.createElement('div');
+      markerElement.className = 'player-marker';
+      markerElement.style.width = '18px';
+      markerElement.style.height = '18px';
+      markerElement.style.borderRadius = '50%';
+      markerElement.style.background = pinColor;
+      markerElement.style.border = '2px solid #000';
+      markerElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+      markerElement.style.boxSizing = 'border-box';
+      markerElement.style.cursor = 'pointer';
+      markerElement.style.display = 'flex';
+      markerElement.style.alignItems = 'center';
+      markerElement.style.justifyContent = 'center';
+      markerElement.style.color = '#fff';
+      markerElement.style.fontSize = '10px';
+      markerElement.style.fontWeight = 'bold';
+
+      // De-emphasize special states while keeping pin color visible
       if (player.state === 'downed') {
-        el.style.border = '4px solid yellow';
+        markerElement.style.border = '2px solid yellow';
       } else if (player.state === 'eliminated') {
-        el.style.opacity = '0.3';
-        el.style.border = '3px solid gray';
-      }
-      
-      if (player.avatarUrl) {
-        // Use avatar image over the colored background
-        el.style.backgroundImage = `url(${player.avatarUrl})`;
-        el.style.backgroundSize = 'cover';
-        el.style.backgroundPosition = 'center';
-        // Border color is already set above based on role
+        markerElement.style.opacity = '0.3';
       }
 
-      el.addEventListener('click', () => {
+      markerElement.title = player.nickname;
+      markerElement.textContent = player.role === 'oni' ? 'O' : 'R';
+
+      markerElement.addEventListener('click', () => {
         new maplibregl.Popup()
           .setLngLat([player.lng, player.lat])
           .setHTML(`
@@ -318,8 +317,8 @@ export default function MapView({
                     `<img src="${player.avatarUrl}" alt="${player.nickname}" class="w-full h-full object-cover" />` :
                     `<div class="w-full h-full ${player.role === 'oni' ? 'bg-red-500' : 'bg-green-500'} flex items-center justify-center">
                       <span class="text-white font-bold text-lg">${player.nickname.charAt(0).toUpperCase()}</span>
-                    </div>`
-                  }
+                  </div>`
+                }
                 </div>
                 <div>
                   <h3 class="font-semibold text-gray-800">${player.nickname}</h3>
@@ -331,7 +330,7 @@ export default function MapView({
           .addTo(map.current!);
       });
 
-      new maplibregl.Marker(el)
+      new maplibregl.Marker(markerElement)
         .setLngLat([player.lng, player.lat])
         .addTo(map.current!);
     });
