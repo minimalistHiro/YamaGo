@@ -28,12 +28,12 @@ interface MapViewProps {
   gameStatus?: 'pending' | 'running' | 'ended';
 }
 
-export default function MapView({ 
-  onLocationUpdate, 
-  players = [], 
+export default function MapView({
+  onLocationUpdate,
+  players = [],
   currentUserRole,
   currentUserId,
-  gameStatus 
+  gameStatus
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -43,6 +43,7 @@ export default function MapView({
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isOutOfBounds, setIsOutOfBounds] = useState(false);
+  const getPinColor = (role: 'oni' | 'runner') => role === 'oni' ? 'red' : 'green';
 
   // Create a circle polygon for 50m radius
   const createCirclePolygon = (lat: number, lng: number, radiusMeters: number, segments: number = 64) => {
@@ -85,7 +86,7 @@ export default function MapView({
       });
     } else {
       // Add new source and layers
-      const color = currentUserRole === 'oni' ? '#ef4444' : '#22c55e';
+      const color = currentUserRole ? getPinColor(currentUserRole) : '#22c55e';
       
       map.current.addSource('current-radius-circle', {
         type: 'geojson',
@@ -284,7 +285,7 @@ export default function MapView({
       el.style.position = 'relative';
       
       // Set role-based colors
-      const pinColor = player.role === 'oni' ? 'red' : 'green';
+      const pinColor = getPinColor(player.role);
       el.style.backgroundColor = pinColor;
       if (player.state !== 'downed' && player.state !== 'eliminated') {
         el.style.border = `4px solid ${pinColor}`;
@@ -421,7 +422,8 @@ export default function MapView({
               currentLocationEl.style.height = '24px';
               currentLocationEl.style.borderRadius = '50%';
               // Set color based on role
-              currentLocationEl.style.backgroundColor = currentUserRole === 'oni' ? 'red' : 'green';
+              const pinColor = currentUserRole ? getPinColor(currentUserRole) : 'green';
+              currentLocationEl.style.backgroundColor = pinColor;
               currentLocationEl.style.border = '4px solid white';
               currentLocationEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
               currentLocationEl.style.cursor = 'pointer';
