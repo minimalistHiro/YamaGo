@@ -149,7 +149,7 @@ export async function updateGameOwner(gameId: string, newOwnerUid: string): Prom
   });
 }
 
-export async function startGameCountdown(gameId: string, countdownDurationSec: number = 60): Promise<void> {
+export async function startGameCountdown(gameId: string, countdownDurationSec: number = 20): Promise<void> {
   const db = getDb();
   const countdownStartAt = serverTimestamp() as Timestamp;
   

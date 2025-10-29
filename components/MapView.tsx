@@ -30,6 +30,7 @@ interface MapViewProps {
   countdownStartAt?: Date | null;
   countdownDurationSec?: number;
   onStartGame?: () => void;
+  gameStartAt?: Date | null;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -60,8 +61,9 @@ export default function MapView({
   gameStatus,
   isOwner = false,
   countdownStartAt,
-  countdownDurationSec = 60,
-  onStartGame
+  countdownDurationSec = 20,
+  onStartGame,
+  gameStartAt
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -74,6 +76,7 @@ export default function MapView({
   const [countdownTimeLeft, setCountdownTimeLeft] = useState<number | null>(null);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
   const [localCountdownStartAt, setLocalCountdownStartAt] = useState<Date | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
   const createPlayerMarkerElement = (player: NonNullable<MapViewProps['players']>[number]) => {
     const style = ROLE_PIN_STYLES[player.role];
@@ -804,6 +807,38 @@ export default function MapView({
     }
   }, [countdownStartAt, localCountdownStartAt]);
 
+  // Calculate elapsed time since game start
+  useEffect(() => {
+    if (!gameStartAt || gameStatus !== 'running') {
+      setElapsedTime(0);
+      return;
+    }
+
+    const updateElapsedTime = () => {
+      const now = Date.now();
+      const startTime = gameStartAt.getTime();
+      const elapsed = Math.floor((now - startTime) / 1000); // elapsed time in seconds
+      setElapsedTime(elapsed);
+    };
+
+    // Initial update
+    updateElapsedTime();
+
+    // Update every second
+    const interval = setInterval(updateElapsedTime, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [gameStartAt, gameStatus]);
+
+  // Format elapsed time as MM:SS
+  const formatElapsedTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="relative w-full h-full min-h-[400px]">
       <div ref={mapContainer} className="w-full h-full min-h-[400px]" />
@@ -818,18 +853,30 @@ export default function MapView({
       )}
       
       {gameStatus === 'running' && (
-        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3">
+        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 space-y-2">
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded-full ${currentUserRole === 'oni' ? 'bg-red-500' : 'bg-green-500'}`}></div>
             <span className="text-sm font-medium">
               {currentUserRole === 'oni' ? '鬼' : '逃走者'}
             </span>
           </div>
+          {/* Elapsed time display */}
+          {gameStartAt && (
+            <div className="flex items-center space-x-2 pt-1 border-t border-gray-200">
+              <span className="text-xs text-gray-500">経過時間</span>
+              <span className="text-lg font-mono font-bold text-gray-800">
+                {formatElapsedTime(elapsedTime)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Owner Start Game Button */}
-      {isOwner && gameStatus === 'pending' && !isCountdownActive && countdownTimeLeft === null && (
+      {/* Owner Start Game Button - Only show when game is pending, countdown is not active, and countdown has not started */}
+      {isOwner && 
+       gameStatus === 'pending' &&
+       !isCountdownActive && 
+       countdownTimeLeft === null && (
         <button
           onClick={handleStartGameClick}
           className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-full shadow-lg text-lg transition-colors"

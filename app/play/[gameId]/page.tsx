@@ -221,7 +221,7 @@ export default function PlayPage() {
     
     try {
       // Start countdown first
-      await startGameCountdown(gameId, 60); // 1 minute countdown
+      await startGameCountdown(gameId, 20); // 20 seconds countdown
       console.log('Game countdown started');
     } catch (error) {
       console.error('Failed to start game countdown:', error);
@@ -316,6 +316,7 @@ export default function PlayPage() {
               countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
               countdownDurationSec={game.countdownDurationSec}
               onStartGame={handleStartGame}
+              gameStartAt={game.startAt ? game.startAt.toDate() : null}
             />
             
             {/* HUD Overlay */}
