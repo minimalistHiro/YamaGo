@@ -14,6 +14,7 @@ import {
   getPlayer,
   startGameCountdown,
   startGame,
+  updateGame,
   Game,
   Player,
   Location,
@@ -219,12 +220,19 @@ export default function PlayPage() {
   const handleStartGame = async () => {
     if (!game || !user) return;
     
+    // Don't start if game is already running or ended
+    if (game.status === 'running' || game.status === 'ended') {
+      return;
+    }
+    
     try {
-      // Start countdown first
+      // Start countdown and update game status to 'running' simultaneously
+      // Keep countdown information so it continues to display
       await startGameCountdown(gameId, 20); // 20 seconds countdown
-      console.log('Game countdown started');
+      await startGame(gameId, true); // Update database to mark game as started, but keep countdown
+      console.log('Game started and countdown initiated');
     } catch (error) {
-      console.error('Failed to start game countdown:', error);
+      console.error('Failed to start game:', error);
       alert('ゲーム開始に失敗しました');
     }
   };
@@ -232,12 +240,33 @@ export default function PlayPage() {
   const handleGameStart = async () => {
     if (!game) return;
     
+    // Don't start if game is already running or ended
+    if (game.status === 'running' || game.status === 'ended') {
+      return;
+    }
+    
     try {
       await startGame(gameId);
       console.log('Game started');
     } catch (error) {
       console.error('Failed to start game:', error);
       alert('ゲーム開始に失敗しました');
+    }
+  };
+
+  const handleCountdownEnd = async () => {
+    // Countdown has ended, clear countdown information from database
+    // Game status is already 'running', just clean up countdown data
+    if (!game) return;
+    
+    try {
+      await updateGame(gameId, {
+        countdownStartAt: null,
+        countdownDurationSec: null
+      });
+      console.log('Countdown ended, countdown data cleared');
+    } catch (error) {
+      console.error('Failed to clear countdown data:', error);
     }
   };
 
@@ -316,6 +345,7 @@ export default function PlayPage() {
               countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
               countdownDurationSec={game.countdownDurationSec}
               onStartGame={handleStartGame}
+              onCountdownEnd={handleCountdownEnd}
               gameStartAt={game.startAt ? game.startAt.toDate() : null}
             />
             

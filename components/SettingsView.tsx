@@ -7,6 +7,7 @@ import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { deletePlayer, getGame, Game } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
+import GameSettingsView from './GameSettingsView';
 
 interface SettingsViewProps {
   gameId: string;
@@ -28,6 +29,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
   const [game, setGame] = useState<Game | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [showRoleAssignment, setShowRoleAssignment] = useState(false);
+  const [showGameSettings, setShowGameSettings] = useState(false);
 
   useEffect(() => {
     loadGameInfo();
@@ -151,9 +153,22 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
     setShowRoleAssignment(false);
   };
 
+  const handleGameSettings = () => {
+    setShowGameSettings(true);
+  };
+
+  const handleBackFromGameSettings = () => {
+    setShowGameSettings(false);
+  };
+
   // Show role assignment view if requested
   if (showRoleAssignment) {
     return <RoleAssignmentView gameId={gameId} onBack={handleBackFromRoleAssignment} />;
+  }
+
+  // Show game settings view if requested
+  if (showGameSettings) {
+    return <GameSettingsView gameId={gameId} onBack={handleBackFromGameSettings} />;
   }
 
   return (
@@ -270,6 +285,19 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 onClick={handleRoleAssignment}
               >
                 <span className="text-gray-600">役職振り分け</span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            )}
+            
+            {/* Game Settings - Only show for owner */}
+            {isOwner && (
+              <div 
+                className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={handleGameSettings}
+              >
+                <span className="text-gray-600">ゲーム設定</span>
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

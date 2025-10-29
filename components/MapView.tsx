@@ -30,6 +30,7 @@ interface MapViewProps {
   countdownStartAt?: Date | null;
   countdownDurationSec?: number;
   onStartGame?: () => void;
+  onCountdownEnd?: () => void;
   gameStartAt?: Date | null;
 }
 
@@ -63,6 +64,7 @@ export default function MapView({
   countdownStartAt,
   countdownDurationSec = 20,
   onStartGame,
+  onCountdownEnd,
   gameStartAt
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -775,7 +777,10 @@ export default function MapView({
         setCountdownTimeLeft(null);
         setLocalCountdownStartAt(null);
         // Game should start automatically when countdown reaches 0
-        // This will be handled by the parent component
+        // Notify parent component to update database
+        if (onCountdownEnd) {
+          onCountdownEnd();
+        }
       }
     };
 
@@ -852,15 +857,16 @@ export default function MapView({
         </div>
       )}
       
+      {/* Game status and elapsed time - always visible when game is running */}
       {gameStatus === 'running' && (
-        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 space-y-2">
+        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 space-y-2" style={{ zIndex: 60 }}>
           <div className="flex items-center space-x-2">
             <div className={`w-3 h-3 rounded-full ${currentUserRole === 'oni' ? 'bg-red-500' : 'bg-green-500'}`}></div>
             <span className="text-sm font-medium">
               {currentUserRole === 'oni' ? '鬼' : '逃走者'}
             </span>
           </div>
-          {/* Elapsed time display */}
+          {/* Elapsed time display - starts counting from when "ゲーム開始" button was pressed (startAt in database) */}
           {gameStartAt && (
             <div className="flex items-center space-x-2 pt-1 border-t border-gray-200">
               <span className="text-xs text-gray-500">経過時間</span>
@@ -887,7 +893,7 @@ export default function MapView({
 
       {/* Countdown Display */}
       {isCountdownActive && countdownTimeLeft !== null && (
-        <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 pointer-events-none">
           <div className="text-center">
             <div className="text-white text-8xl font-bold mb-4 animate-pulse">
               {countdownTimeLeft}

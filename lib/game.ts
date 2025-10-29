@@ -160,16 +160,22 @@ export async function startGameCountdown(gameId: string, countdownDurationSec: n
   });
 }
 
-export async function startGame(gameId: string): Promise<void> {
+export async function startGame(gameId: string, keepCountdown: boolean = false): Promise<void> {
   const db = getDb();
   const startAt = serverTimestamp() as Timestamp;
   
-  await updateDoc(doc(db, 'games', gameId), {
+  const updates: any = {
     status: 'running',
-    startAt,
-    countdownStartAt: null,
-    countdownDurationSec: null
-  });
+    startAt
+  };
+  
+  // Only clear countdown if explicitly requested (after countdown ends)
+  if (!keepCountdown) {
+    updates.countdownStartAt = null;
+    updates.countdownDurationSec = null;
+  }
+  
+  await updateDoc(doc(db, 'games', gameId), updates);
 }
 
 // Player management functions
