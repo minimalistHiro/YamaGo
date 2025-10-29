@@ -73,6 +73,7 @@ export default function MapView({
   const [isOutOfBounds, setIsOutOfBounds] = useState(false);
   const [countdownTimeLeft, setCountdownTimeLeft] = useState<number | null>(null);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
+  const [localCountdownStartAt, setLocalCountdownStartAt] = useState<Date | null>(null);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
   const createPlayerMarkerElement = (player: NonNullable<MapViewProps['players']>[number]) => {
     const style = ROLE_PIN_STYLES[player.role];
@@ -727,16 +728,35 @@ export default function MapView({
     };
   }, []);
 
-  // Countdown effect
+  // Handle local countdown start
+  const handleStartGameClick = () => {
+    // Start local countdown immediately
+    setLocalCountdownStartAt(new Date());
+    setIsCountdownActive(true);
+    setCountdownTimeLeft(countdownDurationSec);
+    
+    // Call the parent's onStartGame handler
+    if (onStartGame) {
+      onStartGame();
+    }
+  };
+
+  // Countdown effect - prioritize local countdown, fallback to Firestore countdown
   useEffect(() => {
-    if (!countdownStartAt || !countdownDurationSec) {
-      setIsCountdownActive(false);
-      setCountdownTimeLeft(null);
+    const activeStartAt = localCountdownStartAt || countdownStartAt;
+    
+    if (!activeStartAt || !countdownDurationSec) {
+      // Only disable if Firestore also doesn't have countdown
+      if (!countdownStartAt) {
+        setIsCountdownActive(false);
+        setCountdownTimeLeft(null);
+        setLocalCountdownStartAt(null);
+      }
       return;
     }
 
     setIsCountdownActive(true);
-    const startTime = countdownStartAt.getTime();
+    const startTime = activeStartAt.getTime();
     const durationMs = countdownDurationSec * 1000;
 
     const updateCountdown = () => {
@@ -750,6 +770,7 @@ export default function MapView({
       if (remaining <= 0) {
         setIsCountdownActive(false);
         setCountdownTimeLeft(null);
+        setLocalCountdownStartAt(null);
         // Game should start automatically when countdown reaches 0
         // This will be handled by the parent component
       }
@@ -764,7 +785,24 @@ export default function MapView({
     return () => {
       clearInterval(interval);
     };
-  }, [countdownStartAt, countdownDurationSec, onStartGame]);
+  }, [localCountdownStartAt, countdownStartAt, countdownDurationSec]);
+
+  // Clear local countdown when Firestore countdown is confirmed
+  useEffect(() => {
+    if (countdownStartAt && !localCountdownStartAt) {
+      // Firestore countdown is active, ensure local state is synced
+      return;
+    }
+    
+    // If Firestore countdown matches local (within 1 second), use Firestore
+    if (countdownStartAt && localCountdownStartAt) {
+      const timeDiff = Math.abs(countdownStartAt.getTime() - localCountdownStartAt.getTime());
+      if (timeDiff < 1000) {
+        // They're in sync, prefer Firestore
+        setLocalCountdownStartAt(null);
+      }
+    }
+  }, [countdownStartAt, localCountdownStartAt]);
 
   return (
     <div className="relative w-full h-full min-h-[400px]">
@@ -791,12 +829,12 @@ export default function MapView({
       )}
 
       {/* Owner Start Game Button */}
-      {isOwner && gameStatus === 'pending' && !isCountdownActive && (
+      {isOwner && gameStatus === 'pending' && !isCountdownActive && countdownTimeLeft === null && (
         <button
-          onClick={onStartGame}
-          className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg transition-colors"
+          onClick={handleStartGameClick}
+          className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-full shadow-lg text-lg transition-colors"
         >
-          🎮 ゲームスタート
+          ゲーム開始
         </button>
       )}
 
