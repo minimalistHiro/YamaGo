@@ -37,6 +37,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [playerRole, setPlayerRole] = useState<'oni' | 'runner' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Get player role
   useEffect(() => {
@@ -94,7 +95,12 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   }, [gameId, playerRole]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
@@ -146,16 +152,26 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   }
 
   return (
-    <main className="flex flex-col h-[100dvh] overflow-hidden bg-white">
+    <main className="flex flex-col h-full min-h-0 overflow-hidden bg-white">
       {/* Fixed Header */}
-      <header className="sticky top-0 z-10 bg-white/95 backdrop-blur px-4 py-2 border-b">
-        <h1 className="text-base font-semibold">
+      <header
+        className={`sticky top-0 z-10 px-4 py-3 border-b text-white ${
+          playerRole === 'oni'
+            ? 'bg-red-500 border-red-600'
+            : 'bg-green-500 border-green-600'
+        }`}
+      >
+        <h1 className="text-lg font-semibold">
           {playerRole === 'oni' ? '鬼チャット' : '逃走者チャット'}
         </h1>
       </header>
 
       {/* Scrollable Messages Container */}
-      <section id="messages" className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-2">
+      <section
+        id="messages"
+        ref={messagesContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-2 pb-2"
+      >
         <div className="space-y-3">
           {messages.map((message) => (
             <div
@@ -204,7 +220,10 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       </section>
 
       {/* Fixed Message Input */}
-      <footer className="sticky bottom-0 z-10 bg-white/95 backdrop-blur border-t px-3 py-2">
+      <footer
+        className="sticky bottom-0 z-10 bg-white/95 backdrop-blur border-t px-3 pt-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
         <form onSubmit={handleSendMessage} className="flex space-x-2">
           <div className="flex-1 relative">
             <input
