@@ -413,6 +413,53 @@ export const setOwnerOnFirstPlayerJoin = functions.firestore
     }
   });
 
+// HTTP function to ingest location data from background geolocation
+export const ingestLocation = functions
+  .region('asia-northeast1')
+  .https.onRequest(async (req, res) => {
+    try {
+      if (req.method !== 'POST') {
+        res.status(405).send('method not allowed');
+        return;
+      }
+
+      const {
+        userId, role, latitude, longitude, accuracy, speed, timestamp, source
+      } = req.body ?? {};
+
+      if (!userId || typeof latitude === 'undefined' || typeof longitude === 'undefined') {
+        res.status(400).send('bad request');
+        return;
+      }
+
+      const now = Number(timestamp ?? Date.now());
+      const payload = {
+        userId: String(userId),
+        role: role ?? null,
+        lat: Number(latitude),
+        lng: Number(longitude),
+        accuracy: Number(accuracy ?? 0),
+        speed: Number(speed ?? 0),
+        ts: now,
+        source: source ?? 'native'
+      };
+
+      const latestRef = db.collection('users').doc(String(userId))
+        .collection('runtime').doc('latestLocation');
+      const histRef = db.collection('locationLogs').doc();
+
+      await db.runTransaction(async (tx) => {
+        tx.set(latestRef, payload, { merge: true });
+        tx.set(histRef, payload);
+      });
+
+      res.status(200).send('ok');
+    } catch (e) {
+      console.error(e);
+      res.status(500).send('error');
+    }
+  });
+
 // HTTP function to get game stats
 export const getGameStats = functions.https.onRequest(async (req, res) => {
   const gameId = req.query.gameId as string;

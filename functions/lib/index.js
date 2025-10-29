@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGameStats = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.rescue = void 0;
+exports.getGameStats = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.rescue = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
@@ -57,9 +57,10 @@ function haversine(lat1, lon1, lat2, lon2) {
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 // Check if point is within Yamanote Line boundary
+// Extended north to include Kawaguchi City (川口市)
 function isWithinYamanoteLine(lat, lng) {
     const minLat = 35.65;
-    const maxLat = 35.75;
+    const maxLat = 35.85; // Extended to Kawaguchi
     const minLng = 139.65;
     const maxLng = 139.8;
     return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
@@ -381,6 +382,46 @@ exports.setOwnerOnFirstPlayerJoin = functions.firestore
     }
     catch (error) {
         console.error(`[owner-update] Failed to set owner for game ${gameId}:`, error);
+    }
+});
+// HTTP function to ingest location data from background geolocation
+exports.ingestLocation = functions
+    .region('asia-northeast1')
+    .https.onRequest(async (req, res) => {
+    var _a;
+    try {
+        if (req.method !== 'POST') {
+            res.status(405).send('method not allowed');
+            return;
+        }
+        const { userId, role, latitude, longitude, accuracy, speed, timestamp, source } = (_a = req.body) !== null && _a !== void 0 ? _a : {};
+        if (!userId || typeof latitude === 'undefined' || typeof longitude === 'undefined') {
+            res.status(400).send('bad request');
+            return;
+        }
+        const now = Number(timestamp !== null && timestamp !== void 0 ? timestamp : Date.now());
+        const payload = {
+            userId: String(userId),
+            role: role !== null && role !== void 0 ? role : null,
+            lat: Number(latitude),
+            lng: Number(longitude),
+            accuracy: Number(accuracy !== null && accuracy !== void 0 ? accuracy : 0),
+            speed: Number(speed !== null && speed !== void 0 ? speed : 0),
+            ts: now,
+            source: source !== null && source !== void 0 ? source : 'native'
+        };
+        const latestRef = db.collection('users').doc(String(userId))
+            .collection('runtime').doc('latestLocation');
+        const histRef = db.collection('locationLogs').doc();
+        await db.runTransaction(async (tx) => {
+            tx.set(latestRef, payload, { merge: true });
+            tx.set(histRef, payload);
+        });
+        res.status(200).send('ok');
+    }
+    catch (e) {
+        console.error(e);
+        res.status(500).send('error');
     }
 });
 // HTTP function to get game stats

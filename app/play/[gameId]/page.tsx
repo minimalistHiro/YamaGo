@@ -23,6 +23,7 @@ import HUD from '@/components/HUD';
 import BottomTabNavigation, { TabType } from '@/components/BottomTabNavigation';
 import ChatView from '@/components/ChatView';
 import SettingsView from '@/components/SettingsView';
+import BackgroundLocationProvider from '@/components/BackgroundLocationProvider';
 
 export default function PlayPage() {
   const params = useParams();
@@ -328,6 +329,14 @@ export default function PlayPage() {
 
   return (
     <div className="h-screen flex flex-col">
+      {/* Background Location Provider */}
+      <BackgroundLocationProvider
+        userId={user?.uid || ''}
+        role={currentPlayer?.role || null}
+        gameId={gameId}
+        gameStatus={game?.status || 'waiting'}
+      />
+      
       {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-hidden">
         {renderActiveTab()}

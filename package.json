@@ -10,6 +10,10 @@
     "postinstall": "npm --prefix functions install"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/geolocation": "^7.1.5",
+    "@capacitor/ios": "^7.4.4",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -24,6 +28,7 @@
     "typescript": "^5"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.4.4",
     "@types/maplibre-gl": "^1.14.0",
     "eslint": "^8",
     "eslint-config-next": "14.0.4"
