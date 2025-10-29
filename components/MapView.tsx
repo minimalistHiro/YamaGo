@@ -28,7 +28,7 @@ interface MapViewProps {
   gameStatus?: 'pending' | 'running' | 'ended';
   isOwner?: boolean;
   countdownStartAt?: Date | null;
-  countdownDurationSec?: number;
+  countdownDurationSec?: number | null;
   onStartGame?: () => void;
   onCountdownEnd?: () => void;
   gameStartAt?: Date | null;
@@ -736,9 +736,10 @@ export default function MapView({
   // Handle local countdown start
   const handleStartGameClick = () => {
     // Start local countdown immediately
+    const duration = countdownDurationSec ?? 20;
     setLocalCountdownStartAt(new Date());
     setIsCountdownActive(true);
-    setCountdownTimeLeft(countdownDurationSec);
+    setCountdownTimeLeft(duration);
     
     // Call the parent's onStartGame handler
     if (onStartGame) {
@@ -749,8 +750,9 @@ export default function MapView({
   // Countdown effect - prioritize local countdown, fallback to Firestore countdown
   useEffect(() => {
     const activeStartAt = localCountdownStartAt || countdownStartAt;
+    const duration = countdownDurationSec ?? 20;
     
-    if (!activeStartAt || !countdownDurationSec) {
+    if (!activeStartAt || duration === null) {
       // Only disable if Firestore also doesn't have countdown
       if (!countdownStartAt) {
         setIsCountdownActive(false);
@@ -762,7 +764,7 @@ export default function MapView({
 
     setIsCountdownActive(true);
     const startTime = activeStartAt.getTime();
-    const durationMs = countdownDurationSec * 1000;
+    const durationMs = duration * 1000;
 
     const updateCountdown = () => {
       const now = Date.now();

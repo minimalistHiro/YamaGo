@@ -27,7 +27,7 @@ export interface Game {
   ownerUid: string;
   createdAt: Timestamp;
   countdownStartAt?: Timestamp | null;
-  countdownDurationSec?: number;
+  countdownDurationSec?: number | null;
 }
 
 export interface Player {
