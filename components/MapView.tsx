@@ -26,6 +26,10 @@ interface MapViewProps {
   currentUserRole?: 'oni' | 'runner';
   currentUserId?: string;
   gameStatus?: 'pending' | 'running' | 'ended';
+  isOwner?: boolean;
+  countdownStartAt?: Date | null;
+  countdownDurationSec?: number;
+  onStartGame?: () => void;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -53,7 +57,11 @@ export default function MapView({
   players = [],
   currentUserRole,
   currentUserId,
-  gameStatus
+  gameStatus,
+  isOwner = false,
+  countdownStartAt,
+  countdownDurationSec = 60,
+  onStartGame
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -63,6 +71,8 @@ export default function MapView({
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isOutOfBounds, setIsOutOfBounds] = useState(false);
+  const [countdownTimeLeft, setCountdownTimeLeft] = useState<number | null>(null);
+  const [isCountdownActive, setIsCountdownActive] = useState(false);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
   const createPlayerMarkerElement = (player: NonNullable<MapViewProps['players']>[number]) => {
     const style = ROLE_PIN_STYLES[player.role];
@@ -717,6 +727,45 @@ export default function MapView({
     };
   }, []);
 
+  // Countdown effect
+  useEffect(() => {
+    if (!countdownStartAt || !countdownDurationSec) {
+      setIsCountdownActive(false);
+      setCountdownTimeLeft(null);
+      return;
+    }
+
+    setIsCountdownActive(true);
+    const startTime = countdownStartAt.getTime();
+    const durationMs = countdownDurationSec * 1000;
+
+    const updateCountdown = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const remaining = Math.max(0, durationMs - elapsed);
+      const remainingSeconds = Math.ceil(remaining / 1000);
+
+      setCountdownTimeLeft(remainingSeconds);
+
+      if (remaining <= 0) {
+        setIsCountdownActive(false);
+        setCountdownTimeLeft(null);
+        // Game should start automatically when countdown reaches 0
+        // This will be handled by the parent component
+      }
+    };
+
+    // Initial update
+    updateCountdown();
+
+    // Update every second
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [countdownStartAt, countdownDurationSec, onStartGame]);
+
   return (
     <div className="relative w-full h-full min-h-[400px]">
       <div ref={mapContainer} className="w-full h-full min-h-[400px]" />
@@ -739,6 +788,35 @@ export default function MapView({
             </span>
           </div>
         </div>
+      )}
+
+      {/* Owner Start Game Button */}
+      {isOwner && gameStatus === 'pending' && !isCountdownActive && (
+        <button
+          onClick={onStartGame}
+          className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg transition-colors"
+        >
+          🎮 ゲームスタート
+        </button>
+      )}
+
+      {/* Countdown Display */}
+      {isCountdownActive && countdownTimeLeft !== null && (
+        <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50">
+          <div className="text-center">
+            <div className="text-white text-8xl font-bold mb-4 animate-pulse">
+              {countdownTimeLeft}
+            </div>
+            <div className="text-white text-xl">
+              {currentUserRole === 'oni' ? '鬼のスタートまで' : 'ゲーム開始まで'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gray overlay for oni during countdown */}
+      {isCountdownActive && currentUserRole === 'oni' && (
+        <div className="absolute inset-0 bg-gray-500 bg-opacity-50 z-40 pointer-events-none" />
       )}
 
       {/* Current Location Button */}

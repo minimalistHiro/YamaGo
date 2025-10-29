@@ -26,6 +26,8 @@ export interface Game {
   startDelaySec: number;
   ownerUid: string;
   createdAt: Timestamp;
+  countdownStartAt?: Timestamp | null;
+  countdownDurationSec?: number;
 }
 
 export interface Player {
@@ -144,6 +146,29 @@ export async function updateGameOwner(gameId: string, newOwnerUid: string): Prom
   const db = getDb();
   await updateDoc(doc(db, 'games', gameId), {
     ownerUid: newOwnerUid
+  });
+}
+
+export async function startGameCountdown(gameId: string, countdownDurationSec: number = 60): Promise<void> {
+  const db = getDb();
+  const countdownStartAt = serverTimestamp() as Timestamp;
+  
+  await updateDoc(doc(db, 'games', gameId), {
+    countdownStartAt,
+    countdownDurationSec,
+    status: 'pending' // Keep as pending until countdown ends
+  });
+}
+
+export async function startGame(gameId: string): Promise<void> {
+  const db = getDb();
+  const startAt = serverTimestamp() as Timestamp;
+  
+  await updateDoc(doc(db, 'games', gameId), {
+    status: 'running',
+    startAt,
+    countdownStartAt: null,
+    countdownDurationSec: null
   });
 }
 

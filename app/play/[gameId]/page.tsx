@@ -12,6 +12,8 @@ import {
   subscribeToAlerts,
   updateLocation,
   getPlayer,
+  startGameCountdown,
+  startGame,
   Game,
   Player,
   Location,
@@ -87,6 +89,17 @@ export default function PlayPage() {
       if (!gameData) {
         setError('ゲームが見つかりません');
         return;
+      }
+      
+      // Check if countdown has ended and game should start
+      if (gameData.countdownStartAt && gameData.countdownDurationSec) {
+        const countdownEndTime = gameData.countdownStartAt.toDate().getTime() + (gameData.countdownDurationSec * 1000);
+        const now = Date.now();
+        
+        if (now >= countdownEndTime && gameData.status === 'pending') {
+          // Countdown has ended, start the game
+          handleGameStart();
+        }
       }
     });
 
@@ -203,6 +216,31 @@ export default function PlayPage() {
     }
   };
 
+  const handleStartGame = async () => {
+    if (!game || !user) return;
+    
+    try {
+      // Start countdown first
+      await startGameCountdown(gameId, 60); // 1 minute countdown
+      console.log('Game countdown started');
+    } catch (error) {
+      console.error('Failed to start game countdown:', error);
+      alert('ゲーム開始に失敗しました');
+    }
+  };
+
+  const handleGameStart = async () => {
+    if (!game) return;
+    
+    try {
+      await startGame(gameId);
+      console.log('Game started');
+    } catch (error) {
+      console.error('Failed to start game:', error);
+      alert('ゲーム開始に失敗しました');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -274,6 +312,10 @@ export default function PlayPage() {
               currentUserRole={currentPlayer.role}
               currentUserId={user?.uid}
               gameStatus={game.status}
+              isOwner={game.ownerUid === user?.uid}
+              countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
+              countdownDurationSec={game.countdownDurationSec}
+              onStartGame={handleStartGame}
             />
             
             {/* HUD Overlay */}
