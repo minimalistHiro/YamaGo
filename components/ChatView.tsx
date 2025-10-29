@@ -152,7 +152,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   }
 
   return (
-    <main className="flex flex-col h-[100dvh] overflow-hidden bg-white">
+    <main className="flex flex-col h-full min-h-0 overflow-hidden bg-white">
       {/* Fixed Header */}
       <header
         className={`sticky top-0 z-10 px-4 py-3 border-b text-white ${
@@ -220,7 +220,10 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       </section>
 
       {/* Fixed Message Input */}
-      <footer className="sticky bottom-0 z-10 bg-white/95 backdrop-blur border-t px-3 py-2">
+      <footer
+        className="sticky bottom-0 z-10 bg-white/95 backdrop-blur border-t px-3 pt-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
         <form onSubmit={handleSendMessage} className="flex space-x-2">
           <div className="flex-1 relative">
             <input
