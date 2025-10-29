@@ -170,7 +170,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       <section
         id="messages"
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto overscroll-contain px-4 pt-2 pb-2"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-2 pb-2"
       >
         <div className="space-y-3">
           {messages.map((message) => (
