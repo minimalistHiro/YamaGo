@@ -155,6 +155,13 @@ export async function updateGame(gameId: string, updates: Partial<Game> | Record
 
 export async function updateGameOwner(gameId: string, newOwnerUid: string): Promise<void> {
   const db = getDb();
+  // Prevent owner change if there is at least one player in the game
+  const players = await getPlayers(gameId);
+  if (players.length >= 1) {
+    console.log('updateGameOwner skipped: players already exist for game', gameId, 'count:', players.length);
+    return;
+  }
+
   await updateDoc(doc(db, 'games', gameId), {
     ownerUid: newOwnerUid
   });
