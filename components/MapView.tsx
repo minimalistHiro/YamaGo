@@ -218,7 +218,7 @@ export default function MapView({
   const updateRadiusCircle = (lat: number, lng: number) => {
     if (!map.current || !isMapLoaded) return;
     
-    const circleCoords = createCirclePolygon(lat, lng, 50, 64);
+    const circleCoords = createCirclePolygon(lat, lng, captureRadiusM, 64);
     
     const source = map.current.getSource('current-radius-circle');
     if (source) {
