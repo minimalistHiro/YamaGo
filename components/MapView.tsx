@@ -952,9 +952,9 @@ export default function MapView({
         </div>
       )}
 
-      {/* Owner Start Game Button - Only show when game is pending (not started in database), countdown is not active, and countdown has not started */}
+      {/* Owner Start Game Button - Show when game is pending or ended, countdown is not active, and countdown has not started */}
       {isOwner && 
-       gameStatus === 'pending' &&
+       (gameStatus === 'pending' || gameStatus === 'ended') &&
        !isCountdownActive && 
        countdownTimeLeft === null && (
         <button
