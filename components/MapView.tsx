@@ -92,7 +92,7 @@ export default function MapView({
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
   // Create pin icon as canvas for map symbol layer (teardrop-style pin)
-  const createPinCanvas = (role: 'oni' | 'runner', size: number = 56): HTMLCanvasElement => {
+  const createPinCanvas = (role: 'oni' | 'runner', size: number = 48): HTMLCanvasElement => {
     const scale = 2; // retina
     const w = size * scale;
     const pointerH = 22 * scale; // pointer height
@@ -452,39 +452,14 @@ export default function MapView({
         }
       })();
 
-      map.current.addLayer({
-        id: 'players-circles',
-        type: 'circle',
-        source: 'players',
-        paint: {
-          'circle-radius': 10,
-          'circle-color': [
-            'match',
-            ['get', 'role'],
-            'oni', ROLE_COLORS.oni,
-            'runner', ROLE_COLORS.runner,
-            '#3b82f6',
-          ],
-          'circle-stroke-color': [
-            'match',
-            ['get', 'role'],
-            'oni', '#991b1b',
-            'runner', '#15803d',
-            '#1f2937',
-          ],
-          'circle-stroke-width': 3,
-          'circle-opacity': 0.9,
-        },
-      });
-
-      // Icon pins overlay using custom images
+      // Icon pins overlay using custom images (no circle background)
       map.current.addLayer({
         id: 'players-icons',
         type: 'symbol',
         source: 'players',
         layout: {
           'icon-image': ['get', 'iconImage'],
-          'icon-size': 1,
+          'icon-size': 0.8,
           'icon-allow-overlap': true,
           'icon-anchor': 'bottom'
         }
