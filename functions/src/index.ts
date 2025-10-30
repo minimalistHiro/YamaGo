@@ -461,7 +461,9 @@ export const ingestLocation = functions
   });
 
 // Callable function: Set the caller as the game owner
-export const becomeOwner = functions.https.onCall(async (data, context) => {
+export const becomeOwner = functions
+  .region('asia-northeast1')
+  .https.onCall(async (data, context) => {
   const uid = context.auth?.uid;
   const gameId = (data && data.gameId) as string | undefined;
 
