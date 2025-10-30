@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
-import { deletePlayer, getGame, Game } from '@/lib/game';
+import { deletePlayer, getGame, Game, updateGame } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
 import GameSettingsView from './GameSettingsView';
 
@@ -159,6 +159,23 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
 
   const handleBackFromGameSettings = () => {
     setShowGameSettings(false);
+  };
+
+  const handleEndGame = async () => {
+    if (!isOwner) return;
+    const ok = confirm('ゲームを終了しますか？\nこの操作は取り消せません。');
+    if (!ok) return;
+    try {
+      setIsLoading(true);
+      await updateGame(gameId, { status: 'ended' });
+      alert('ゲームを終了しました');
+      await loadGameInfo();
+    } catch (error) {
+      console.error('Failed to end game:', error);
+      alert('ゲームの終了に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Show role assignment view if requested
@@ -337,6 +354,18 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 ></label>
               </div>
             </div>
+
+            {isOwner && game?.status !== 'ended' && (
+              <div className="pt-2">
+                <button
+                  onClick={handleEndGame}
+                  disabled={isLoading}
+                  className="w-full bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  {isLoading ? '処理中...' : 'ゲームを終了'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
