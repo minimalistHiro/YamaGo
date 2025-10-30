@@ -92,7 +92,7 @@ export default function MapView({
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
   // Create pin icon as canvas for map symbol layer (teardrop-style pin)
-  const createPinCanvas = (role: 'oni' | 'runner', size: number = 48): HTMLCanvasElement => {
+  const createPinCanvas = (role: 'oni' | 'runner', size: number = 40): HTMLCanvasElement => {
     const scale = 2; // retina
     const w = size * scale;
     const pointerH = 22 * scale; // pointer height
@@ -459,7 +459,7 @@ export default function MapView({
         source: 'players',
         layout: {
           'icon-image': ['get', 'iconImage'],
-          'icon-size': 0.8,
+          'icon-size': 0.7,
           'icon-allow-overlap': true,
           'icon-anchor': 'bottom'
         }
