@@ -91,11 +91,12 @@ export default function MapView({
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
-  // Create pin icon as canvas for map symbol layer
-  const createPinCanvas = (role: 'oni' | 'runner', size: number = 48): HTMLCanvasElement => {
+  // Create pin icon as canvas for map symbol layer (teardrop-style pin)
+  const createPinCanvas = (role: 'oni' | 'runner', size: number = 56): HTMLCanvasElement => {
     const scale = 2; // retina
     const w = size * scale;
-    const h = (size + 12) * scale; // extra for pointer
+    const pointerH = 22 * scale; // pointer height
+    const h = (size + pointerH / scale) * scale;
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
@@ -104,17 +105,24 @@ export default function MapView({
 
     const style = ROLE_PIN_STYLES[role];
 
-    // Shadow
+    // Coordinates
+    const cx = w / 2;
+    const headR = (size / 2) * scale; // head radius
+    const headCY = headR + 2 * scale;
+
+    // Teardrop path (rounded head + tapered pointer)
     ctx.save();
     ctx.shadowColor = `${style.fill}80`;
     ctx.shadowBlur = 12 * scale;
     ctx.shadowOffsetY = 4 * scale;
-    // Head circle
-    const r = (size / 2) * scale;
-    const cx = w / 2;
-    const cy = r + 2 * scale;
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    // top arc
+    ctx.arc(cx, headCY, headR, Math.PI, 0);
+    // right bezier to bottom tip
+    ctx.quadraticCurveTo(cx + headR, headCY + headR * 0.85, cx, headCY + headR + pointerH);
+    // left bezier back to top
+    ctx.quadraticCurveTo(cx - headR, headCY + headR * 0.85, cx - headR, headCY);
+    ctx.closePath();
     ctx.fillStyle = style.fill;
     ctx.fill();
     ctx.shadowColor = 'transparent';
@@ -123,21 +131,12 @@ export default function MapView({
     ctx.stroke();
     ctx.restore();
 
-    // Pointer triangle
-    ctx.beginPath();
-    ctx.moveTo(cx, cy + r + 2 * scale);
-    ctx.lineTo(cx - 12 * scale, cy + r + 2 * scale + 18 * scale);
-    ctx.lineTo(cx + 12 * scale, cy + r + 2 * scale + 18 * scale);
-    ctx.closePath();
-    ctx.fillStyle = style.fill;
-    ctx.fill();
-
     // Emoji role icon
-    ctx.font = `${16 * scale}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
+    ctx.font = `${20 * scale}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
-    ctx.fillText(style.icon, cx, cy);
+    ctx.fillText(style.icon, cx, headCY);
 
     return canvas;
   };
