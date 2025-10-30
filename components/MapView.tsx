@@ -1040,16 +1040,24 @@ export default function MapView({
         </button>
       )}
 
-      {/* Countdown Display */}
-      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && (
+      {/* Countdown Display - Oni: full-screen overlay */}
+      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'oni' && (
         <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 pointer-events-none">
           <div className="text-center">
             <div className="text-white text-8xl font-bold mb-4 animate-pulse">
               {formatElapsedTime(countdownTimeLeft)}
             </div>
-            <div className="text-white text-xl">
-              {currentUserRole === 'oni' ? '鬼のスタートまで' : 'ゲーム開始まで'}
-            </div>
+            <div className="text-white text-xl">鬼のスタートまで</div>
+          </div>
+        </div>
+      )}
+
+      {/* Countdown Display - Runner: bottom-right, no gray-out */}
+      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'runner' && (
+        <div className="absolute bottom-20 right-4 z-50">
+          <div className="bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-3 border border-gray-200 flex items-center space-x-3">
+            <span className="text-sm text-gray-600">鬼が出発するまで</span>
+            <span className="font-mono text-2xl font-bold text-gray-800">{formatElapsedTime(countdownTimeLeft)}</span>
           </div>
         </div>
       )}
