@@ -30,6 +30,7 @@ export default function PlayPage() {
   const game = useGameStore((s) => s.game);
   const playersById = useGameStore((s) => s.playersById);
   const locations = useGameStore((s) => s.locationsById);
+  const pins = useGameStore((s) => s.pins);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -268,9 +269,10 @@ export default function PlayPage() {
       <div className="flex-1 min-h-0 overflow-hidden">
         {/* Map tab - always mounted, toggle visibility */}
         <div className={activeTab === 'map' ? 'flex-1 relative h-full' : 'hidden'}>
-          <MapView
+            <MapView
             onLocationUpdate={handleLocationUpdate}
             players={mapPlayers}
+              pins={pins.map(p => ({ lat: p.lat, lng: p.lng }))}
             currentUserRole={currentPlayer.role}
             currentUserId={user?.uid}
             gameStatus={game.status}

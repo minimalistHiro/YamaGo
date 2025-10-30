@@ -8,10 +8,12 @@ import {
   Player,
   Location,
   Alert,
+  PinPoint,
   subscribeToGame,
   subscribeToPlayers,
   subscribeToLocations,
   subscribeToAlerts,
+  subscribeToPins,
   updateLocation,
 } from '@/lib/game';
 
@@ -22,6 +24,7 @@ interface Subscriptions {
   players?: Unsubscribe;
   locations?: Unsubscribe;
   alerts?: Unsubscribe;
+  pins?: Unsubscribe;
 }
 
 interface GameStoreState {
@@ -34,6 +37,7 @@ interface GameStoreState {
   playersById: Record<string, Player>;
   locationsById: Record<string, Location>;
   alerts: Alert[];
+  pins: PinPoint[];
 
   // status
   isReady: boolean;
@@ -64,6 +68,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   playersById: {},
   locationsById: {},
   alerts: [],
+  pins: [],
 
   isReady: false,
   isSubscribing: false,
@@ -83,6 +88,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       playersById: {},
       locationsById: {},
       alerts: [],
+      pins: [],
       isReady: false,
     });
   },
@@ -116,6 +122,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       set((s) => (isEqual(s.alerts, alerts) ? s : { ...s, alerts }));
     });
 
+    // Pins
+    newSubs.pins = subscribeToPins(gameId, (pins) => {
+      set((s) => (isEqual(s.pins, pins) ? s : { ...s, pins }));
+    });
+
     set({ _subs: newSubs, isSubscribing: true, isReady: true });
   },
 
@@ -125,6 +136,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     _subs.players?.();
     _subs.locations?.();
     _subs.alerts?.();
+    _subs.pins?.();
     set({ _subs: {}, isSubscribing: false });
   },
 

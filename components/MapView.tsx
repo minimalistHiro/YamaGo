@@ -22,6 +22,7 @@ interface MapViewProps {
     state?: 'active' | 'downed' | 'eliminated';
     lastRevealUntil?: Date | null;
   }>;
+  pins?: Array<{ lat: number; lng: number; type?: 'yellow' }>; // yellow pins
   currentUserRole?: 'oni' | 'runner';
   currentUserId?: string;
   gameStatus?: 'pending' | 'running' | 'ended';
@@ -60,6 +61,7 @@ const ROLE_PIN_STYLES: Record<'oni' | 'runner', { fill: string; border: string; 
 export default function MapView({
   onLocationUpdate,
   players = [],
+  pins = [],
   currentUserRole,
   currentUserId,
   gameStatus,
@@ -305,20 +307,6 @@ export default function MapView({
       const lng = minLng + Math.random() * (maxLng - minLng);
       const lat = minLat + Math.random() * (maxLat - minLat);
       generated.push({ lat, lng });
-
-      const el = document.createElement('div');
-      el.style.width = '22px';
-      el.style.height = '22px';
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = '#f59e0b'; // yellow-500
-      el.style.border = '4px solid #d97706'; // yellow-600
-      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
-
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([lng, lat])
-        .addTo(map.current);
-
-      randomPinsRef.current.push(marker);
     }
 
     randomPinsPlacedRef.current = true;
@@ -332,6 +320,46 @@ export default function MapView({
       }
     }
   };
+
+  // Render yellow pins via GeoJSON
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) return;
+
+    const sourceId = 'game-pins';
+    if (!map.current.getSource(sourceId)) {
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
+      map.current.addLayer({
+        id: 'game-pins-layer',
+        type: 'circle',
+        source: sourceId,
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#f59e0b',
+          'circle-stroke-color': '#d97706',
+          'circle-stroke-width': 2,
+          'circle-opacity': 0.95,
+        },
+      });
+    }
+
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: pins.map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: {},
+      })),
+    } as const;
+
+    const src = map.current.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+    if (src) {
+      (src as any).setData(featureCollection as any);
+    }
+  }, [pins, isMapLoaded]);
 
 
   useEffect(() => {
