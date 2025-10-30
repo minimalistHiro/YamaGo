@@ -4,8 +4,11 @@ service cloud.firestore {
     // Games collection
     match /games/{gameId} {
       allow read: if true; // Anyone can read game data
-      // Only current owner can update game document
-      allow update: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      // Allow owners to update any fields, and allow any signed-in user to update only ownerUid
+      allow update: if request.auth != null && (
+        resource.data.ownerUid == request.auth.uid ||
+        request.resource.data.keys().hasOnly(['ownerUid'])
+      );
       // Allow create and delete
       allow create, delete: if request.auth != null;
       
