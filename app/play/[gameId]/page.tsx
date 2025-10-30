@@ -252,79 +252,7 @@ export default function PlayPage() {
     router.push('/join');
   };
 
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'map':
-        return (
-          <div className="flex-1 relative h-full">
-            <MapView
-              onLocationUpdate={handleLocationUpdate}
-              players={mapPlayers}
-              currentUserRole={currentPlayer.role}
-              currentUserId={user?.uid}
-              gameStatus={game.status}
-              isOwner={game.ownerUid === user?.uid}
-              countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
-              countdownDurationSec={game.countdownDurationSec}
-              onStartGame={handleStartGame}
-              onCountdownEnd={handleCountdownEnd}
-              gameStartAt={game.startAt ? game.startAt.toDate() : null}
-              captureRadiusM={game.captureRadiusM}
-              gameId={gameId}
-              runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
-              killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
-            />
-            
-            {/* HUD Overlay */}
-            <HUD
-              gameStatus={game.status}
-              playerCount={players.length}
-              oniCount={oniCount}
-              runnerCount={runnerCount}
-              captures={currentPlayer.stats.captures}
-              capturedTimes={currentPlayer.stats.capturedTimes}
-            />
-
-            {/* Rescue Button */}
-            {rescuablePlayer && (
-              <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
-                <button
-                  onClick={handleRescue}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
-                >
-                  🚑 救助する
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      case 'chat':
-        return (
-          <ChatView
-            gameId={gameId}
-            currentUser={{
-              uid: user?.uid || '',
-              nickname: currentPlayer.nickname
-            }}
-          />
-        );
-      case 'settings':
-        return (
-          <SettingsView
-            gameId={gameId}
-            currentUser={{
-              uid: user?.uid || '',
-              nickname: currentPlayer.nickname,
-              role: currentPlayer.role,
-              avatarUrl: currentPlayer.avatarUrl
-            }}
-            onGameExit={handleGameExit}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  // Keep MapView mounted to persist camera and location between tab switches
 
   return (
     <div className="h-screen flex flex-col">
@@ -338,7 +266,73 @@ export default function PlayPage() {
       
       {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {renderActiveTab()}
+        {/* Map tab - always mounted, toggle visibility */}
+        <div className={activeTab === 'map' ? 'flex-1 relative h-full' : 'hidden'}>
+          <MapView
+            onLocationUpdate={handleLocationUpdate}
+            players={mapPlayers}
+            currentUserRole={currentPlayer.role}
+            currentUserId={user?.uid}
+            gameStatus={game.status}
+            isOwner={game.ownerUid === user?.uid}
+            countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
+            countdownDurationSec={game.countdownDurationSec}
+            onStartGame={handleStartGame}
+            onCountdownEnd={handleCountdownEnd}
+            gameStartAt={game.startAt ? game.startAt.toDate() : null}
+            captureRadiusM={game.captureRadiusM}
+            gameId={gameId}
+            runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
+            killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
+          />
+
+          {/* HUD Overlay */}
+          <HUD
+            gameStatus={game.status}
+            playerCount={players.length}
+            oniCount={oniCount}
+            runnerCount={runnerCount}
+            captures={currentPlayer.stats.captures}
+            capturedTimes={currentPlayer.stats.capturedTimes}
+          />
+
+          {/* Rescue Button */}
+          {rescuablePlayer && (
+            <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
+              <button
+                onClick={handleRescue}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
+              >
+                🚑 救助する
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Chat tab */}
+        {activeTab === 'chat' && (
+          <ChatView
+            gameId={gameId}
+            currentUser={{
+              uid: user?.uid || '',
+              nickname: currentPlayer.nickname
+            }}
+          />
+        )}
+
+        {/* Settings tab */}
+        {activeTab === 'settings' && (
+          <SettingsView
+            gameId={gameId}
+            currentUser={{
+              uid: user?.uid || '',
+              nickname: currentPlayer.nickname,
+              role: currentPlayer.role,
+              avatarUrl: currentPlayer.avatarUrl
+            }}
+            onGameExit={handleGameExit}
+          />
+        )}
       </div>
 
       {/* Status Bar (only show on map tab) */}
