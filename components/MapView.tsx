@@ -91,6 +91,57 @@ export default function MapView({
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
+  // Create pin icon as canvas for map symbol layer
+  const createPinCanvas = (role: 'oni' | 'runner', size: number = 48): HTMLCanvasElement => {
+    const scale = 2; // retina
+    const w = size * scale;
+    const h = (size + 12) * scale; // extra for pointer
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const style = ROLE_PIN_STYLES[role];
+
+    // Shadow
+    ctx.save();
+    ctx.shadowColor = `${style.fill}80`;
+    ctx.shadowBlur = 12 * scale;
+    ctx.shadowOffsetY = 4 * scale;
+    // Head circle
+    const r = (size / 2) * scale;
+    const cx = w / 2;
+    const cy = r + 2 * scale;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = style.fill;
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.lineWidth = 4 * scale;
+    ctx.strokeStyle = style.border;
+    ctx.stroke();
+    ctx.restore();
+
+    // Pointer triangle
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + r + 2 * scale);
+    ctx.lineTo(cx - 12 * scale, cy + r + 2 * scale + 18 * scale);
+    ctx.lineTo(cx + 12 * scale, cy + r + 2 * scale + 18 * scale);
+    ctx.closePath();
+    ctx.fillStyle = style.fill;
+    ctx.fill();
+
+    // Emoji role icon
+    ctx.font = `${16 * scale}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(style.icon, cx, cy);
+
+    return canvas;
+  };
+
   // Create a circle polygon for 50m radius
   const createCirclePolygon = (lat: number, lng: number, radiusMeters: number, segments: number = 64) => {
     const R = 6371e3; // Earth's radius in meters
@@ -383,6 +434,25 @@ export default function MapView({
         data: { type: 'FeatureCollection', features: [] },
       });
 
+      // Add custom pin images
+      (async () => {
+        try {
+          if (!map.current) return;
+          if (!map.current.hasImage('pin-oni')) {
+            const c1 = createPinCanvas('oni');
+            const b1 = await createImageBitmap(c1);
+            map.current.addImage('pin-oni', b1, { pixelRatio: 2 });
+          }
+          if (!map.current.hasImage('pin-runner')) {
+            const c2 = createPinCanvas('runner');
+            const b2 = await createImageBitmap(c2);
+            map.current.addImage('pin-runner', b2, { pixelRatio: 2 });
+          }
+        } catch (e) {
+          // noop; addImage may throw if image already added in rare cases
+        }
+      })();
+
       map.current.addLayer({
         id: 'players-circles',
         type: 'circle',
@@ -408,16 +478,16 @@ export default function MapView({
         },
       });
 
-      // Emoji icons overlay
+      // Icon pins overlay using custom images
       map.current.addLayer({
         id: 'players-icons',
         type: 'symbol',
         source: 'players',
         layout: {
-          'text-field': ['get', 'icon'],
-          'text-size': 18,
-          'text-allow-overlap': true,
-          'text-anchor': 'center'
+          'icon-image': ['get', 'iconImage'],
+          'icon-size': 1,
+          'icon-allow-overlap': true,
+          'icon-anchor': 'bottom'
         }
       });
 
@@ -480,7 +550,7 @@ export default function MapView({
           nickname: p.nickname,
           role: p.role,
           state: p.state || 'active',
-          icon: p.role === 'oni' ? '👹' : '🏃',
+          iconImage: p.role === 'oni' ? 'pin-oni' : 'pin-runner',
         },
       })),
     } as const;
