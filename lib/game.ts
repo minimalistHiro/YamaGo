@@ -13,7 +13,8 @@ import {
   orderBy,
   serverTimestamp,
   Timestamp,
-  Firestore
+  Firestore,
+  deleteField
 } from 'firebase/firestore';
 import { getFirebaseServices } from './firebase/client';
 
@@ -138,7 +139,7 @@ export async function getGame(gameId: string): Promise<Game | null> {
   return { id: gameDoc.id, ...gameDoc.data() } as Game;
 }
 
-export async function updateGame(gameId: string, updates: Partial<Game>): Promise<void> {
+export async function updateGame(gameId: string, updates: Partial<Game> | Record<string, any>): Promise<void> {
   const db = getDb();
   await updateDoc(doc(db, 'games', gameId), updates);
 }
