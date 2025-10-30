@@ -339,6 +339,7 @@ export default function PlayPage() {
               onCountdownEnd={handleCountdownEnd}
               gameStartAt={game.startAt ? game.startAt.toDate() : null}
               captureRadiusM={game.captureRadiusM}
+              gameId={gameId}
             />
             
             {/* HUD Overlay */}

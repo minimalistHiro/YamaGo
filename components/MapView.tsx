@@ -10,6 +10,7 @@ import {
   KILLER_DETECT_RUNNER_RADIUS_M,
   RESCUE_RADIUS_M 
 } from '@/lib/constants';
+import { setGamePins } from '@/lib/game';
 
 interface MapViewProps {
   onLocationUpdate?: (lat: number, lng: number, accuracy: number) => void;
@@ -33,6 +34,7 @@ interface MapViewProps {
   onCountdownEnd?: () => void;
   gameStartAt?: Date | null;
   captureRadiusM?: number;
+  gameId?: string;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -67,7 +69,8 @@ export default function MapView({
   onStartGame,
   onCountdownEnd,
   gameStartAt,
-  captureRadiusM = 100
+  captureRadiusM = 100,
+  gameId
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -349,10 +352,11 @@ export default function MapView({
     const [maxLng, maxLat] = bounds[1];
 
     clearRandomPins();
-
+    const generated: Array<{ lat: number; lng: number }> = [];
     for (let i = 0; i < count; i++) {
       const lng = minLng + Math.random() * (maxLng - minLng);
       const lat = minLat + Math.random() * (maxLat - minLat);
+      generated.push({ lat, lng });
 
       const el = document.createElement('div');
       el.style.width = '22px';
@@ -370,6 +374,15 @@ export default function MapView({
     }
 
     randomPinsPlacedRef.current = true;
+
+    // Persist to database only from the owner client to avoid duplicates
+    if (isOwner && gameId) {
+      try {
+        void setGamePins(gameId, generated.map(p => ({ lat: p.lat, lng: p.lng, type: 'yellow' })));
+      } catch (e) {
+        console.error('Failed to save pins:', e);
+      }
+    }
   };
 
 

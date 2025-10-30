@@ -82,6 +82,15 @@ export interface GameEvent {
   data?: any;
 }
 
+// Map pins placed on the game map
+export interface PinPoint {
+  id: string;
+  lat: number;
+  lng: number;
+  type?: 'yellow';
+  createdAt: Timestamp;
+}
+
 // Game management functions
 const getDb = (): Firestore => {
   try {
@@ -149,6 +158,46 @@ export async function updateGameOwner(gameId: string, newOwnerUid: string): Prom
   await updateDoc(doc(db, 'games', gameId), {
     ownerUid: newOwnerUid
   });
+}
+
+// Pins management
+export async function clearPins(gameId: string): Promise<void> {
+  const db = getDb();
+  const pinsRef = collection(db, 'games', gameId, 'pins');
+  const snapshot = await getDocs(pinsRef);
+  const deletions: Promise<void>[] = [];
+  snapshot.forEach((d) => {
+    deletions.push(deleteDoc(doc(db, 'games', gameId, 'pins', d.id)));
+  });
+  await Promise.all(deletions);
+}
+
+export async function addPins(
+  gameId: string,
+  pins: Array<{ lat: number; lng: number; type?: 'yellow' }>
+): Promise<void> {
+  const db = getDb();
+  const pinsRef = collection(db, 'games', gameId, 'pins');
+  const writes: Promise<any>[] = [];
+  pins.forEach((p) => {
+    writes.push(
+      addDoc(pinsRef, {
+        lat: p.lat,
+        lng: p.lng,
+        type: p.type || 'yellow',
+        createdAt: serverTimestamp(),
+      })
+    );
+  });
+  await Promise.all(writes);
+}
+
+export async function setGamePins(
+  gameId: string,
+  pins: Array<{ lat: number; lng: number; type?: 'yellow' }>
+): Promise<void> {
+  await clearPins(gameId);
+  await addPins(gameId, pins);
 }
 
 export async function startGameCountdown(gameId: string, countdownDurationSec: number = 900): Promise<void> {
