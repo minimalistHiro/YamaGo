@@ -290,6 +290,7 @@ export default function MapView({
       container: mapContainer.current,
       style: {
         version: 8,
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
         sources: {
           'osm': {
             type: 'raster',
@@ -407,8 +408,21 @@ export default function MapView({
         },
       });
 
+      // Emoji icons overlay
+      map.current.addLayer({
+        id: 'players-icons',
+        type: 'symbol',
+        source: 'players',
+        layout: {
+          'text-field': ['get', 'icon'],
+          'text-size': 18,
+          'text-allow-overlap': true,
+          'text-anchor': 'center'
+        }
+      });
+
       // Popup on click
-      map.current.on('click', 'players-circles', (e) => {
+      map.current.on('click', 'players-icons', (e) => {
         const feature = e.features && e.features[0];
         if (!feature) return;
         const coords = feature.geometry.type === 'Point' ? (feature.geometry as any).coordinates : null;
@@ -466,6 +480,7 @@ export default function MapView({
           nickname: p.nickname,
           role: p.role,
           state: p.state || 'active',
+          icon: p.role === 'oni' ? '👹' : '🏃',
         },
       })),
     } as const;
