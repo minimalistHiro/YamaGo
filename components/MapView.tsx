@@ -949,6 +949,15 @@ export default function MapView({
     };
   }, [gameStartAt, gameStatus]);
 
+  // Stop and clear countdown when game status becomes ended
+  useEffect(() => {
+    if (gameStatus === 'ended') {
+      setIsCountdownActive(false);
+      setCountdownTimeLeft(null);
+      setLocalCountdownStartAt(null);
+    }
+  }, [gameStatus]);
+
   // Update capture radius circle when captureRadiusM changes
   useEffect(() => {
     if (currentLocation && isMapLoaded) {
@@ -1011,7 +1020,7 @@ export default function MapView({
       )}
 
       {/* Countdown Display */}
-      {isCountdownActive && countdownTimeLeft !== null && (
+      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && (
         <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 pointer-events-none">
           <div className="text-center">
             <div className="text-white text-8xl font-bold mb-4 animate-pulse">

@@ -141,23 +141,25 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">カウントダウン時間</span>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
+                  <select
                     value={countdownMinutes}
-                    onChange={(e) => setCountdownMinutes(Math.max(0, Math.min(59, Number(e.target.value))))}
-                    className="w-16 px-3 py-2 border border-gray-300 rounded-lg text-right font-mono"
-                  />
+                    onChange={(e) => setCountdownMinutes(Number(e.target.value))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg font-mono bg-white"
+                  >
+                    {Array.from({ length: 60 }, (_, i) => (
+                      <option key={`m-${i}`} value={i}>{i}</option>
+                    ))}
+                  </select>
                   <span className="text-gray-500">分</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
+                  <select
                     value={countdownSeconds}
-                    onChange={(e) => setCountdownSeconds(Math.max(0, Math.min(59, Number(e.target.value))))}
-                    className="w-16 px-3 py-2 border border-gray-300 rounded-lg text-right font-mono"
-                  />
+                    onChange={(e) => setCountdownSeconds(Number(e.target.value))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg font-mono bg-white"
+                  >
+                    {Array.from({ length: 60 }, (_, i) => (
+                      <option key={`s-${i}`} value={i}>{i}</option>
+                    ))}
+                  </select>
                   <span className="text-gray-500">秒</span>
                 </div>
               </div>
