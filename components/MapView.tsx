@@ -74,6 +74,8 @@ export default function MapView({
   const currentLocationMarker = useRef<maplibregl.Marker | null>(null);
   const currentRadiusCircleRef = useRef<maplibregl.Popup | null>(null);
   const captureRadiusCircle = useRef<{ id: string; center: [number, number]; radius: number } | null>(null);
+  const randomPinsRef = useRef<maplibregl.Marker[]>([]);
+  const randomPinsPlacedRef = useRef<boolean>(false);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -331,6 +333,43 @@ export default function MapView({
       center: [lng, lat],
       radius: captureRadiusM
     };
+  };
+
+  const clearRandomPins = () => {
+    if (randomPinsRef.current.length > 0) {
+      randomPinsRef.current.forEach(marker => marker.remove());
+      randomPinsRef.current = [];
+    }
+  };
+
+  const placeRandomYellowPins = (count: number = 5) => {
+    if (!map.current) return;
+    const bounds = getYamanoteBounds();
+    const [minLng, minLat] = bounds[0];
+    const [maxLng, maxLat] = bounds[1];
+
+    clearRandomPins();
+
+    for (let i = 0; i < count; i++) {
+      const lng = minLng + Math.random() * (maxLng - minLng);
+      const lat = minLat + Math.random() * (maxLat - minLat);
+
+      const el = document.createElement('div');
+      el.style.width = '22px';
+      el.style.height = '22px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = '#f59e0b'; // yellow-500
+      el.style.border = '4px solid #d97706'; // yellow-600
+      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([lng, lat])
+        .addTo(map.current);
+
+      randomPinsRef.current.push(marker);
+    }
+
+    randomPinsPlacedRef.current = true;
   };
 
 
@@ -804,6 +843,9 @@ export default function MapView({
     const duration = countdownDurationSec ?? 900;
     setLocalCountdownStartAt(new Date());
     setIsCountdownActive(true);
+    // A new countdown is starting; reset random pins state
+    randomPinsPlacedRef.current = false;
+    clearRandomPins();
     setCountdownTimeLeft(duration);
     
     // Call the parent's onStartGame handler
@@ -845,6 +887,9 @@ export default function MapView({
         setLocalCountdownStartAt(null);
         // Game should start automatically when countdown reaches 0
         // Notify parent component to update database
+        if (!randomPinsPlacedRef.current && isMapLoaded && map.current) {
+          placeRandomYellowPins(5);
+        }
         if (onCountdownEnd) {
           onCountdownEnd();
         }
