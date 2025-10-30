@@ -73,7 +73,7 @@ export default function MapView({
   const map = useRef<maplibregl.Map | null>(null);
   const currentLocationMarker = useRef<maplibregl.Marker | null>(null);
   const currentRadiusCircleRef = useRef<maplibregl.Popup | null>(null);
-  const captureRadiusCircle = useRef<maplibregl.Circle | null>(null);
+  const captureRadiusCircle = useRef<{ id: string; center: [number, number]; radius: number } | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -330,7 +330,7 @@ export default function MapView({
       id: 'capture-radius-circle',
       center: [lng, lat],
       radius: captureRadiusM
-    } as any;
+    };
   };
 
 
