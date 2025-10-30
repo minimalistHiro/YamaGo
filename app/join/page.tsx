@@ -107,29 +107,7 @@ export default function JoinPage() {
         avatarUrl = await uploadImageToStorage(selectedImage, uid);
       }
 
-      // Check current player count and update owner if this is the first player
-      try {
-        const gameRef = doc(db, 'games', gameId);
-        const gameSnap = await getDoc(gameRef);
-
-        if (gameSnap.exists()) {
-          const gameData = gameSnap.data();
-          const playersField = gameData?.players;
-          const playerCount = Array.isArray(playersField)
-            ? playersField.length
-            : typeof playersField === 'number'
-              ? playersField
-              : playersField && typeof playersField === 'object'
-                ? Object.keys(playersField).length
-                : 0;
-
-          if (playerCount === 0) {
-            await updateDoc(gameRef, { ownerUid: uid });
-          }
-        }
-      } catch (firestoreError) {
-        console.warn('Failed to update owner before joining game:', firestoreError);
-      }
+      // Do not update ownerUid here; rely on server-side logic and joinGame
 
       // Join existing game
       await joinGame(gameId, uid, nickname.trim(), 'runner', avatarUrl);
