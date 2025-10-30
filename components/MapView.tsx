@@ -856,6 +856,13 @@ export default function MapView({
 
   // Countdown effect - prioritize local countdown, fallback to Firestore countdown
   useEffect(() => {
+    // If the game has ended, force-stop any countdown logic
+    if (gameStatus === 'ended') {
+      setIsCountdownActive(false);
+      setCountdownTimeLeft(null);
+      setLocalCountdownStartAt(null);
+      return;
+    }
     const activeStartAt = localCountdownStartAt || countdownStartAt;
     const duration = countdownDurationSec ?? 900;
     
@@ -905,7 +912,7 @@ export default function MapView({
     return () => {
       clearInterval(interval);
     };
-  }, [localCountdownStartAt, countdownStartAt, countdownDurationSec]);
+  }, [localCountdownStartAt, countdownStartAt, countdownDurationSec, gameStatus]);
 
   // Clear local countdown when Firestore countdown is confirmed
   useEffect(() => {
@@ -1006,11 +1013,10 @@ export default function MapView({
         </div>
       )}
 
-      {/* Owner Start Game Button - Show when game is pending or ended, countdown is not active, and countdown has not started */}
+      {/* Owner Start Game Button - Show when game is pending or ended; if ended, ignore countdown flags */}
       {isOwner && 
        (gameStatus === 'pending' || gameStatus === 'ended') &&
-       !isCountdownActive && 
-       countdownTimeLeft === null && (
+       (gameStatus === 'ended' || (!isCountdownActive && countdownTimeLeft === null)) && (
         <button
           onClick={handleStartGameClick}
           className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-full shadow-lg text-lg transition-colors"
