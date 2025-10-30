@@ -6,8 +6,6 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { getYamanoteCenter, getYamanoteBounds } from '@/lib/geo';
 import { haversine } from '@/lib/geo';
 import { 
-  RUNNER_SEE_KILLER_RADIUS_M, 
-  KILLER_DETECT_RUNNER_RADIUS_M,
   RESCUE_RADIUS_M 
 } from '@/lib/constants';
 import { setGamePins } from '@/lib/game';
@@ -35,6 +33,8 @@ interface MapViewProps {
   gameStartAt?: Date | null;
   captureRadiusM?: number;
   gameId?: string;
+  runnerSeeKillerRadiusM?: number;
+  killerDetectRunnerRadiusM?: number;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -70,7 +70,9 @@ export default function MapView({
   onCountdownEnd,
   gameStartAt,
   captureRadiusM = 100,
-  gameId
+  gameId,
+  runnerSeeKillerRadiusM = 200
+  , killerDetectRunnerRadiusM = 500
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -504,9 +506,9 @@ export default function MapView({
 
       // DbD Visibility Rules
       if (currentUserRole === 'oni') {
-        // Killer can see all runners within detection radius
+        // Killer can see all runners within configured detection radius
         if (player.role === 'runner' && player.state !== 'eliminated') {
-          return distance <= KILLER_DETECT_RUNNER_RADIUS_M;
+          return distance <= killerDetectRunnerRadiusM;
         }
         // Killer can see other killers
         if (player.role === 'oni') {
@@ -517,9 +519,9 @@ export default function MapView({
         if (player.role === 'runner') {
           return true;
         }
-        // Runner can see killers only within specific radius (200m precise, 500m alert)
+        // Runner can see killers only within configured radius
         if (player.role === 'oni') {
-          return distance <= RUNNER_SEE_KILLER_RADIUS_M;
+          return distance <= runnerSeeKillerRadiusM;
         }
       }
 
@@ -1038,16 +1040,24 @@ export default function MapView({
         </button>
       )}
 
-      {/* Countdown Display */}
-      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && (
+      {/* Countdown Display - Oni: full-screen overlay */}
+      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'oni' && (
         <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 pointer-events-none">
           <div className="text-center">
             <div className="text-white text-8xl font-bold mb-4 animate-pulse">
               {formatElapsedTime(countdownTimeLeft)}
             </div>
-            <div className="text-white text-xl">
-              {currentUserRole === 'oni' ? '鬼のスタートまで' : 'ゲーム開始まで'}
-            </div>
+            <div className="text-white text-xl">鬼のスタートまで</div>
+          </div>
+        </div>
+      )}
+
+      {/* Countdown Display - Runner: bottom-right, no gray-out */}
+      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'runner' && (
+        <div className="absolute bottom-20 right-4 z-50">
+          <div className="bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-3 border border-gray-200 flex items-center space-x-3">
+            <span className="text-sm text-gray-600">鬼が出発するまで</span>
+            <span className="font-mono text-2xl font-bold text-gray-800">{formatElapsedTime(countdownTimeLeft)}</span>
           </div>
         </div>
       )}

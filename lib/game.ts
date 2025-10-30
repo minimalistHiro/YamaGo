@@ -24,6 +24,8 @@ export interface Game {
   status: 'pending' | 'running' | 'ended';
   startAt: Timestamp | null;
   captureRadiusM: number;
+  runnerSeeKillerRadiusM?: number;
+  killerDetectRunnerRadiusM?: number;
   startDelaySec: number;
   ownerUid: string;
   createdAt: Timestamp;
@@ -118,6 +120,8 @@ export async function createGame(ownerUid: string, gameData: Partial<Game> = {})
       status: 'pending',
       startAt: null,
       captureRadiusM: 100,
+      runnerSeeKillerRadiusM: 200,
+      killerDetectRunnerRadiusM: 500,
       startDelaySec: 1800, // 30 minutes
       countdownDurationSec: 900, // 15 minutes
       ownerUid,

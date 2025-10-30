@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Player, getPlayers, updatePlayer } from '@/lib/game';
+import { Player, getPlayers, updatePlayer, deletePlayer } from '@/lib/game';
 
 interface RoleAssignmentViewProps {
   gameId: string;
   onBack: () => void;
+  currentUserId?: string;
 }
 
-export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentViewProps) {
+export default function RoleAssignmentView({ gameId, onBack, currentUserId }: RoleAssignmentViewProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [deletingUid, setDeletingUid] = useState<string | null>(null);
 
   useEffect(() => {
     loadPlayers();
@@ -53,6 +55,20 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
     const runnerCount = players.filter(p => p.role === 'runner').length;
     return { oniCount, runnerCount };
   };
+  const handleDeletePlayer = async (playerUid: string) => {
+    const ok = confirm('このプレイヤーを削除しますか？\n位置情報も含めて削除されます。');
+    if (!ok) return;
+    try {
+      setDeletingUid(playerUid);
+      await deletePlayer(gameId, playerUid);
+      setPlayers(prev => prev.filter(p => p.uid !== playerUid));
+    } catch (err) {
+      console.error('Error deleting player:', err);
+      setError('プレイヤーの削除に失敗しました');
+    } finally {
+      setDeletingUid(null);
+    }
+  };
 
   const { oniCount, runnerCount } = getRoleCounts();
 
@@ -68,9 +84,9 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
   }
 
   return (
-    <div className="h-full bg-gray-50 overflow-y-auto">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4">
+    <div className="h-full bg-gray-50 flex flex-col">
+      {/* Header - 固定表示 */}
+      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <div className="flex items-center space-x-3">
           <button
             onClick={onBack}
@@ -84,7 +100,9 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
+      {/* 設定コンテンツ部分 - スクロール可能 */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-6">
         {/* Role Summary */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h3 className="text-md font-medium text-gray-800 mb-3">役職割り当て状況</h3>
@@ -154,9 +172,25 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <h5 className="font-medium text-gray-800 truncate">{player.nickname}</h5>
+                      <div className="flex items-center space-x-2">
+                        <h5 className="font-medium text-gray-800 truncate">{player.nickname}</h5>
+                        {currentUserId === player.uid && (
+                          <span className="text-[10px] px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">自分</span>
+                        )}
+                      </div>
                       <p className="text-xs text-red-600">タップで逃走者に変更</p>
                     </div>
+
+                    <button
+                      className="ml-2 p-2 rounded hover:bg-red-200 text-red-600"
+                      title="プレイヤーを削除"
+                      onClick={(e) => { e.stopPropagation(); handleDeletePlayer(player.uid); }}
+                      disabled={deletingUid === player.uid}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a2 2 0 012-2h4a2 2 0 012 2m-8 0h8" />
+                      </svg>
+                    </button>
                     
                     <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -213,9 +247,25 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <h5 className="font-medium text-gray-800 truncate">{player.nickname}</h5>
+                      <div className="flex items-center space-x-2">
+                        <h5 className="font-medium text-gray-800 truncate">{player.nickname}</h5>
+                        {currentUserId === player.uid && (
+                          <span className="text-[10px] px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">自分</span>
+                        )}
+                      </div>
                       <p className="text-xs text-green-600">タップで鬼に変更</p>
                     </div>
+
+                    <button
+                      className="ml-2 p-2 rounded hover:bg-green-200 text-green-700"
+                      title="プレイヤーを削除"
+                      onClick={(e) => { e.stopPropagation(); handleDeletePlayer(player.uid); }}
+                      disabled={deletingUid === player.uid}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a2 2 0 012-2h4a2 2 0 012 2m-8 0h8" />
+                      </svg>
+                    </button>
                     
                     <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -237,7 +287,7 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
             </div>
           </div>
         </div>
-
+        
         {/* Instructions */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start">
@@ -255,6 +305,7 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
               </ul>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
