@@ -1034,7 +1034,7 @@ export default function MapView({
       )}
 
       {/* Gray overlay for oni during countdown */}
-      {isCountdownActive && currentUserRole === 'oni' && (
+      {isCountdownActive && currentUserRole === 'oni' && gameStatus !== 'ended' && (
         <div className="absolute inset-0 bg-gray-500 bg-opacity-50 z-40 pointer-events-none" />
       )}
 
