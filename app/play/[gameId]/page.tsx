@@ -338,6 +338,8 @@ export default function PlayPage() {
               gameStartAt={game.startAt ? game.startAt.toDate() : null}
               captureRadiusM={game.captureRadiusM}
               gameId={gameId}
+              runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
+              killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
             />
             
             {/* HUD Overlay */}

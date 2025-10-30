@@ -30,6 +30,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
   const [isOwner, setIsOwner] = useState(false);
   const [showRoleAssignment, setShowRoleAssignment] = useState(false);
   const [showGameSettings, setShowGameSettings] = useState(false);
+  const [showBecomeOwnerConfirm, setShowBecomeOwnerConfirm] = useState(false);
 
   useEffect(() => {
     loadGameInfo();
@@ -161,6 +162,14 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
     setShowGameSettings(false);
   };
 
+  const handleRequestBecomeOwner = () => {
+    setShowBecomeOwnerConfirm(true);
+  };
+
+  const cancelBecomeOwner = () => {
+    setShowBecomeOwnerConfirm(false);
+  };
+
   const handleEndGame = async () => {
     if (!isOwner) return;
     const ok = confirm('ゲームを終了しますか？\nこの操作は取り消せません。');
@@ -190,6 +199,11 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const confirmBecomeOwner = async () => {
+    setShowBecomeOwnerConfirm(false);
+    await handleBecomeOwner();
   };
 
   // Show role assignment view if requested
@@ -389,7 +403,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
           {!isOwner && (
             <div className="mb-3">
               <button
-                onClick={handleBecomeOwner}
+                onClick={handleRequestBecomeOwner}
                 disabled={isLoading}
                 className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
               >
@@ -423,6 +437,48 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
         </div>
       </div>
 
+      {/* Exit Confirmation Modal */}
+      {showBecomeOwnerConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-10 h-10 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                オーナー権限を取得しますか？
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                現在のオーナーからオーナー権限を引き継ぎます。<br />
+                この操作はすぐに反映されます。
+              </p>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelBecomeOwner}
+                  disabled={isLoading}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={confirmBecomeOwner}
+                  disabled={isLoading}
+                  className="flex-1 bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                  {isLoading ? '処理中...' : 'オーナーになる'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Exit Confirmation Modal */}
       {showExitConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

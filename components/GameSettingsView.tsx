@@ -16,6 +16,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
   
   // Settings state
   const [captureRadiusM, setCaptureRadiusM] = useState<number>(100);
+  const [runnerSeeKillerRadiusM, setRunnerSeeKillerRadiusM] = useState<number>(200);
+  const [killerDetectRunnerRadiusM, setKillerDetectRunnerRadiusM] = useState<number>(500);
   const [countdownMinutes, setCountdownMinutes] = useState<number>(0);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(20);
 
@@ -30,6 +32,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
       if (gameData) {
         setGame(gameData);
         setCaptureRadiusM(gameData.captureRadiusM || 100);
+        setRunnerSeeKillerRadiusM(gameData.runnerSeeKillerRadiusM || 200);
+        setKillerDetectRunnerRadiusM(gameData.killerDetectRunnerRadiusM || 500);
         
         // Convert countdownDurationSec to minutes and seconds
         const totalSeconds = gameData.countdownDurationSec || 900;
@@ -54,6 +58,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
       
       await updateGame(gameId, {
         captureRadiusM,
+        runnerSeeKillerRadiusM,
+        killerDetectRunnerRadiusM,
         countdownDurationSec: totalCountdownSeconds
       });
       
@@ -130,6 +136,66 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 鬼が逃走者を捕獲できる距離を設定します。
+              </p>
+            </div>
+          </div>
+
+          {/* Runner visibility radius for killers */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <h3 className="text-md font-medium text-gray-800 mb-4">逃走者が鬼を視認できる距離</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">半径: {runnerSeeKillerRadiusM}m</span>
+                <span className="text-sm text-gray-500 font-mono">{runnerSeeKillerRadiusM}m</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="1000"
+                step="10"
+                value={runnerSeeKillerRadiusM}
+                onChange={(e) => setRunnerSeeKillerRadiusM(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, #e5e7eb ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>50m</span>
+                <span>1000m</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                逃走者から見える鬼の最大距離を設定します（初期値: 200m）。
+              </p>
+            </div>
+          </div>
+
+          {/* Killer detection radius for runners */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <h3 className="text-md font-medium text-gray-800 mb-4">鬼が逃走者を検知できる距離</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">半径: {killerDetectRunnerRadiusM}m</span>
+                <span className="text-sm text-gray-500 font-mono">{killerDetectRunnerRadiusM}m</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="1000"
+                step="10"
+                value={killerDetectRunnerRadiusM}
+                onChange={(e) => setKillerDetectRunnerRadiusM(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((killerDetectRunnerRadiusM - 50) / 950) * 100}%, #e5e7eb ${((killerDetectRunnerRadiusM - 50) / 950) * 100}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>50m</span>
+                <span>1000m</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                鬼が逃走者をマップ上で可視化できる最大距離を設定します（初期値: 500m）。
               </p>
             </div>
           </div>
