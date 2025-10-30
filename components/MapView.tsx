@@ -1015,10 +1015,10 @@ export default function MapView({
         <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 pointer-events-none">
           <div className="text-center">
             <div className="text-white text-8xl font-bold mb-4 animate-pulse">
-              {Math.ceil(countdownTimeLeft / 60)}
+              {formatElapsedTime(countdownTimeLeft)}
             </div>
             <div className="text-white text-xl">
-              {currentUserRole === 'oni' ? '鬼のスタートまで（分）' : 'ゲーム開始まで（分）'}
+              {currentUserRole === 'oni' ? '鬼のスタートまで' : 'ゲーム開始まで'}
             </div>
           </div>
         </div>
