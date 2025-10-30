@@ -94,9 +94,12 @@ export default function MapView({
   // Create pin icon as canvas for map symbol layer (teardrop-style pin)
   const createPinCanvas = (role: 'oni' | 'runner', size: number = 40): HTMLCanvasElement => {
     const scale = 2; // retina
-    const w = size * scale;
+    const marginX = 8 * scale;
+    const marginTop = 6 * scale;
+    const marginBottom = 4 * scale;
     const pointerH = 22 * scale; // pointer height
-    const h = (size + pointerH / scale) * scale;
+    const w = size * scale + marginX * 2;
+    const h = size * scale + pointerH + marginTop + marginBottom;
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
@@ -108,7 +111,8 @@ export default function MapView({
     // Coordinates
     const cx = w / 2;
     const headR = (size / 2) * scale; // head radius
-    const headCY = headR + 2 * scale;
+    const tipY = h - marginBottom; // a bit above bottom to avoid clipping
+    const headCY = tipY - pointerH - headR;
 
     // Teardrop path (rounded head + tapered pointer)
     ctx.save();
@@ -132,7 +136,7 @@ export default function MapView({
     ctx.restore();
 
     // Emoji role icon
-    ctx.font = `${20 * scale}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
+    ctx.font = `${24 * scale}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
@@ -459,7 +463,7 @@ export default function MapView({
         source: 'players',
         layout: {
           'icon-image': ['get', 'iconImage'],
-          'icon-size': 0.7,
+          'icon-size': 0.75,
           'icon-allow-overlap': true,
           'icon-anchor': 'bottom'
         }
