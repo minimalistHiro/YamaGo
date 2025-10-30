@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
-import { httpsCallable } from 'firebase/functions';
 import { deletePlayer, getGame, Game, updateGame } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
 import GameSettingsView from './GameSettingsView';
@@ -182,15 +181,9 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
   const handleBecomeOwner = async () => {
     try {
       setIsLoading(true);
-      const { functions } = getFirebaseServices();
-      const fn = httpsCallable(functions, 'becomeOwner');
-      const result = await fn({ gameId });
-      if ((result?.data as any)?.ok) {
-        alert('オーナーになりました');
-        await loadGameInfo();
-      } else {
-        alert('オーナー変更に失敗しました');
-      }
+      await updateGame(gameId, { ownerUid: currentUser.uid });
+      alert('オーナーになりました');
+      await loadGameInfo();
     } catch (error) {
       console.error('Failed to become owner:', error);
       alert('オーナー変更に失敗しました');
