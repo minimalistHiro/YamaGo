@@ -228,7 +228,7 @@ export default function PlayPage() {
     try {
       // Start countdown and update game status to 'running' simultaneously
       // Keep countdown information so it continues to display
-      await startGameCountdown(gameId, 20); // 20 seconds countdown
+      await startGameCountdown(gameId, 900); // 15 minutes countdown
       await startGame(gameId, true); // Update database to mark game as started, but keep countdown
       console.log('Game started and countdown initiated');
     } catch (error) {

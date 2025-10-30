@@ -109,6 +109,7 @@ export async function createGame(ownerUid: string, gameData: Partial<Game> = {})
       startAt: null,
       captureRadiusM: 50,
       startDelaySec: 1800, // 30 minutes
+      countdownDurationSec: 900, // 15 minutes
       ownerUid,
       createdAt: serverTimestamp() as Timestamp,
       ...gameData
@@ -149,7 +150,7 @@ export async function updateGameOwner(gameId: string, newOwnerUid: string): Prom
   });
 }
 
-export async function startGameCountdown(gameId: string, countdownDurationSec: number = 20): Promise<void> {
+export async function startGameCountdown(gameId: string, countdownDurationSec: number = 900): Promise<void> {
   const db = getDb();
   const countdownStartAt = serverTimestamp() as Timestamp;
   

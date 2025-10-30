@@ -17,6 +17,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
   // Settings state
   const [captureRadiusM, setCaptureRadiusM] = useState<number>(50);
   const [startDelaySec, setStartDelaySec] = useState<number>(1800);
+  const [countdownMinutes, setCountdownMinutes] = useState<number>(0);
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(20);
 
   useEffect(() => {
     loadGameSettings();
@@ -30,6 +32,11 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
         setGame(gameData);
         setCaptureRadiusM(gameData.captureRadiusM || 50);
         setStartDelaySec(gameData.startDelaySec || 1800);
+        
+        // Convert countdownDurationSec to minutes and seconds
+        const totalSeconds = gameData.countdownDurationSec || 20;
+        setCountdownMinutes(Math.floor(totalSeconds / 60));
+        setCountdownSeconds(totalSeconds % 60);
       }
     } catch (err) {
       console.error('Error loading game settings:', err);
@@ -44,9 +51,13 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
       setIsSaving(true);
       setError('');
       
+      // Convert minutes and seconds to total seconds
+      const totalCountdownSeconds = countdownMinutes * 60 + countdownSeconds;
+      
       await updateGame(gameId, {
         captureRadiusM,
-        startDelaySec
+        startDelaySec,
+        countdownDurationSec: totalCountdownSeconds
       });
       
       alert('ゲーム設定を保存しました');
@@ -120,6 +131,42 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 鬼が逃走者を捕獲できる距離を設定します。
+              </p>
+            </div>
+          </div>
+
+          {/* Countdown Duration */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <h3 className="text-md font-medium text-gray-800 mb-4">カウントダウン時間</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">カウントダウン時間</span>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={countdownMinutes}
+                    onChange={(e) => setCountdownMinutes(Math.max(0, Math.min(59, Number(e.target.value))))}
+                    className="w-16 px-3 py-2 border border-gray-300 rounded-lg text-right font-mono"
+                  />
+                  <span className="text-gray-500">分</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={countdownSeconds}
+                    onChange={(e) => setCountdownSeconds(Math.max(0, Math.min(59, Number(e.target.value))))}
+                    className="w-16 px-3 py-2 border border-gray-300 rounded-lg text-right font-mono"
+                  />
+                  <span className="text-gray-500">秒</span>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                <p>合計: {countdownMinutes * 60 + countdownSeconds}秒 ({countdownMinutes}分{countdownSeconds}秒)</p>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                ゲーム開始ボタンを押してからカウントダウンが終了するまでの時間です。
               </p>
             </div>
           </div>

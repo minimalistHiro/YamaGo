@@ -62,7 +62,7 @@ export default function MapView({
   gameStatus,
   isOwner = false,
   countdownStartAt,
-  countdownDurationSec = 20,
+  countdownDurationSec = 900,
   onStartGame,
   onCountdownEnd,
   gameStartAt
@@ -736,7 +736,7 @@ export default function MapView({
   // Handle local countdown start
   const handleStartGameClick = () => {
     // Start local countdown immediately
-    const duration = countdownDurationSec ?? 20;
+    const duration = countdownDurationSec ?? 900;
     setLocalCountdownStartAt(new Date());
     setIsCountdownActive(true);
     setCountdownTimeLeft(duration);
@@ -750,7 +750,7 @@ export default function MapView({
   // Countdown effect - prioritize local countdown, fallback to Firestore countdown
   useEffect(() => {
     const activeStartAt = localCountdownStartAt || countdownStartAt;
-    const duration = countdownDurationSec ?? 20;
+    const duration = countdownDurationSec ?? 900;
     
     if (!activeStartAt || duration === null) {
       // Only disable if Firestore also doesn't have countdown
@@ -880,7 +880,7 @@ export default function MapView({
         </div>
       )}
 
-      {/* Owner Start Game Button - Only show when game is pending, countdown is not active, and countdown has not started */}
+      {/* Owner Start Game Button - Only show when game is pending (not started in database), countdown is not active, and countdown has not started */}
       {isOwner && 
        gameStatus === 'pending' &&
        !isCountdownActive && 
