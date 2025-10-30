@@ -355,7 +355,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
               </div>
             </div>
 
-            {isOwner && game?.status !== 'ended' && (
+            {isOwner && game?.status === 'running' && (
               <div className="pt-2">
                 <button
                   onClick={handleEndGame}
