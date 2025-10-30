@@ -32,6 +32,7 @@ interface MapViewProps {
   onStartGame?: () => void;
   onCountdownEnd?: () => void;
   gameStartAt?: Date | null;
+  captureRadiusM?: number;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -65,12 +66,14 @@ export default function MapView({
   countdownDurationSec = 900,
   onStartGame,
   onCountdownEnd,
-  gameStartAt
+  gameStartAt,
+  captureRadiusM = 100
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const currentLocationMarker = useRef<maplibregl.Marker | null>(null);
   const currentRadiusCircleRef = useRef<maplibregl.Popup | null>(null);
+  const captureRadiusCircle = useRef<maplibregl.Circle | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -272,6 +275,62 @@ export default function MapView({
     const bounds = getYamanoteBounds();
     return lat >= bounds[0][1] && lat <= bounds[1][1] && 
            lng >= bounds[0][0] && lng <= bounds[1][0];
+  };
+
+  // Update capture radius circle around current user
+  const updateCaptureRadiusCircle = (lat: number, lng: number) => {
+    if (!map.current || !isMapLoaded) return;
+
+    // Remove existing circle
+    if (captureRadiusCircle.current) {
+      map.current.removeLayer('capture-radius-circle-fill');
+      map.current.removeLayer('capture-radius-circle-stroke');
+      map.current.removeSource('capture-radius-circle');
+    }
+
+    // Create circle polygon
+    const circlePolygon = createCirclePolygon(lat, lng, captureRadiusM, 64);
+    
+    // Add new source and layers
+    const color = currentUserRole === 'oni' ? '#dc2626' : '#22c55e';
+    
+    map.current.addSource('capture-radius-circle', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [circlePolygon]
+        }
+      }
+    });
+
+    map.current.addLayer({
+      id: 'capture-radius-circle-fill',
+      type: 'fill',
+      source: 'capture-radius-circle',
+      paint: {
+        'fill-color': color,
+        'fill-opacity': 0.1
+      }
+    });
+
+    map.current.addLayer({
+      id: 'capture-radius-circle-stroke',
+      type: 'line',
+      source: 'capture-radius-circle',
+      paint: {
+        'line-color': color,
+        'line-opacity': 0.6,
+        'line-width': 2
+      }
+    });
+
+    captureRadiusCircle.current = {
+      id: 'capture-radius-circle',
+      center: [lng, lat],
+      radius: captureRadiusM
+    } as any;
   };
 
 
@@ -514,6 +573,9 @@ export default function MapView({
             setCurrentLocation({ lat: latitude, lng: longitude, accuracy });
             setIsOutOfBounds(!withinBounds);
             
+            // Update capture radius circle
+            updateCaptureRadiusCircle(latitude, longitude);
+            
             // Center map on current location
             if (map.current) {
               map.current.flyTo({
@@ -677,6 +739,9 @@ export default function MapView({
         setCurrentLocation({ lat: latitude, lng: longitude });
         setIsOutOfBounds(!withinBounds);
         
+        // Update capture radius circle
+        updateCaptureRadiusCircle(latitude, longitude);
+        
         // Update current location marker during game
         if (map.current && currentLocationMarker.current) {
           currentLocationMarker.current.setLngLat([longitude, latitude]);
@@ -839,6 +904,13 @@ export default function MapView({
     };
   }, [gameStartAt, gameStatus]);
 
+  // Update capture radius circle when captureRadiusM changes
+  useEffect(() => {
+    if (currentLocation && isMapLoaded) {
+      updateCaptureRadiusCircle(currentLocation.lat, currentLocation.lng);
+    }
+  }, [captureRadiusM, currentLocation, isMapLoaded, currentUserRole]);
+
   // Format elapsed time as MM:SS
   const formatElapsedTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -898,10 +970,10 @@ export default function MapView({
         <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 pointer-events-none">
           <div className="text-center">
             <div className="text-white text-8xl font-bold mb-4 animate-pulse">
-              {countdownTimeLeft}
+              {Math.ceil(countdownTimeLeft / 60)}
             </div>
             <div className="text-white text-xl">
-              {currentUserRole === 'oni' ? '鬼のスタートまで' : 'ゲーム開始まで'}
+              {currentUserRole === 'oni' ? '鬼のスタートまで（分）' : 'ゲーム開始まで（分）'}
             </div>
           </div>
         </div>

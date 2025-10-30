@@ -107,7 +107,7 @@ export async function createGame(ownerUid: string, gameData: Partial<Game> = {})
     const game: Omit<Game, 'id'> = {
       status: 'pending',
       startAt: null,
-      captureRadiusM: 50,
+      captureRadiusM: 100,
       startDelaySec: 1800, // 30 minutes
       countdownDurationSec: 900, // 15 minutes
       ownerUid,
