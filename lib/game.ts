@@ -223,7 +223,6 @@ export async function startGame(gameId: string, keepCountdown: boolean = false):
   // Only clear countdown if explicitly requested (after countdown ends)
   if (!keepCountdown) {
     updates.countdownStartAt = null;
-    updates.countdownDurationSec = null;
   }
   
   await updateDoc(doc(db, 'games', gameId), updates);

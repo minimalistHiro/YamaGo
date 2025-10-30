@@ -20,7 +20,6 @@ import {
   Location,
   Alert
 } from '@/lib/game';
-import { deleteField } from 'firebase/firestore';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
 import HUD from '@/components/HUD';
@@ -252,10 +251,9 @@ export default function PlayPage() {
     
     try {
       await updateGame(gameId, {
-        countdownStartAt: null,
-        countdownDurationSec: deleteField()
+        countdownStartAt: null
       });
-      console.log('Countdown ended, countdown data cleared');
+      console.log('Countdown ended, countdownStartAt cleared (duration retained)');
     } catch (error) {
       console.error('Failed to clear countdown data:', error);
     }
