@@ -68,9 +68,9 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
   }
 
   return (
-    <div className="h-full bg-gray-50 overflow-y-auto">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4">
+    <div className="h-full bg-gray-50 flex flex-col">
+      {/* Header - 固定表示 */}
+      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <div className="flex items-center space-x-3">
           <button
             onClick={onBack}
@@ -84,7 +84,9 @@ export default function RoleAssignmentView({ gameId, onBack }: RoleAssignmentVie
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
+      {/* 設定コンテンツ部分 - スクロール可能 */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-6">
         {/* Role Summary */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h3 className="text-md font-medium text-gray-800 mb-3">役職割り当て状況</h3>
