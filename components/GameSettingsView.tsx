@@ -57,11 +57,9 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
         countdownDurationSec: totalCountdownSeconds
       });
       
-      // Show success message and return to settings when user closes the alert
-      const userConfirmed = confirm('ゲーム設定を保存しました\n\n設定画面に戻りますか？');
-      if (userConfirmed) {
-        onBack();
-      }
+      // Show success message then automatically return
+      alert('ゲーム設定を保存しました');
+      onBack();
     } catch (err) {
       console.error('Error saving game settings:', err);
       setError('設定の保存に失敗しました');
