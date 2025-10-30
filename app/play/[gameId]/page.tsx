@@ -221,11 +221,6 @@ export default function PlayPage() {
   const handleStartGame = async () => {
     if (!game || !user) return;
     
-    // Don't start if game is already running or ended
-    if (game.status === 'running' || game.status === 'ended') {
-      return;
-    }
-    
     try {
       // Start countdown and update game status to 'running' simultaneously
       // Keep countdown information so it continues to display
@@ -240,11 +235,6 @@ export default function PlayPage() {
 
   const handleGameStart = async () => {
     if (!game) return;
-    
-    // Don't start if game is already running or ended
-    if (game.status === 'running' || game.status === 'ended') {
-      return;
-    }
     
     try {
       await startGame(gameId);
