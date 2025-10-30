@@ -208,7 +208,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
 
   // Show role assignment view if requested
   if (showRoleAssignment) {
-    return <RoleAssignmentView gameId={gameId} onBack={handleBackFromRoleAssignment} />;
+    return <RoleAssignmentView gameId={gameId} onBack={handleBackFromRoleAssignment} currentUserId={currentUser.uid} />;
   }
 
   // Show game settings view if requested
