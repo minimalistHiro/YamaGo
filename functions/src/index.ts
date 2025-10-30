@@ -460,6 +460,50 @@ export const ingestLocation = functions
     }
   });
 
+// Callable function: Set the caller as the game owner
+export const becomeOwner = functions.https.onCall(async (data, context) => {
+  const uid = context.auth?.uid;
+  const gameId = (data && data.gameId) as string | undefined;
+
+  if (!uid) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+  if (!gameId || typeof gameId !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'gameId is required');
+  }
+
+  try {
+    const gameRef = db.collection('games').doc(gameId);
+    const playerRef = gameRef.collection('players').doc(uid);
+
+    // Ensure the caller is part of the game
+    const playerDoc = await playerRef.get();
+    if (!playerDoc.exists) {
+      throw new functions.https.HttpsError('failed-precondition', 'User is not a player in this game');
+    }
+
+    const gameDoc = await gameRef.get();
+    if (!gameDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Game not found');
+    }
+
+    const currentOwnerUid = gameDoc.data()?.ownerUid as string | undefined;
+    if (currentOwnerUid === uid) {
+      return { ok: true, message: 'Already owner' };
+    }
+
+    await gameRef.update({ ownerUid: uid });
+    await recordEvent(gameId, 'game-start', uid, undefined, { action: 'become-owner' });
+    return { ok: true };
+  } catch (error: any) {
+    console.error(`[becomeOwner] Failed for game ${gameId}:`, error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', 'Failed to set owner');
+  }
+});
+
 // HTTP function to get game stats
 export const getGameStats = functions.https.onRequest(async (req, res) => {
   const gameId = req.query.gameId as string;

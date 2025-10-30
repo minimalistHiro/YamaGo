@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
+import { httpsCallable } from 'firebase/functions';
 import { deletePlayer, getGame, Game, updateGame } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
 import GameSettingsView from './GameSettingsView';
@@ -173,6 +174,26 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
     } catch (error) {
       console.error('Failed to end game:', error);
       alert('ゲームの終了に失敗しました');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBecomeOwner = async () => {
+    try {
+      setIsLoading(true);
+      const { functions } = getFirebaseServices();
+      const fn = httpsCallable(functions, 'becomeOwner');
+      const result = await fn({ gameId });
+      if ((result?.data as any)?.ok) {
+        alert('オーナーになりました');
+        await loadGameInfo();
+      } else {
+        alert('オーナー変更に失敗しました');
+      }
+    } catch (error) {
+      console.error('Failed to become owner:', error);
+      alert('オーナー変更に失敗しました');
     } finally {
       setIsLoading(false);
     }
@@ -372,6 +393,17 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
         {/* Game Actions */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h3 className="text-md font-medium text-gray-800 mb-3">ゲーム操作</h3>
+          {!isOwner && (
+            <div className="mb-3">
+              <button
+                onClick={handleBecomeOwner}
+                disabled={isLoading}
+                className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                {isLoading ? '処理中...' : '自分をオーナーにする'}
+              </button>
+            </div>
+          )}
           <button
             onClick={handleExitGame}
             disabled={isLoading}
