@@ -288,6 +288,15 @@ export const onLocationWrite = functions.firestore
         }
       }
 
+      // 1b. CAPTURE (symmetric): Runner moves within Oni's radius -> capture by Oni
+      if (playerData.role === 'runner' && otherPlayerData.role === 'oni' && playerData.state === 'active') {
+        const now2 = admin.firestore.Timestamp.now();
+        const runnerInCooldown = playerData.cooldownUntil && playerData.cooldownUntil.toMillis() > now2.toMillis();
+        if (!runnerInCooldown && distance <= captureRadiusM) {
+          await capture(gameId, locationDoc.id, uid);
+        }
+      }
+
       // 2. KILLER → RUNNER detection (500m radius)
       if (playerData.role === 'oni' && otherPlayerData.role === 'runner' && 
           otherPlayerData.state === 'active') {
