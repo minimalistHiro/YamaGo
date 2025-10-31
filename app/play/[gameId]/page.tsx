@@ -266,6 +266,8 @@ export default function PlayPage() {
 
   const oniCount = players.filter(p => p.role === 'oni' && p.active).length;
   const runnerCount = players.filter(p => p.role === 'runner' && p.active).length;
+  const runnerCapturedCount = players.filter(p => p.role === 'runner' && p.active && p.state && p.state !== 'active').length;
+  const generatorsClearedCount = pins.filter(p => p.cleared).length;
 
   const handleGameExit = () => {
     router.push('/join');
@@ -312,6 +314,8 @@ export default function PlayPage() {
             playerCount={players.length}
             oniCount={oniCount}
             runnerCount={runnerCount}
+            runnerCapturedCount={runnerCapturedCount}
+            generatorsClearedCount={generatorsClearedCount}
             captures={currentPlayer.stats.captures}
             capturedTimes={currentPlayer.stats.capturedTimes}
           />

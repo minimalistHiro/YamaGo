@@ -12,6 +12,8 @@ interface HUDProps {
   runnerCount?: number;
   captures?: number;
   capturedTimes?: number;
+  runnerCapturedCount?: number;
+  generatorsClearedCount?: number;
 }
 
 export default function HUD({
@@ -23,7 +25,9 @@ export default function HUD({
   oniCount = 0,
   runnerCount = 0,
   captures = 0,
-  capturedTimes = 0
+  capturedTimes = 0,
+  runnerCapturedCount = 0,
+  generatorsClearedCount = 0
 }: HUDProps) {
   const [timeLeft, setTimeLeft] = useState(timeRemaining || 0);
 
@@ -89,6 +93,19 @@ export default function HUD({
           <div className="flex justify-between text-sm">
             <span className="text-green-600">逃走者:</span>
             <span className="font-semibold">{runnerCount}人</span>
+          </div>
+          <div className="flex justify-between text-xs text-gray-600 pl-2">
+            <span>捕獲済み:</span>
+            <span className="font-semibold">{runnerCapturedCount}人</span>
+          </div>
+        </div>
+
+        {/* Generators */}
+        <div className="border-t pt-2 space-y-1">
+          <div className="text-sm font-medium">発電所</div>
+          <div className="flex justify-between text-xs text-gray-600 pl-2">
+            <span>解除済み:</span>
+            <span className="font-semibold">{generatorsClearedCount}箇所</span>
           </div>
         </div>
 

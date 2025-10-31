@@ -90,6 +90,7 @@ export interface PinPoint {
   lat: number;
   lng: number;
   type?: 'yellow';
+  cleared?: boolean;
   createdAt: Timestamp;
 }
 
@@ -185,7 +186,7 @@ export async function clearPins(gameId: string): Promise<void> {
 
 export async function addPins(
   gameId: string,
-  pins: Array<{ lat: number; lng: number; type?: 'yellow' }>
+  pins: Array<{ lat: number; lng: number; type?: 'yellow'; cleared?: boolean }>
 ): Promise<void> {
   const db = getDb();
   const pinsRef = collection(db, 'games', gameId, 'pins');
@@ -196,6 +197,7 @@ export async function addPins(
         lat: p.lat,
         lng: p.lng,
         type: p.type || 'yellow',
+        cleared: p.cleared ?? false,
         createdAt: serverTimestamp(),
       })
     );
@@ -205,7 +207,7 @@ export async function addPins(
 
 export async function setGamePins(
   gameId: string,
-  pins: Array<{ lat: number; lng: number; type?: 'yellow' }>
+  pins: Array<{ lat: number; lng: number; type?: 'yellow'; cleared?: boolean }>
 ): Promise<void> {
   await clearPins(gameId);
   await addPins(gameId, pins);
