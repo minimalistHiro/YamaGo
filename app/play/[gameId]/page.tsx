@@ -10,6 +10,7 @@ import {
   startGameCountdown,
   startGame,
   updateGame,
+  subscribeToEvents
 } from '@/lib/game';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
@@ -36,6 +37,8 @@ export default function PlayPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('map');
   const [rescuablePlayer, setRescuablePlayer] = useState<Player | null>(null);
+  const [showCapturePopup, setShowCapturePopup] = useState(false);
+  const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
@@ -112,6 +115,21 @@ export default function PlayPage() {
       stop();
     };
   }, [user, gameId, setIdentity, start, stop]);
+
+  // Show popup when this user (oni) captures a runner
+  useEffect(() => {
+    if (!user || !gameId) return;
+    const unsubscribe = subscribeToEvents(gameId, (events) => {
+      const latestCapture = events.find(ev => ev.type === 'capture' && ev.actorUid === user.uid);
+      if (latestCapture) {
+        const target = playersById[latestCapture.targetUid || ''];
+        setCapturedTargetName(target?.nickname || '逃走者');
+        setShowCapturePopup(true);
+        setTimeout(() => setShowCapturePopup(false), 2000);
+      }
+    });
+    return () => unsubscribe();
+  }, [user, gameId, playersById]);
 
   // Alerts are handled centrally in the store; UI surfacing can be added later
 
@@ -307,6 +325,15 @@ export default function PlayPage() {
             runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
             killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
           />
+
+          {/* Capture Popup for Oni */}
+          {showCapturePopup && (
+            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50">
+              <div className="bg-black/80 text-white px-4 py-2 rounded shadow-lg">
+                <span className="font-semibold">{capturedTargetName}</span> を捕獲しました
+              </div>
+            </div>
+          )}
 
           {/* HUD Overlay */}
           <HUD

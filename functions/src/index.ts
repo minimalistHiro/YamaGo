@@ -6,7 +6,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // DbD Mode Constants
-const CAPTURE_RADIUS_M = 50;
+const DEFAULT_CAPTURE_RADIUS_M = 50;
 const RUNNER_SEE_KILLER_RADIUS_M = 200;
 const KILLER_DETECT_RUNNER_RADIUS_M = 500;
 const RESCUE_RADIUS_M = 50;
@@ -242,6 +242,7 @@ export const onLocationWrite = functions.firestore
     
     const gameData = gameDoc.data();
     if (!gameData || gameData.status !== 'running') return;
+    const captureRadiusM = typeof gameData.captureRadiusM === 'number' ? gameData.captureRadiusM : DEFAULT_CAPTURE_RADIUS_M;
 
     // Get player data
     const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
@@ -279,10 +280,10 @@ export const onLocationWrite = functions.firestore
 
       // DbD Logic Branches
 
-      // 1. CAPTURE: Oni catches runner within 50m (if not in cooldown)
+      // 1. CAPTURE: Oni catches runner within captureRadiusM (if not in cooldown)
       if (playerData.role === 'oni' && otherPlayerData.role === 'runner' && 
           otherPlayerData.state !== 'eliminated' && otherPlayerData.state !== 'downed' && !inCooldown) {
-        if (distance <= CAPTURE_RADIUS_M) {
+        if (distance <= captureRadiusM) {
           await capture(gameId, uid, locationDoc.id);
         }
       }
