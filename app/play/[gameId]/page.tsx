@@ -40,6 +40,7 @@ export default function PlayPage() {
   const [capturableRunner, setCapturableRunner] = useState<Player | null>(null);
   const [showCapturePopup, setShowCapturePopup] = useState(false);
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
+  const [isCapturing, setIsCapturing] = useState(false);
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
@@ -211,17 +212,46 @@ export default function PlayPage() {
 
   const handleCapture = async () => {
     if (!capturableRunner || !user) return;
+    setIsCapturing(true);
     try {
-      const { functions } = getFirebaseServices();
-      const attemptCapture = httpsCallable(functions, 'attemptCapture');
-      const result: any = await attemptCapture({ gameId, victimUid: capturableRunner.uid });
-      if (result?.data?.ok === false) {
-        console.warn('Capture rejected:', result.data);
+      const { functions, db } = getFirebaseServices();
+      const callAttempt = httpsCallable(functions, 'attemptCapture');
+      const result: any = await callAttempt({ gameId, victimUid: capturableRunner.uid });
+      if (result?.data?.ok === true) {
+        setCapturableRunner(null);
+        return;
       }
-      setCapturableRunner(null);
+      // Fallback to event-driven capture request if callable returns not-ok
+      try {
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
+          attackerUid: user.uid,
+          victimUid: capturableRunner.uid,
+          at: serverTimestamp()
+        });
+        setCapturableRunner(null);
+      } catch (fallbackErr) {
+        console.error('Fallback capture request failed:', fallbackErr);
+        alert('捕獲要求の送信に失敗しました');
+      }
     } catch (e) {
       console.error('Capture call failed:', e);
-      alert('捕獲に失敗しました');
+      // Fallback path if callable throws
+      try {
+        const { db } = getFirebaseServices();
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
+          attackerUid: user.uid,
+          victimUid: capturableRunner.uid,
+          at: serverTimestamp()
+        });
+        setCapturableRunner(null);
+      } catch (fallbackErr) {
+        console.error('Fallback capture request failed:', fallbackErr);
+        alert('捕獲要求の送信に失敗しました');
+      }
+    } finally {
+      setIsCapturing(false);
     }
   };
 
@@ -410,9 +440,10 @@ export default function PlayPage() {
             <div className="absolute bottom-48 left-1/2 transform -translate-x-1/2 z-50">
               <button
                 onClick={handleCapture}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
+                disabled={isCapturing}
+                className={`bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isCapturing ? 'opacity-70 cursor-not-allowed' : 'animate-pulse'}`}
               >
-                👹 捕獲する
+                {isCapturing ? '👹 捕獲中…' : '👹 捕獲する'}
               </button>
             </div>
           )}
