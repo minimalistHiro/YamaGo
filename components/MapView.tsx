@@ -94,7 +94,11 @@ export default function MapView({
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
   // Create pin icon as canvas for map symbol layer (teardrop-style pin)
-  const createPinCanvas = (role: 'oni' | 'runner', size: number = 40): HTMLCanvasElement => {
+  const createPinCanvas = (
+    role: 'oni' | 'runner',
+    size: number = 40,
+    overrides?: { fill?: string; border?: string; icon?: string }
+  ): HTMLCanvasElement => {
     const scale = 2; // retina
     const marginX = 8 * scale;
     const marginTop = 6 * scale;
@@ -108,7 +112,13 @@ export default function MapView({
     const ctx = canvas.getContext('2d');
     if (!ctx) return canvas;
 
-    const style = ROLE_PIN_STYLES[role];
+    const base = ROLE_PIN_STYLES[role];
+    const style = {
+      fill: overrides?.fill ?? base.fill,
+      border: overrides?.border ?? base.border,
+      label: base.label,
+      icon: overrides?.icon ?? base.icon,
+    } as typeof base;
 
     // Coordinates
     const cx = w / 2;
@@ -479,6 +489,11 @@ export default function MapView({
             const b2 = await createImageBitmap(c2);
             map.current.addImage('pin-runner', b2, { pixelRatio: 2 });
           }
+          if (!map.current.hasImage('pin-runner-captured')) {
+            const c3 = createPinCanvas('runner', 40, { fill: '#9ca3af', border: '#6b7280' }); // gray variants
+            const b3 = await createImageBitmap(c3);
+            map.current.addImage('pin-runner-captured', b3, { pixelRatio: 2 });
+          }
         } catch (e) {
           // noop; addImage may throw if image already added in rare cases
         }
@@ -556,7 +571,7 @@ export default function MapView({
           nickname: p.nickname,
           role: p.role,
           state: p.state || 'active',
-          iconImage: p.role === 'oni' ? 'pin-oni' : 'pin-runner',
+          iconImage: p.role === 'oni' ? 'pin-oni' : (p.state && p.state !== 'active' ? 'pin-runner-captured' : 'pin-runner'),
         },
       })),
     } as const;

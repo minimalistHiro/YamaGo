@@ -203,6 +203,7 @@ export default function AdminPage() {
 
   const oniCount = players.filter(p => p.role === 'oni' && p.active).length;
   const runnerCount = players.filter(p => p.role === 'runner' && p.active).length;
+  const runnerCapturedCount = players.filter(p => p.role === 'runner' && p.active && p.state && p.state !== 'active').length;
 
   return (
     <div className="h-screen flex flex-col">
@@ -220,6 +221,8 @@ export default function AdminPage() {
           playerCount={players.length}
           oniCount={oniCount}
           runnerCount={runnerCount}
+          runnerCapturedCount={runnerCapturedCount}
+          generatorsClearedCount={0}
           onStartGame={game.status === 'pending' ? handleStartGame : undefined}
           onEndGame={game.status === 'running' ? handleEndGame : undefined}
         />

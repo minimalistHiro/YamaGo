@@ -10,6 +10,7 @@ import {
   startGameCountdown,
   startGame,
   updateGame,
+  subscribeToEvents
 } from '@/lib/game';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
@@ -36,6 +37,9 @@ export default function PlayPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('map');
   const [rescuablePlayer, setRescuablePlayer] = useState<Player | null>(null);
+  const [capturableRunner, setCapturableRunner] = useState<Player | null>(null);
+  const [showCapturePopup, setShowCapturePopup] = useState(false);
+  const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
@@ -113,15 +117,28 @@ export default function PlayPage() {
     };
   }, [user, gameId, setIdentity, start, stop]);
 
+  // Show popup when this user (oni) captures a runner
+  useEffect(() => {
+    if (!user || !gameId) return;
+    const unsubscribe = subscribeToEvents(gameId, (events) => {
+      const latestCapture = events.find(ev => ev.type === 'capture' && ev.actorUid === user.uid);
+      if (latestCapture) {
+        const target = playersById[latestCapture.targetUid || ''];
+        setCapturedTargetName(target?.nickname || '逃走者');
+        setShowCapturePopup(true);
+      }
+    });
+    return () => unsubscribe();
+  }, [user, gameId, playersById]);
+
   // Alerts are handled centrally in the store; UI surfacing can be added later
 
   const handleLocationUpdate = async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
 
-    // Check if within Yamanote Line boundary
+    // Test mode: allow updates even outside the Yamanote Line boundary
     if (!isWithinYamanoteLine(lat, lng)) {
-      console.warn('Outside Yamanote Line boundary');
-      return;
+      console.warn('Outside Yamanote Line boundary (test mode: still updating location)');
     }
 
     await updateLocationThrottled(lat, lng, accuracy);
@@ -166,6 +183,43 @@ export default function PlayPage() {
     } catch (error) {
       console.error('Rescue failed:', error);
       alert('救助に失敗しました');
+    }
+  };
+
+  // Detect capturable runner (for Oni) using local locations and capture radius
+  useEffect(() => {
+    if (!currentPlayer || !game || game.status !== 'running') return;
+    if (currentPlayer.role !== 'oni') return;
+    if (!user) return;
+
+    const currentLocation = locations[user.uid];
+    if (!currentLocation) return;
+
+    const target = players.find(p => {
+      if (p.uid === user.uid) return false;
+      if (p.role !== 'runner') return false;
+      if (p.state && p.state !== 'active') return false;
+      const other = locations[p.uid];
+      if (!other) return false;
+      const d = haversine(currentLocation.lat, currentLocation.lng, other.lat, other.lng);
+      return d <= (game.captureRadiusM || 100);
+    }) || null;
+
+    setCapturableRunner(target);
+  }, [currentPlayer, game, players, locations, user]);
+
+  const handleCapture = async () => {
+    if (!capturableRunner || !user) return;
+    try {
+      const { db } = getFirebaseServices();
+      const ref = await (await import('firebase/firestore')).addDoc(
+        (await import('firebase/firestore')).collection(db, 'games', gameId, 'captureRequests'),
+        { attackerUid: user.uid, victimUid: capturableRunner.uid, at: (await import('firebase/firestore')).serverTimestamp() }
+      );
+      setCapturableRunner(null);
+      console.log('Capture request queued:', ref.id);
+    } catch (e) {
+      console.error('Capture request failed:', e);
     }
   };
 
@@ -266,6 +320,8 @@ export default function PlayPage() {
 
   const oniCount = players.filter(p => p.role === 'oni' && p.active).length;
   const runnerCount = players.filter(p => p.role === 'runner' && p.active).length;
+  const runnerCapturedCount = players.filter(p => p.role === 'runner' && p.active && p.state && p.state !== 'active').length;
+  const generatorsClearedCount = pins.filter(p => p.cleared).length;
 
   const handleGameExit = () => {
     router.push('/join');
@@ -306,12 +362,31 @@ export default function PlayPage() {
             killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
           />
 
+          {/* Capture Popup for Oni */}
+          {showCapturePopup && (
+            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50">
+              <div className="bg-black/80 text-white px-4 py-3 rounded shadow-lg flex items-center space-x-4">
+                <div>
+                  <span className="font-semibold">{capturedTargetName}</span> を捕獲しました
+                </div>
+                <button
+                  className="bg-white text-black px-3 py-1 rounded font-semibold hover:bg-gray-200"
+                  onClick={() => setShowCapturePopup(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* HUD Overlay */}
           <HUD
             gameStatus={game.status}
             playerCount={players.length}
             oniCount={oniCount}
             runnerCount={runnerCount}
+            runnerCapturedCount={runnerCapturedCount}
+            generatorsClearedCount={generatorsClearedCount}
             captures={currentPlayer.stats.captures}
             capturedTimes={currentPlayer.stats.capturedTimes}
           />
@@ -324,6 +399,18 @@ export default function PlayPage() {
                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
               >
                 🚑 救助する
+              </button>
+            </div>
+          )}
+
+          {/* Capture Button for Oni */}
+          {capturableRunner && currentPlayer.role === 'oni' && (
+            <div className="absolute bottom-48 left-1/2 transform -translate-x-1/2 z-50">
+              <button
+                onClick={handleCapture}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
+              >
+                👹 捕獲する
               </button>
             </div>
           )}

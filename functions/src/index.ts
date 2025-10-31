@@ -6,7 +6,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // DbD Mode Constants
-const CAPTURE_RADIUS_M = 50;
+const DEFAULT_CAPTURE_RADIUS_M = 50;
 const RUNNER_SEE_KILLER_RADIUS_M = 200;
 const KILLER_DETECT_RUNNER_RADIUS_M = 500;
 const RESCUE_RADIUS_M = 50;
@@ -36,6 +36,9 @@ function isWithinYamanoteLine(lat: number, lng: number): boolean {
 
   return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
 }
+
+// TEST FLAG: allow captures even outside the boundary during testing
+const IGNORE_BOUNDARY_FOR_TEST = true;
 
 // Helper: Enqueue an alert
 async function enqueueAlert(gameId: string, toUid: string, type: string, distanceM: number, meta?: any) {
@@ -197,6 +200,144 @@ export const rescue = functions.https.onCall(async (data, context) => {
   }
 });
 
+// Callable: Attempt capture (fallback/manual trigger from client)
+export const attemptCapture = functions.https.onCall(async (data, context) => {
+  if (!context?.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const gameId = (data && (data as any).gameId) as string | undefined;
+  const victimUid = (data && (data as any).victimUid) as string | undefined;
+  const attackerUid = context.auth.uid;
+
+  if (!gameId || !victimUid) {
+    throw new functions.https.HttpsError('invalid-argument', 'gameId and victimUid are required');
+  }
+
+  // Load game and ensure running
+  const gameDoc = await db.collection('games').doc(gameId).get();
+  if (!gameDoc.exists) {
+    throw new functions.https.HttpsError('not-found', 'Game not found');
+  }
+  const gameData = gameDoc.data();
+  if (!gameData || gameData.status !== 'running') {
+    throw new functions.https.HttpsError('failed-precondition', 'Game is not running');
+  }
+  const captureRadiusM = typeof gameData.captureRadiusM === 'number' ? gameData.captureRadiusM : DEFAULT_CAPTURE_RADIUS_M;
+
+  // Players
+  const attackerRef = db.collection('games').doc(gameId).collection('players').doc(attackerUid);
+  const victimRef = db.collection('games').doc(gameId).collection('players').doc(victimUid);
+  const [attackerDoc, victimDoc] = await Promise.all([attackerRef.get(), victimRef.get()]);
+  if (!attackerDoc.exists || !victimDoc.exists) {
+    throw new functions.https.HttpsError('not-found', 'Players not found');
+  }
+  const attacker = attackerDoc.data();
+  const victim = victimDoc.data();
+  if (!attacker?.active || !victim?.active) {
+    throw new functions.https.HttpsError('failed-precondition', 'Inactive players cannot capture');
+  }
+  if (attacker.role !== 'oni' || victim.role !== 'runner') {
+    throw new functions.https.HttpsError('failed-precondition', 'Role mismatch for capture');
+  }
+  if (victim.state === 'downed' || victim.state === 'eliminated') {
+    return { ok: false, reason: 'victim-not-active' };
+  }
+
+  // Cooldown check
+  const now = admin.firestore.Timestamp.now();
+  const inCooldown = victim.cooldownUntil && victim.cooldownUntil.toMillis() > now.toMillis();
+  if (inCooldown) {
+    return { ok: false, reason: 'victim-in-cooldown' };
+  }
+
+  // Locations
+  const attackerLocDoc = await db.collection('games').doc(gameId).collection('locations').doc(attackerUid).get();
+  const victimLocDoc = await db.collection('games').doc(gameId).collection('locations').doc(victimUid).get();
+  if (!attackerLocDoc.exists || !victimLocDoc.exists) {
+    throw new functions.https.HttpsError('failed-precondition', 'Missing locations');
+  }
+  const attackerLoc = attackerLocDoc.data();
+  const victimLoc = victimLocDoc.data();
+  if (!attackerLoc || !victimLoc) {
+    throw new functions.https.HttpsError('failed-precondition', 'Invalid locations');
+  }
+
+  // Boundary check (respect test flag)
+  if (!IGNORE_BOUNDARY_FOR_TEST) {
+    if (!isWithinYamanoteLine(attackerLoc.lat, attackerLoc.lng) || !isWithinYamanoteLine(victimLoc.lat, victimLoc.lng)) {
+      return { ok: false, reason: 'outside-boundary' };
+    }
+  }
+
+  // Distance
+  const distance = haversine(attackerLoc.lat, attackerLoc.lng, victimLoc.lat, victimLoc.lng);
+  if (distance > captureRadiusM) {
+    return { ok: false, reason: 'too-far', distance, captureRadiusM };
+  }
+
+  // Perform capture
+  await capture(gameId, attackerUid, victimUid);
+  return { ok: true };
+});
+
+// Event-driven alternative: capture request documents
+export const onCaptureRequest = functions.firestore
+  .document('games/{gameId}/captureRequests/{requestId}')
+  .onCreate(async (snap, context) => {
+    const gameId = context.params.gameId as string;
+    const data = snap.data() as any;
+    const attackerUid = String(data.attackerUid || '');
+    const victimUid = String(data.victimUid || '');
+
+    if (!attackerUid || !victimUid) return;
+
+    try {
+      const gameDoc = await db.collection('games').doc(gameId).get();
+      if (!gameDoc.exists) return;
+      const gameData = gameDoc.data();
+      if (!gameData || gameData.status !== 'running') return;
+      const captureRadiusM = typeof gameData.captureRadiusM === 'number' ? gameData.captureRadiusM : DEFAULT_CAPTURE_RADIUS_M;
+
+      const [attackerDoc, victimDoc, attackerLocDoc, victimLocDoc] = await Promise.all([
+        db.collection('games').doc(gameId).collection('players').doc(attackerUid).get(),
+        db.collection('games').doc(gameId).collection('players').doc(victimUid).get(),
+        db.collection('games').doc(gameId).collection('locations').doc(attackerUid).get(),
+        db.collection('games').doc(gameId).collection('locations').doc(victimUid).get(),
+      ]);
+
+      if (!attackerDoc.exists || !victimDoc.exists) return;
+      const attacker = attackerDoc.data();
+      const victim = victimDoc.data();
+      if (!attacker?.active || !victim?.active) return;
+      if (attacker.role !== 'oni' || victim.role !== 'runner') return;
+      if (victim.state === 'downed' || victim.state === 'eliminated') return;
+
+      if (!attackerLocDoc.exists || !victimLocDoc.exists) return;
+      const attackerLoc = attackerLocDoc.data();
+      const victimLoc = victimLocDoc.data();
+      if (!attackerLoc || !victimLoc) return;
+
+      if (!IGNORE_BOUNDARY_FOR_TEST) {
+        if (!isWithinYamanoteLine(attackerLoc.lat, attackerLoc.lng) || !isWithinYamanoteLine(victimLoc.lat, victimLoc.lng)) {
+          return;
+        }
+      }
+
+      const now = admin.firestore.Timestamp.now();
+      const inCooldown = victim.cooldownUntil && victim.cooldownUntil.toMillis() > now.toMillis();
+      if (inCooldown) return;
+
+      const distance = haversine(attackerLoc.lat, attackerLoc.lng, victimLoc.lat, victimLoc.lng);
+      if (distance > captureRadiusM) return;
+
+      await capture(gameId, attackerUid, victimUid);
+    } finally {
+      // Clean up request doc regardless of outcome
+      await snap.ref.delete().catch(() => {});
+    }
+  });
+
 // Triggered when a location is updated
 export const onLocationWrite = functions.firestore
   .document('games/{gameId}/locations/{uid}')
@@ -213,25 +354,24 @@ export const onLocationWrite = functions.firestore
 
     const { lat, lng } = locationData;
 
-    // Check if player is within Yamanote Line boundary
+    // Boundary handling: in test mode, do not early-return outside boundary
     if (!isWithinYamanoteLine(lat, lng)) {
       console.log(`Player ${uid} is outside Yamanote Line boundary`);
-      
-      const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
-      const playerDoc = await playerRef.get();
-      
-      if (playerDoc.exists) {
-        const playerData = playerDoc.data();
-        if (playerData && playerData.role === 'runner') {
-          await playerRef.update({
-            role: 'oni',
-            'stats.captures': admin.firestore.FieldValue.increment(0)
-          });
-          
-          console.log(`Player ${uid} converted to oni for leaving boundary`);
+      if (!IGNORE_BOUNDARY_FOR_TEST) {
+        const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
+        const playerDoc = await playerRef.get();
+        if (playerDoc.exists) {
+          const playerData = playerDoc.data();
+          if (playerData && playerData.role === 'runner') {
+            await playerRef.update({
+              role: 'oni',
+              'stats.captures': admin.firestore.FieldValue.increment(0)
+            });
+            console.log(`Player ${uid} converted to oni for leaving boundary`);
+          }
         }
+        return;
       }
-      return;
     }
 
     // Get game data
@@ -242,6 +382,7 @@ export const onLocationWrite = functions.firestore
     
     const gameData = gameDoc.data();
     if (!gameData || gameData.status !== 'running') return;
+    const captureRadiusM = typeof gameData.captureRadiusM === 'number' ? gameData.captureRadiusM : DEFAULT_CAPTURE_RADIUS_M;
 
     // Get player data
     const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
@@ -279,11 +420,20 @@ export const onLocationWrite = functions.firestore
 
       // DbD Logic Branches
 
-      // 1. CAPTURE: Oni catches runner within 50m (if not in cooldown)
+      // 1. CAPTURE: Oni catches runner within captureRadiusM (if not in cooldown)
       if (playerData.role === 'oni' && otherPlayerData.role === 'runner' && 
           otherPlayerData.state !== 'eliminated' && otherPlayerData.state !== 'downed' && !inCooldown) {
-        if (distance <= CAPTURE_RADIUS_M) {
+        if (distance <= captureRadiusM) {
           await capture(gameId, uid, locationDoc.id);
+        }
+      }
+
+      // 1b. CAPTURE (symmetric): Runner moves within Oni's radius -> capture by Oni
+      if (playerData.role === 'runner' && otherPlayerData.role === 'oni' && playerData.state === 'active') {
+        const now2 = admin.firestore.Timestamp.now();
+        const runnerInCooldown = playerData.cooldownUntil && playerData.cooldownUntil.toMillis() > now2.toMillis();
+        if (!runnerInCooldown && distance <= captureRadiusM) {
+          await capture(gameId, locationDoc.id, uid);
         }
       }
 
