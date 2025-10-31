@@ -12,6 +12,7 @@ const nextConfig = {
         '**/ios/**',
         'ios/**/Pods/**',
         '**/Pods/**',
+        'functions/**',
         '**/*.xcworkspace/**',
         '**/*.xcodeproj/**',
         '**/*.xcframework/**',
