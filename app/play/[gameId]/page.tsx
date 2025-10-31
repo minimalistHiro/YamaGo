@@ -125,7 +125,6 @@ export default function PlayPage() {
         const target = playersById[latestCapture.targetUid || ''];
         setCapturedTargetName(target?.nickname || '逃走者');
         setShowCapturePopup(true);
-        setTimeout(() => setShowCapturePopup(false), 2000);
       }
     });
     return () => unsubscribe();
@@ -329,8 +328,16 @@ export default function PlayPage() {
           {/* Capture Popup for Oni */}
           {showCapturePopup && (
             <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50">
-              <div className="bg-black/80 text-white px-4 py-2 rounded shadow-lg">
-                <span className="font-semibold">{capturedTargetName}</span> を捕獲しました
+              <div className="bg-black/80 text-white px-4 py-3 rounded shadow-lg flex items-center space-x-4">
+                <div>
+                  <span className="font-semibold">{capturedTargetName}</span> を捕獲しました
+                </div>
+                <button
+                  className="bg-white text-black px-3 py-1 rounded font-semibold hover:bg-gray-200"
+                  onClick={() => setShowCapturePopup(false)}
+                >
+                  OK
+                </button>
               </div>
             </div>
           )}
