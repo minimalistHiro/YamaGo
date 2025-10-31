@@ -121,7 +121,7 @@ async function capture(gameId: string, attackerUid: string, victimUid: string) {
 
 // Callable: Rescue function
 export const rescue = functions
-  .region('asia-northeast1')
+  .region('us-central1')
   .https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -204,7 +204,7 @@ export const rescue = functions
 
 // Callable: Attempt capture (fallback/manual trigger from client)
 export const attemptCapture = functions
-  .region('asia-northeast1')
+  .region('us-central1')
   .https.onCall(async (data, context) => {
   if (!context?.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -287,7 +287,7 @@ export const attemptCapture = functions
 
 // Event-driven alternative: capture request documents
 export const onCaptureRequest = functions
-  .region('asia-northeast1')
+  .region('us-central1')
   .firestore
   .document('games/{gameId}/captureRequests/{requestId}')
   .onCreate(async (snap, context) => {

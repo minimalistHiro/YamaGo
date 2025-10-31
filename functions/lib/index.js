@@ -139,7 +139,9 @@ async function capture(gameId, attackerUid, victimUid) {
     }
 }
 // Callable: Rescue function
-exports.rescue = functions.https.onCall(async (data, context) => {
+exports.rescue = functions
+    .region('asia-northeast1')
+    .https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
     }
@@ -205,7 +207,9 @@ exports.rescue = functions.https.onCall(async (data, context) => {
     }
 });
 // Callable: Attempt capture (fallback/manual trigger from client)
-exports.attemptCapture = functions.https.onCall(async (data, context) => {
+exports.attemptCapture = functions
+    .region('asia-northeast1')
+    .https.onCall(async (data, context) => {
     if (!(context === null || context === void 0 ? void 0 : context.auth)) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
     }
@@ -276,7 +280,9 @@ exports.attemptCapture = functions.https.onCall(async (data, context) => {
     return { ok: true };
 });
 // Event-driven alternative: capture request documents
-exports.onCaptureRequest = functions.firestore
+exports.onCaptureRequest = functions
+    .region('asia-northeast1')
+    .firestore
     .document('games/{gameId}/captureRequests/{requestId}')
     .onCreate(async (snap, context) => {
     const gameId = context.params.gameId;

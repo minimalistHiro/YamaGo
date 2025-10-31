@@ -72,7 +72,7 @@ if (typeof window !== 'undefined' && isConfigValid) {
     // Initialize Firebase services
     auth = getAuth(app);
     db = getFirestore(app);
-    functions = getFunctions(app, 'asia-northeast1');
+    functions = getFunctions(app, 'us-central1');
     storage = getStorage(app);
 
     // Initialize Analytics only if measurementId is available
