@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Exclude native folders from Next.js output file tracing on Vercel
+    outputFileTracingExcludes: {
+      '*': ['android/**', 'ios/**', '**/Pods/**']
+    },
+  },
   async headers() {
     return [
       {
