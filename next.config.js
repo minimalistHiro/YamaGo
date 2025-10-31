@@ -3,7 +3,21 @@ const nextConfig = {
   experimental: {
     // Exclude native folders from Next.js output file tracing on Vercel
     outputFileTracingExcludes: {
-      '*': ['android/**', 'ios/**', '**/Pods/**']
+      '*': [
+        'android/**',
+        '**/android/**',
+        'android/**/build/**',
+        'android/**/gradle/**',
+        'ios/**',
+        '**/ios/**',
+        'ios/**/Pods/**',
+        '**/Pods/**',
+        '**/*.xcworkspace/**',
+        '**/*.xcodeproj/**',
+        '**/*.xcframework/**',
+        '**/*.xcuserdatad/**',
+        '**/*.pbxproj',
+      ],
     },
   },
   async headers() {
