@@ -19,13 +19,25 @@ self.addEventListener('install', (event) => {
 
 // Fetch event
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
+  const req = event.request;
+  const isAudio = req.destination === 'audio' || req.url.includes('/sounds/');
+  if (isAudio) {
+    // Cache-first for audio files under /sounds/
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        return (
+          cached ||
+          fetch(req).then((res) => {
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(req, resClone));
+            return res;
+          })
+        );
       })
-  );
+    );
+    return;
+  }
+  event.respondWith(caches.match(req).then((r) => r || fetch(req)));
 });
 
 // Activate event
