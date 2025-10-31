@@ -202,7 +202,8 @@ export default function PlayPage() {
       const other = locations[p.uid];
       if (!other) return false;
       const d = haversine(currentLocation.lat, currentLocation.lng, other.lat, other.lng);
-      return d <= (game.captureRadiusM || 100);
+      // Align UI threshold with server default (50m) when not configured
+      return d <= (typeof game.captureRadiusM === 'number' ? game.captureRadiusM : 50);
     }) || null;
 
     setCapturableRunner(target);
@@ -211,15 +212,16 @@ export default function PlayPage() {
   const handleCapture = async () => {
     if (!capturableRunner || !user) return;
     try {
-      const { db } = getFirebaseServices();
-      const ref = await (await import('firebase/firestore')).addDoc(
-        (await import('firebase/firestore')).collection(db, 'games', gameId, 'captureRequests'),
-        { attackerUid: user.uid, victimUid: capturableRunner.uid, at: (await import('firebase/firestore')).serverTimestamp() }
-      );
+      const { functions } = getFirebaseServices();
+      const attemptCapture = httpsCallable(functions, 'attemptCapture');
+      const result: any = await attemptCapture({ gameId, victimUid: capturableRunner.uid });
+      if (result?.data?.ok === false) {
+        console.warn('Capture rejected:', result.data);
+      }
       setCapturableRunner(null);
-      console.log('Capture request queued:', ref.id);
     } catch (e) {
-      console.error('Capture request failed:', e);
+      console.error('Capture call failed:', e);
+      alert('捕獲に失敗しました');
     }
   };
 
