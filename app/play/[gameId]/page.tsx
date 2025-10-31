@@ -81,6 +81,24 @@ export default function PlayPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Prevent navigating back to login with iOS left-swipe/back gesture while on play page
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const lock = () => {
+      try {
+        window.history.pushState(null, '', window.location.href);
+      } catch {}
+    };
+    lock();
+    const onPopState = () => {
+      lock();
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, []);
+
   useEffect(() => {
     if (!user || !gameId) return;
     setIdentity({ gameId, uid: user.uid });
