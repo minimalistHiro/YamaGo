@@ -571,7 +571,7 @@ export const setOwnerOnFirstPlayerJoin = functions.firestore
 
 // HTTP function to ingest location data from background geolocation
 export const ingestLocation = functions
-  .region('asia-northeast1')
+  .region('us-central1')
   .https.onRequest(async (req, res) => {
     try {
       if (req.method !== 'POST') {
@@ -618,7 +618,7 @@ export const ingestLocation = functions
 
 // Callable function: Set the caller as the game owner
 export const becomeOwner = functions
-  .region('asia-northeast1')
+  .region('us-central1')
   .https.onCall(async (data, context) => {
   const uid = context.auth?.uid;
   const gameId = (data && data.gameId) as string | undefined;

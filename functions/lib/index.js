@@ -140,7 +140,7 @@ async function capture(gameId, attackerUid, victimUid) {
 }
 // Callable: Rescue function
 exports.rescue = functions
-    .region('asia-northeast1')
+    .region('us-central1')
     .https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -208,7 +208,7 @@ exports.rescue = functions
 });
 // Callable: Attempt capture (fallback/manual trigger from client)
 exports.attemptCapture = functions
-    .region('asia-northeast1')
+    .region('us-central1')
     .https.onCall(async (data, context) => {
     if (!(context === null || context === void 0 ? void 0 : context.auth)) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
@@ -281,7 +281,7 @@ exports.attemptCapture = functions
 });
 // Event-driven alternative: capture request documents
 exports.onCaptureRequest = functions
-    .region('asia-northeast1')
+    .region('us-central1')
     .firestore
     .document('games/{gameId}/captureRequests/{requestId}')
     .onCreate(async (snap, context) => {
@@ -535,7 +535,7 @@ exports.setOwnerOnFirstPlayerJoin = functions.firestore
 });
 // HTTP function to ingest location data from background geolocation
 exports.ingestLocation = functions
-    .region('asia-northeast1')
+    .region('us-central1')
     .https.onRequest(async (req, res) => {
     var _a;
     try {
@@ -575,7 +575,7 @@ exports.ingestLocation = functions
 });
 // Callable function: Set the caller as the game owner
 exports.becomeOwner = functions
-    .region('asia-northeast1')
+    .region('us-central1')
     .https.onCall(async (data, context) => {
     var _a, _b;
     const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
