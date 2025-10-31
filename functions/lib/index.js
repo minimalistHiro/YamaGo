@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGameStats = exports.becomeOwner = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.rescue = void 0;
+exports.getGameStats = exports.becomeOwner = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.onCaptureRequest = exports.attemptCapture = exports.rescue = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
@@ -202,6 +202,136 @@ exports.rescue = functions.https.onCall(async (data, context) => {
             throw error;
         }
         throw new functions.https.HttpsError('internal', 'Failed to perform rescue');
+    }
+});
+// Callable: Attempt capture (fallback/manual trigger from client)
+exports.attemptCapture = functions.https.onCall(async (data, context) => {
+    if (!(context === null || context === void 0 ? void 0 : context.auth)) {
+        throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    const gameId = (data && data.gameId);
+    const victimUid = (data && data.victimUid);
+    const attackerUid = context.auth.uid;
+    if (!gameId || !victimUid) {
+        throw new functions.https.HttpsError('invalid-argument', 'gameId and victimUid are required');
+    }
+    // Load game and ensure running
+    const gameDoc = await db.collection('games').doc(gameId).get();
+    if (!gameDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Game not found');
+    }
+    const gameData = gameDoc.data();
+    if (!gameData || gameData.status !== 'running') {
+        throw new functions.https.HttpsError('failed-precondition', 'Game is not running');
+    }
+    const captureRadiusM = typeof gameData.captureRadiusM === 'number' ? gameData.captureRadiusM : DEFAULT_CAPTURE_RADIUS_M;
+    // Players
+    const attackerRef = db.collection('games').doc(gameId).collection('players').doc(attackerUid);
+    const victimRef = db.collection('games').doc(gameId).collection('players').doc(victimUid);
+    const [attackerDoc, victimDoc] = await Promise.all([attackerRef.get(), victimRef.get()]);
+    if (!attackerDoc.exists || !victimDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Players not found');
+    }
+    const attacker = attackerDoc.data();
+    const victim = victimDoc.data();
+    if (!(attacker === null || attacker === void 0 ? void 0 : attacker.active) || !(victim === null || victim === void 0 ? void 0 : victim.active)) {
+        throw new functions.https.HttpsError('failed-precondition', 'Inactive players cannot capture');
+    }
+    if (attacker.role !== 'oni' || victim.role !== 'runner') {
+        throw new functions.https.HttpsError('failed-precondition', 'Role mismatch for capture');
+    }
+    if (victim.state === 'downed' || victim.state === 'eliminated') {
+        return { ok: false, reason: 'victim-not-active' };
+    }
+    // Cooldown check
+    const now = admin.firestore.Timestamp.now();
+    const inCooldown = victim.cooldownUntil && victim.cooldownUntil.toMillis() > now.toMillis();
+    if (inCooldown) {
+        return { ok: false, reason: 'victim-in-cooldown' };
+    }
+    // Locations
+    const attackerLocDoc = await db.collection('games').doc(gameId).collection('locations').doc(attackerUid).get();
+    const victimLocDoc = await db.collection('games').doc(gameId).collection('locations').doc(victimUid).get();
+    if (!attackerLocDoc.exists || !victimLocDoc.exists) {
+        throw new functions.https.HttpsError('failed-precondition', 'Missing locations');
+    }
+    const attackerLoc = attackerLocDoc.data();
+    const victimLoc = victimLocDoc.data();
+    if (!attackerLoc || !victimLoc) {
+        throw new functions.https.HttpsError('failed-precondition', 'Invalid locations');
+    }
+    // Boundary check (respect test flag)
+    if (!IGNORE_BOUNDARY_FOR_TEST) {
+        if (!isWithinYamanoteLine(attackerLoc.lat, attackerLoc.lng) || !isWithinYamanoteLine(victimLoc.lat, victimLoc.lng)) {
+            return { ok: false, reason: 'outside-boundary' };
+        }
+    }
+    // Distance
+    const distance = haversine(attackerLoc.lat, attackerLoc.lng, victimLoc.lat, victimLoc.lng);
+    if (distance > captureRadiusM) {
+        return { ok: false, reason: 'too-far', distance, captureRadiusM };
+    }
+    // Perform capture
+    await capture(gameId, attackerUid, victimUid);
+    return { ok: true };
+});
+// Event-driven alternative: capture request documents
+exports.onCaptureRequest = functions.firestore
+    .document('games/{gameId}/captureRequests/{requestId}')
+    .onCreate(async (snap, context) => {
+    const gameId = context.params.gameId;
+    const data = snap.data();
+    const attackerUid = String(data.attackerUid || '');
+    const victimUid = String(data.victimUid || '');
+    if (!attackerUid || !victimUid)
+        return;
+    try {
+        const gameDoc = await db.collection('games').doc(gameId).get();
+        if (!gameDoc.exists)
+            return;
+        const gameData = gameDoc.data();
+        if (!gameData || gameData.status !== 'running')
+            return;
+        const captureRadiusM = typeof gameData.captureRadiusM === 'number' ? gameData.captureRadiusM : DEFAULT_CAPTURE_RADIUS_M;
+        const [attackerDoc, victimDoc, attackerLocDoc, victimLocDoc] = await Promise.all([
+            db.collection('games').doc(gameId).collection('players').doc(attackerUid).get(),
+            db.collection('games').doc(gameId).collection('players').doc(victimUid).get(),
+            db.collection('games').doc(gameId).collection('locations').doc(attackerUid).get(),
+            db.collection('games').doc(gameId).collection('locations').doc(victimUid).get(),
+        ]);
+        if (!attackerDoc.exists || !victimDoc.exists)
+            return;
+        const attacker = attackerDoc.data();
+        const victim = victimDoc.data();
+        if (!(attacker === null || attacker === void 0 ? void 0 : attacker.active) || !(victim === null || victim === void 0 ? void 0 : victim.active))
+            return;
+        if (attacker.role !== 'oni' || victim.role !== 'runner')
+            return;
+        if (victim.state === 'downed' || victim.state === 'eliminated')
+            return;
+        if (!attackerLocDoc.exists || !victimLocDoc.exists)
+            return;
+        const attackerLoc = attackerLocDoc.data();
+        const victimLoc = victimLocDoc.data();
+        if (!attackerLoc || !victimLoc)
+            return;
+        if (!IGNORE_BOUNDARY_FOR_TEST) {
+            if (!isWithinYamanoteLine(attackerLoc.lat, attackerLoc.lng) || !isWithinYamanoteLine(victimLoc.lat, victimLoc.lng)) {
+                return;
+            }
+        }
+        const now = admin.firestore.Timestamp.now();
+        const inCooldown = victim.cooldownUntil && victim.cooldownUntil.toMillis() > now.toMillis();
+        if (inCooldown)
+            return;
+        const distance = haversine(attackerLoc.lat, attackerLoc.lng, victimLoc.lat, victimLoc.lng);
+        if (distance > captureRadiusM)
+            return;
+        await capture(gameId, attackerUid, victimUid);
+    }
+    finally {
+        // Clean up request doc regardless of outcome
+        await snap.ref.delete().catch(() => { });
     }
 });
 // Triggered when a location is updated

@@ -37,6 +37,7 @@ export default function PlayPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('map');
   const [rescuablePlayer, setRescuablePlayer] = useState<Player | null>(null);
+  const [capturableRunner, setCapturableRunner] = useState<Player | null>(null);
   const [showCapturePopup, setShowCapturePopup] = useState(false);
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const setIdentity = useGameStore((s) => s.setIdentity);
@@ -182,6 +183,43 @@ export default function PlayPage() {
     } catch (error) {
       console.error('Rescue failed:', error);
       alert('救助に失敗しました');
+    }
+  };
+
+  // Detect capturable runner (for Oni) using local locations and capture radius
+  useEffect(() => {
+    if (!currentPlayer || !game || game.status !== 'running') return;
+    if (currentPlayer.role !== 'oni') return;
+    if (!user) return;
+
+    const currentLocation = locations[user.uid];
+    if (!currentLocation) return;
+
+    const target = players.find(p => {
+      if (p.uid === user.uid) return false;
+      if (p.role !== 'runner') return false;
+      if (p.state && p.state !== 'active') return false;
+      const other = locations[p.uid];
+      if (!other) return false;
+      const d = haversine(currentLocation.lat, currentLocation.lng, other.lat, other.lng);
+      return d <= (game.captureRadiusM || 100);
+    }) || null;
+
+    setCapturableRunner(target);
+  }, [currentPlayer, game, players, locations, user]);
+
+  const handleCapture = async () => {
+    if (!capturableRunner || !user) return;
+    try {
+      const { db } = getFirebaseServices();
+      const ref = await (await import('firebase/firestore')).addDoc(
+        (await import('firebase/firestore')).collection(db, 'games', gameId, 'captureRequests'),
+        { attackerUid: user.uid, victimUid: capturableRunner.uid, at: (await import('firebase/firestore')).serverTimestamp() }
+      );
+      setCapturableRunner(null);
+      console.log('Capture request queued:', ref.id);
+    } catch (e) {
+      console.error('Capture request failed:', e);
     }
   };
 
@@ -361,6 +399,18 @@ export default function PlayPage() {
                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
               >
                 🚑 救助する
+              </button>
+            </div>
+          )}
+
+          {/* Capture Button for Oni */}
+          {capturableRunner && currentPlayer.role === 'oni' && (
+            <div className="absolute bottom-48 left-1/2 transform -translate-x-1/2 z-50">
+              <button
+                onClick={handleCapture}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
+              >
+                👹 捕獲する
               </button>
             </div>
           )}
