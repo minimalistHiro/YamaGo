@@ -174,7 +174,7 @@ export default function AdminPage() {
           <h2 className="text-xl font-bold text-red-600 mb-4">アクセス拒否</h2>
           <p className="text-gray-600 mb-4">このページはゲーム作成者のみアクセス可能です</p>
           <button
-            onClick={() => router.push(`/play/${gameId}`)}
+            onClick={() => router.replace(`/play/${gameId}`)}
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded mr-2"
           >
             プレイページへ
@@ -276,7 +276,7 @@ export default function AdminPage() {
           {/* Game Controls */}
           <div className="flex space-x-2">
             <button
-              onClick={() => router.push(`/play/${gameId}`)}
+              onClick={() => router.replace(`/play/${gameId}`)}
               className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
             >
               プレイページへ
