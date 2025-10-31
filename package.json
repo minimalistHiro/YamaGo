@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npm --prefix functions install"
+    "postinstall": "npm --prefix functions install",
+    "icons": "node scripts/generate-icons.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
@@ -33,7 +34,8 @@
     "@capacitor/cli": "^7.4.4",
     "@types/maplibre-gl": "^1.14.0",
     "eslint": "^8",
-    "eslint-config-next": "14.0.4"
+    "eslint-config-next": "14.0.4",
+    "sharp": "^0.33.4"
   },
   "engines": {
     "node": "^20.0.0"

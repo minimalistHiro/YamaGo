@@ -15,6 +15,61 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ==========================
+   YamaGo Theme Tokens
+   - 3 selectable themes via [data-theme]
+   - Use helper utility classes below to apply
+========================== */
+:root,
+[data-theme='light'] {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --text: #0B132B;
+  --muted: #A0AEC0;
+  --primary: #1C92D2; /* blue */
+  --accent: #FF3B30;  /* red */
+  --success: #27C36B; /* green */
+  --gradient: linear-gradient(135deg, #27C36B, #1C92D2);
+}
+
+[data-theme='dark'] {
+  --bg: #0B132B;
+  --surface: #111827;
+  --text: #FFFFFF;
+  --muted: #CBD5E1;
+  --primary: #1C92D2;
+  --accent: #FF3B30;
+  --success: #27C36B;
+  --gradient: linear-gradient(135deg, #27C36B, #1C92D2);
+}
+
+/* Neo (Gradient) theme – bold gradient backgrounds, white text */
+[data-theme='neo'] {
+  --bg: #0B132B; /* fallback for areas without gradient */
+  --surface: rgba(255,255,255,0.08);
+  --text: #FFFFFF;
+  --muted: #B2C0D6;
+  --primary: #1C92D2;
+  --accent: #FF3B30;
+  --success: #27C36B;
+  --gradient: linear-gradient(135deg, #27C36B, #1C92D2);
+}
+
+/* Helper utilities (can be used alongside Tailwind) */
+.bg-app { background: var(--bg); }
+.text-app { color: var(--text); }
+.bg-surface { background: var(--surface); }
+.text-muted { color: var(--muted); }
+.bg-primary { background-color: var(--primary); }
+.text-primary { color: var(--primary); }
+.bg-accent { background-color: var(--accent); }
+.text-accent { color: var(--accent); }
+.bg-success { background-color: var(--success); }
+.brand-gradient { background-image: var(--gradient); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-surface { background: var(--surface); color: var(--text); }
+
 /* Mapbox GL styles */
 .mapboxgl-popup-content {
   padding: 0;

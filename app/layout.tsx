@@ -35,8 +35,17 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Yamago" />
         <meta name="mobile-web-app-capable" content="yes" />
+        {/* Initialize theme before React renders to avoid FOUC */}
+        <Script id="yamago-theme-init" strategy="beforeInteractive">{`
+          try {
+            const persisted = localStorage.getItem('yamago:theme') || 'light';
+            document.documentElement.dataset.theme = persisted;
+          } catch (_) {
+            document.documentElement.dataset.theme = 'light';
+          }
+        `}</Script>
       </head>
-      <body className="bg-gray-50 min-h-screen">
+      <body className="bg-app text-app min-h-screen">
         <Script src="/yamago-logger.js" strategy="beforeInteractive" />
         {children}
       </body>

@@ -1,10 +1,9 @@
 /*
   Generate app icons from an embedded SVG approximation of the YamaGo logo.
   Outputs:
-  - public/icons/icon-512x512.png
-  - public/icons/icon-192x192.png
-  - public/favicon.png (32x32)
-  - public/favicon.ico (32x32 png as ico)
+  - Web PWA icons and favicons
+  - iOS AppIcon set (overwrites existing PNGs referenced by Contents.json)
+  - Android mipmap launcher icons (adaptive foreground + legacy/round)
 */
 
 const fs = require('fs');
@@ -13,6 +12,24 @@ const sharp = require('sharp');
 
 const outDirIcons = path.join(__dirname, '..', 'public', 'icons');
 const outDirPublic = path.join(__dirname, '..', 'public');
+const iosAppIconDir = path.join(
+  __dirname,
+  '..',
+  'ios',
+  'App',
+  'App',
+  'Assets.xcassets',
+  'AppIcon.appiconset'
+);
+const androidResDir = path.join(
+  __dirname,
+  '..',
+  'android',
+  'app',
+  'src',
+  'main',
+  'res'
+);
 
 if (!fs.existsSync(outDirIcons)) fs.mkdirSync(outDirIcons, { recursive: true });
 
@@ -42,16 +59,52 @@ const svg = `
 async function run() {
   const base = await sharp(Buffer.from(svg)).png().toBuffer();
 
+  // --- Web PWA icons ---
   await sharp(base).resize(512, 512).png().toFile(path.join(outDirIcons, 'icon-512x512.png'));
   await sharp(base).resize(192, 192).png().toFile(path.join(outDirIcons, 'icon-192x192.png'));
   await sharp(base).resize(32, 32).png().toFile(path.join(outDirPublic, 'favicon.png'));
   await sharp(base).resize(32, 32).png().toFile(path.join(outDirPublic, 'favicon.ico'));
 
+  // --- iOS AppIcon set ---
+  const iosTargets = [
+    { filename: 'AppIcon-20@2x.png', size: 40 },
+    { filename: 'AppIcon-20@3x.png', size: 60 },
+    { filename: 'AppIcon-29@2x.png', size: 58 },
+    { filename: 'AppIcon-29@3x.png', size: 87 },
+    { filename: 'AppIcon-40@2x.png', size: 80 },
+    { filename: 'AppIcon-40@3x.png', size: 120 },
+    { filename: 'AppIcon-60@2x.png', size: 120 },
+    { filename: 'AppIcon-60@3x.png', size: 180 },
+    { filename: 'AppIcon-120@2x.png', size: 240 },
+    { filename: 'AppIcon-152@2x.png', size: 304 },
+    { filename: 'AppIcon-167@2x.png', size: 334 },
+    { filename: 'AppIcon-512@2x.png', size: 1024 },
+    { filename: 'AppIcon-1024.png', size: 1024 }
+  ];
+  for (const t of iosTargets) {
+    const outPath = path.join(iosAppIconDir, t.filename);
+    await sharp(base).resize(t.size, t.size).png().toFile(outPath);
+  }
+
+  // --- Android launcher icons ---
+  const androidDensities = [
+    { dir: 'mipmap-mdpi', legacy: 48, foreground: 108 },
+    { dir: 'mipmap-hdpi', legacy: 72, foreground: 162 },
+    { dir: 'mipmap-xhdpi', legacy: 96, foreground: 216 },
+    { dir: 'mipmap-xxhdpi', legacy: 144, foreground: 324 },
+    { dir: 'mipmap-xxxhdpi', legacy: 192, foreground: 432 }
+  ];
+  for (const d of androidDensities) {
+    const dirPath = path.join(androidResDir, d.dir);
+    await sharp(base).resize(d.legacy, d.legacy).png().toFile(path.join(dirPath, 'ic_launcher.png'));
+    await sharp(base).resize(d.legacy, d.legacy).png().toFile(path.join(dirPath, 'ic_launcher_round.png'));
+    await sharp(base).resize(d.foreground, d.foreground).png().toFile(path.join(dirPath, 'ic_launcher_foreground.png'));
+  }
+
   console.log('Icons generated:');
-  console.log(' - public/icons/icon-512x512.png');
-  console.log(' - public/icons/icon-192x192.png');
-  console.log(' - public/favicon.png');
-  console.log(' - public/favicon.ico');
+  console.log(' - Web: public/icons/icon-512x512.png, icon-192x192.png, favicon.*');
+  console.log(' - iOS: Assets.xcassets/AppIcon.appiconset/* (PNG files overwritten)');
+  console.log(' - Android: res/mipmap-*/ic_launcher*.png (PNG files overwritten)');
 }
 
 run().catch((e) => {
