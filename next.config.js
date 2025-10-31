@@ -1,26 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Exclude native folders from Next.js output file tracing on Vercel
-    outputFileTracingExcludes: {
-      '*': [
-        'android/**',
-        '**/android/**',
-        'android/**/build/**',
-        'android/**/gradle/**',
-        'ios/**',
-        '**/ios/**',
-        'ios/**/Pods/**',
-        '**/Pods/**',
-        'functions/**',
-        '**/*.xcworkspace/**',
-        '**/*.xcodeproj/**',
-        '**/*.xcframework/**',
-        '**/*.xcuserdatad/**',
-        '**/*.pbxproj',
-      ],
-    },
-  },
+  // experimental: outputFileTracingExcludes removed to avoid micromatch recursion during build
   async headers() {
     return [
       {

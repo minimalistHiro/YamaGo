@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npm --prefix functions install",
+    "postinstall": "node scripts/postinstall.js",
     "icons": "node scripts/generate-icons.js"
   },
   "dependencies": {
