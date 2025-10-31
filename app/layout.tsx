@@ -45,7 +45,7 @@ export default function RootLayout({
           }
         `}</Script>
       </head>
-      <body className="bg-app text-app min-h-screen">
+      <body className="bg-app min-h-screen">
         <Script src="/yamago-logger.js" strategy="beforeInteractive" />
         {children}
       </body>

@@ -187,24 +187,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
     }
   };
 
-  // -------- Theme handling --------
-  const [theme, setTheme] = useState<string>('light');
-  useEffect(() => {
-    try {
-      const t = localStorage.getItem('yamago:theme') || 'light';
-      setTheme(t);
-    } catch {}
-  }, []);
-
-  const applyTheme = (t: string) => {
-    setTheme(t);
-    try {
-      localStorage.setItem('yamago:theme', t);
-    } catch {}
-    if (typeof document !== 'undefined') {
-      document.documentElement.dataset.theme = t;
-    }
-  };
+  // (Theme selector removed)
 
   const handleBecomeOwner = async () => {
     try {
@@ -236,18 +219,18 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
   }
 
   return (
-    <div className="h-full bg-app flex flex-col text-app">
+    <div className="h-full bg-gray-50 flex flex-col">
       {/* Header - 固定表示 */}
-      <div className="bg-surface border-b border-gray-200 p-4 flex-shrink-0">
-        <h2 className="text-lg font-semibold">設定</h2>
+      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+        <h2 className="text-lg font-semibold text-gray-800">設定</h2>
       </div>
 
       {/* 設定コンテンツ部分 - スクロール可能 */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-6 pb-20">
         {/* Player Info */}
-        <div className="bg-surface rounded-lg p-4 shadow-sm">
-          <h3 className="text-md font-medium mb-3">プレイヤー情報</h3>
+        <div className="bg-white rounded-lg p-4 shadow-sm">
+          <h3 className="text-md font-medium text-gray-800 mb-3">プレイヤー情報</h3>
           
           {/* Avatar */}
           <div className="flex items-center space-x-4 mb-4">
@@ -267,7 +250,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
               )}
             </div>
             <div>
-              <h4 className="font-medium">{currentUser.nickname}</h4>
+              <h4 className="font-medium text-gray-800">{currentUser.nickname}</h4>
               <p className={`text-sm ${currentUser.role === 'oni' ? 'text-red-600' : 'text-green-600'}`}>
                 {currentUser.role === 'oni' ? '鬼' : '逃走者'}
               </p>
@@ -276,17 +259,17 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
 
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-muted">ニックネーム:</span>
+              <span className="text-gray-600">ニックネーム:</span>
               <span className="font-medium">{currentUser.nickname}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted">役職:</span>
+              <span className="text-gray-600">役職:</span>
               <span className={`font-medium ${currentUser.role === 'oni' ? 'text-red-600' : 'text-green-600'}`}>
                 {currentUser.role === 'oni' ? '鬼' : '逃走者'}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted">ゲームID:</span>
+              <span className="text-gray-600">ゲームID:</span>
               <div className="flex items-center space-x-2">
                 <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{gameId}</span>
                 <button
@@ -311,7 +294,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
               </div>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted">ユーザーID:</span>
+              <span className="text-gray-600">ユーザーID:</span>
               <div className="flex items-center space-x-2">
                 <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{currentUser.uid}</span>
                 <button
@@ -339,8 +322,8 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
         </div>
 
         {/* Game Settings */}
-        <div className="bg-surface rounded-lg p-4 shadow-sm">
-          <h3 className="text-md font-medium mb-3">ゲーム設定</h3>
+        <div className="bg-white rounded-lg p-4 shadow-sm">
+          <h3 className="text-md font-medium text-gray-800 mb-3">ゲーム設定</h3>
           <div className="space-y-3">
             {/* Role Assignment - Only show for owner */}
             {isOwner && (
@@ -348,8 +331,8 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={handleRoleAssignment}
               >
-                <span className="text-muted">役職振り分け</span>
-                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-gray-600">役職振り分け</span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
@@ -361,15 +344,15 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={handleGameSettings}
               >
-                <span className="text-muted">ゲーム設定</span>
-                <svg className="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="text-gray-600">ゲーム設定</span>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
             )}
             
             <div className="flex items-center justify-between">
-              <span className="text-muted">位置情報の共有</span>
+              <span className="text-gray-600">位置情報の共有</span>
               <div className="relative inline-block w-10 mr-2 align-middle select-none">
                 <input
                   type="checkbox"
@@ -386,7 +369,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-muted">通知</span>
+              <span className="text-gray-600">通知</span>
               <div className="relative inline-block w-10 mr-2 align-middle select-none">
                 <input
                   type="checkbox"
@@ -407,7 +390,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 <button
                   onClick={handleEndGame}
                   disabled={isLoading}
-                  className="w-full btn-primary hover:opacity-90 disabled:opacity-60 font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="w-full bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
                 >
                   {isLoading ? '処理中...' : 'ゲームを終了'}
                 </button>
@@ -417,14 +400,14 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
         </div>
 
         {/* Game Actions */}
-        <div className="bg-surface rounded-lg p-4 shadow-sm">
-          <h3 className="text-md font-medium mb-3">ゲーム操作</h3>
+        <div className="bg-white rounded-lg p-4 shadow-sm">
+          <h3 className="text-md font-medium text-gray-800 mb-3">ゲーム操作</h3>
           {!isOwner && (
             <div className="mb-3">
               <button
                 onClick={handleRequestBecomeOwner}
                 disabled={isLoading}
-                className="w-full btn-surface hover:opacity-90 disabled:opacity-60 font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 {isLoading ? '処理中...' : '自分をオーナーにする'}
               </button>
@@ -433,42 +416,16 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
           <button
             onClick={handleExitGame}
             disabled={isLoading}
-            className="w-full btn-accent hover:opacity-90 disabled:opacity-60 font-medium py-2 px-4 rounded-lg transition-colors"
+            className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
           >
             {isLoading ? '処理中...' : 'ゲームから退出'}
           </button>
         </div>
 
-        {/* Theme Selection */}
-        <div className="bg-surface rounded-lg p-4 shadow-sm">
-          <h3 className="text-md font-medium mb-3">テーマ</h3>
-          <div className="space-y-3">
-            {[
-              { key: 'light', label: 'YamaGo Light' },
-              { key: 'dark', label: 'YamaGo Dark' },
-              { key: 'neo', label: 'YamaGo Neo' },
-            ].map((t) => (
-              <label key={t.key} className="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-app/40">
-                <span>{t.label}</span>
-                <input
-                  type="radio"
-                  name="theme"
-                  value={t.key}
-                  checked={theme === t.key}
-                  onChange={() => applyTheme(t.key)}
-                />
-              </label>
-            ))}
-            <div className="rounded-lg p-4 brand-gradient text-white text-sm">
-              ブランドグラデーション: #27C36B → #1C92D2
-            </div>
-          </div>
-        </div>
-
         {/* App Info */}
-        <div className="bg-surface rounded-lg p-4 shadow-sm">
-          <h3 className="text-md font-medium mb-3">アプリ情報</h3>
-          <div className="space-y-2 text-sm text-muted">
+        <div className="bg-white rounded-lg p-4 shadow-sm">
+          <h3 className="text-md font-medium text-gray-800 mb-3">アプリ情報</h3>
+          <div className="space-y-2 text-sm text-gray-600">
             <div className="flex justify-between">
               <span>バージョン:</span>
               <span>1.0.0</span>
