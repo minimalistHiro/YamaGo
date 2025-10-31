@@ -33,13 +33,13 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGameStats = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.rescue = void 0;
+exports.getGameStats = exports.becomeOwner = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.rescue = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 const db = admin.firestore();
 // DbD Mode Constants
-const CAPTURE_RADIUS_M = 50;
+const DEFAULT_CAPTURE_RADIUS_M = 50;
 const RUNNER_SEE_KILLER_RADIUS_M = 200;
 const KILLER_DETECT_RUNNER_RADIUS_M = 500;
 const RESCUE_RADIUS_M = 50;
@@ -65,6 +65,8 @@ function isWithinYamanoteLine(lat, lng) {
     const maxLng = 139.8;
     return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
 }
+// TEST FLAG: allow captures even outside the boundary during testing
+const IGNORE_BOUNDARY_FOR_TEST = true;
 // Helper: Enqueue an alert
 async function enqueueAlert(gameId, toUid, type, distanceM, meta) {
     try {
@@ -215,22 +217,24 @@ exports.onLocationWrite = functions.firestore
     if (!locationData)
         return;
     const { lat, lng } = locationData;
-    // Check if player is within Yamanote Line boundary
+    // Boundary handling: in test mode, do not early-return outside boundary
     if (!isWithinYamanoteLine(lat, lng)) {
         console.log(`Player ${uid} is outside Yamanote Line boundary`);
-        const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
-        const playerDoc = await playerRef.get();
-        if (playerDoc.exists) {
-            const playerData = playerDoc.data();
-            if (playerData && playerData.role === 'runner') {
-                await playerRef.update({
-                    role: 'oni',
-                    'stats.captures': admin.firestore.FieldValue.increment(0)
-                });
-                console.log(`Player ${uid} converted to oni for leaving boundary`);
+        if (!IGNORE_BOUNDARY_FOR_TEST) {
+            const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
+            const playerDoc = await playerRef.get();
+            if (playerDoc.exists) {
+                const playerData = playerDoc.data();
+                if (playerData && playerData.role === 'runner') {
+                    await playerRef.update({
+                        role: 'oni',
+                        'stats.captures': admin.firestore.FieldValue.increment(0)
+                    });
+                    console.log(`Player ${uid} converted to oni for leaving boundary`);
+                }
             }
+            return;
         }
-        return;
     }
     // Get game data
     const gameRef = db.collection('games').doc(gameId);
@@ -240,6 +244,7 @@ exports.onLocationWrite = functions.firestore
     const gameData = gameDoc.data();
     if (!gameData || gameData.status !== 'running')
         return;
+    const captureRadiusM = typeof gameData.captureRadiusM === 'number' ? gameData.captureRadiusM : DEFAULT_CAPTURE_RADIUS_M;
     // Get player data
     const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
     const playerDoc = await playerRef.get();
@@ -270,11 +275,19 @@ exports.onLocationWrite = functions.firestore
         const now = admin.firestore.Timestamp.now();
         const inCooldown = otherPlayerData.cooldownUntil && otherPlayerData.cooldownUntil.toMillis() > now.toMillis();
         // DbD Logic Branches
-        // 1. CAPTURE: Oni catches runner within 50m (if not in cooldown)
+        // 1. CAPTURE: Oni catches runner within captureRadiusM (if not in cooldown)
         if (playerData.role === 'oni' && otherPlayerData.role === 'runner' &&
             otherPlayerData.state !== 'eliminated' && otherPlayerData.state !== 'downed' && !inCooldown) {
-            if (distance <= CAPTURE_RADIUS_M) {
+            if (distance <= captureRadiusM) {
                 await capture(gameId, uid, locationDoc.id);
+            }
+        }
+        // 1b. CAPTURE (symmetric): Runner moves within Oni's radius -> capture by Oni
+        if (playerData.role === 'runner' && otherPlayerData.role === 'oni' && playerData.state === 'active') {
+            const now2 = admin.firestore.Timestamp.now();
+            const runnerInCooldown = playerData.cooldownUntil && playerData.cooldownUntil.toMillis() > now2.toMillis();
+            if (!runnerInCooldown && distance <= captureRadiusM) {
+                await capture(gameId, locationDoc.id, uid);
             }
         }
         // 2. KILLER → RUNNER detection (500m radius)
@@ -422,6 +435,47 @@ exports.ingestLocation = functions
     catch (e) {
         console.error(e);
         res.status(500).send('error');
+    }
+});
+// Callable function: Set the caller as the game owner
+exports.becomeOwner = functions
+    .region('asia-northeast1')
+    .https.onCall(async (data, context) => {
+    var _a, _b;
+    const uid = (_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    const gameId = (data && data.gameId);
+    if (!uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+    }
+    if (!gameId || typeof gameId !== 'string') {
+        throw new functions.https.HttpsError('invalid-argument', 'gameId is required');
+    }
+    try {
+        const gameRef = db.collection('games').doc(gameId);
+        const playerRef = gameRef.collection('players').doc(uid);
+        // Ensure the caller is part of the game
+        const playerDoc = await playerRef.get();
+        if (!playerDoc.exists) {
+            throw new functions.https.HttpsError('failed-precondition', 'User is not a player in this game');
+        }
+        const gameDoc = await gameRef.get();
+        if (!gameDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'Game not found');
+        }
+        const currentOwnerUid = (_b = gameDoc.data()) === null || _b === void 0 ? void 0 : _b.ownerUid;
+        if (currentOwnerUid === uid) {
+            return { ok: true, message: 'Already owner' };
+        }
+        await gameRef.update({ ownerUid: uid });
+        await recordEvent(gameId, 'game-start', uid, undefined, { action: 'become-owner' });
+        return { ok: true };
+    }
+    catch (error) {
+        console.error(`[becomeOwner] Failed for game ${gameId}:`, error);
+        if (error instanceof functions.https.HttpsError) {
+            throw error;
+        }
+        throw new functions.https.HttpsError('internal', 'Failed to set owner');
     }
 });
 // HTTP function to get game stats

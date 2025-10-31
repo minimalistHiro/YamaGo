@@ -135,10 +135,9 @@ export default function PlayPage() {
   const handleLocationUpdate = async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
 
-    // Check if within Yamanote Line boundary
+    // Test mode: allow updates even outside the Yamanote Line boundary
     if (!isWithinYamanoteLine(lat, lng)) {
-      console.warn('Outside Yamanote Line boundary');
-      return;
+      console.warn('Outside Yamanote Line boundary (test mode: still updating location)');
     }
 
     await updateLocationThrottled(lat, lng, accuracy);

@@ -37,6 +37,9 @@ function isWithinYamanoteLine(lat: number, lng: number): boolean {
   return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
 }
 
+// TEST FLAG: allow captures even outside the boundary during testing
+const IGNORE_BOUNDARY_FOR_TEST = true;
+
 // Helper: Enqueue an alert
 async function enqueueAlert(gameId: string, toUid: string, type: string, distanceM: number, meta?: any) {
   try {
@@ -213,25 +216,24 @@ export const onLocationWrite = functions.firestore
 
     const { lat, lng } = locationData;
 
-    // Check if player is within Yamanote Line boundary
+    // Boundary handling: in test mode, do not early-return outside boundary
     if (!isWithinYamanoteLine(lat, lng)) {
       console.log(`Player ${uid} is outside Yamanote Line boundary`);
-      
-      const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
-      const playerDoc = await playerRef.get();
-      
-      if (playerDoc.exists) {
-        const playerData = playerDoc.data();
-        if (playerData && playerData.role === 'runner') {
-          await playerRef.update({
-            role: 'oni',
-            'stats.captures': admin.firestore.FieldValue.increment(0)
-          });
-          
-          console.log(`Player ${uid} converted to oni for leaving boundary`);
+      if (!IGNORE_BOUNDARY_FOR_TEST) {
+        const playerRef = db.collection('games').doc(gameId).collection('players').doc(uid);
+        const playerDoc = await playerRef.get();
+        if (playerDoc.exists) {
+          const playerData = playerDoc.data();
+          if (playerData && playerData.role === 'runner') {
+            await playerRef.update({
+              role: 'oni',
+              'stats.captures': admin.firestore.FieldValue.increment(0)
+            });
+            console.log(`Player ${uid} converted to oni for leaving boundary`);
+          }
         }
+        return;
       }
-      return;
     }
 
     // Get game data
