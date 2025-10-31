@@ -6,19 +6,10 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { 
-  subscribeToGame, 
-  subscribeToPlayers, 
-  subscribeToLocations, 
-  subscribeToAlerts,
-  updateLocation,
   getPlayer,
   startGameCountdown,
   startGame,
   updateGame,
-  Game,
-  Player,
-  Location,
-  Alert
 } from '@/lib/game';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
@@ -27,6 +18,8 @@ import BottomTabNavigation, { TabType } from '@/components/BottomTabNavigation';
 import ChatView from '@/components/ChatView';
 import SettingsView from '@/components/SettingsView';
 import BackgroundLocationProvider from '@/components/BackgroundLocationProvider';
+import { useGameStore } from '@/lib/store/gameStore';
+import type { Player } from '@/lib/game';
 
 export default function PlayPage() {
   const params = useParams();
@@ -34,15 +27,22 @@ export default function PlayPage() {
   const gameId = params.gameId as string;
   
   const [user, setUser] = useState<User | null>(null);
-  const [game, setGame] = useState<Game | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [locations, setLocations] = useState<{ [uid: string]: Location }>({});
+  const game = useGameStore((s) => s.game);
+  const playersById = useGameStore((s) => s.playersById);
+  const locations = useGameStore((s) => s.locationsById);
+  const pins = useGameStore((s) => s.pins);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('map');
-  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [rescuablePlayer, setRescuablePlayer] = useState<Player | null>(null);
+  const setIdentity = useGameStore((s) => s.setIdentity);
+  const start = useGameStore((s) => s.start);
+  const stop = useGameStore((s) => s.stop);
+  const updateLocationThrottled = useGameStore((s) => s.updateLocationThrottled);
+
+  // Derived list used in multiple places
+  const players = Object.values(playersById);
   
   // Fetch current player data when switching to map or settings tab
   useEffect(() => {
@@ -81,83 +81,39 @@ export default function PlayPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Prevent navigating back to login with iOS left-swipe/back gesture while on play page
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const lock = () => {
+      try {
+        window.history.pushState(null, '', window.location.href);
+      } catch {}
+    };
+    lock();
+    const onPopState = () => {
+      lock();
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, []);
+
   useEffect(() => {
     if (!user || !gameId) return;
-
-    // Subscribe to game data
-    const unsubscribeGame = subscribeToGame(gameId, (gameData) => {
-      setGame(gameData);
-      if (!gameData) {
-        setError('ゲームが見つかりません');
-        return;
-      }
-      
-      // Check if countdown has ended and game should start
-      if (gameData.countdownStartAt && gameData.countdownDurationSec) {
-        const countdownEndTime = gameData.countdownStartAt.toDate().getTime() + (gameData.countdownDurationSec * 1000);
-        const now = Date.now();
-        
-        if (now >= countdownEndTime && gameData.status === 'pending') {
-          // Countdown has ended, start the game
-          handleGameStart();
-        }
-      }
-    });
-
-    // Subscribe to players
-    const unsubscribePlayers = subscribeToPlayers(gameId, (playersData) => {
-      setPlayers(playersData);
-    });
-
-    // Subscribe to locations
-    const unsubscribeLocations = subscribeToLocations(gameId, (locationsData) => {
-      setLocations(locationsData);
-    });
-
-    // Subscribe to alerts (if user is authenticated)
-    let unsubscribeAlerts: (() => void) | undefined;
-    if (user) {
-      unsubscribeAlerts = subscribeToAlerts(gameId, user.uid, (alertsData) => {
-        setAlerts(alertsData);
-        
-        // Handle alert notifications
-        if (alertsData.length > 0) {
-          const latestAlert = alertsData[0];
-          handleAlertNotification(latestAlert);
-        }
-      });
-    }
-
-    // Get current player data
-    const getCurrentPlayerData = async () => {
-      if (!user) return;
+    setIdentity({ gameId, uid: user.uid });
+    start();
+    // current player bootstrap
+    (async () => {
       const playerData = await getPlayer(gameId, user.uid);
       setCurrentPlayer(playerData);
-    };
-    getCurrentPlayerData();
-
+    })();
     return () => {
-      unsubscribeGame();
-      unsubscribePlayers();
-      unsubscribeLocations();
-      if (unsubscribeAlerts) unsubscribeAlerts();
+      stop();
     };
-  }, [user, gameId]);
+  }, [user, gameId, setIdentity, start, stop]);
 
-  const handleAlertNotification = (alert: Alert) => {
-    // Trigger vibration
-    if (navigator.vibrate) {
-      navigator.vibrate([80, 40, 80]);
-    }
-
-    // Show toast notification (simple alert for now)
-    const message = alert.type === 'killer-near' 
-      ? `鬼が${Math.round(alert.distanceM)}m以内に接近しています！` 
-      : `逃走者が${Math.round(alert.distanceM)}m以内にいます`;
-    
-    console.log('Alert:', message);
-    // You can implement a proper toast notification here
-  };
+  // Alerts are handled centrally in the store; UI surfacing can be added later
 
   const handleLocationUpdate = async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
@@ -168,11 +124,7 @@ export default function PlayPage() {
       return;
     }
 
-    try {
-      await updateLocation(gameId, user!.uid, { lat, lng, accM: accuracy });
-    } catch (err) {
-      console.error('Location update error:', err);
-    }
+    await updateLocationThrottled(lat, lng, accuracy);
   };
 
   // Check for rescuable players (downed runners within rescue radius)
@@ -319,79 +271,7 @@ export default function PlayPage() {
     router.push('/join');
   };
 
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'map':
-        return (
-          <div className="flex-1 relative h-full">
-            <MapView
-              onLocationUpdate={handleLocationUpdate}
-              players={mapPlayers}
-              currentUserRole={currentPlayer.role}
-              currentUserId={user?.uid}
-              gameStatus={game.status}
-              isOwner={game.ownerUid === user?.uid}
-              countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
-              countdownDurationSec={game.countdownDurationSec}
-              onStartGame={handleStartGame}
-              onCountdownEnd={handleCountdownEnd}
-              gameStartAt={game.startAt ? game.startAt.toDate() : null}
-              captureRadiusM={game.captureRadiusM}
-              gameId={gameId}
-              runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
-              killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
-            />
-            
-            {/* HUD Overlay */}
-            <HUD
-              gameStatus={game.status}
-              playerCount={players.length}
-              oniCount={oniCount}
-              runnerCount={runnerCount}
-              captures={currentPlayer.stats.captures}
-              capturedTimes={currentPlayer.stats.capturedTimes}
-            />
-
-            {/* Rescue Button */}
-            {rescuablePlayer && (
-              <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
-                <button
-                  onClick={handleRescue}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
-                >
-                  🚑 救助する
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      case 'chat':
-        return (
-          <ChatView
-            gameId={gameId}
-            currentUser={{
-              uid: user?.uid || '',
-              nickname: currentPlayer.nickname
-            }}
-          />
-        );
-      case 'settings':
-        return (
-          <SettingsView
-            gameId={gameId}
-            currentUser={{
-              uid: user?.uid || '',
-              nickname: currentPlayer.nickname,
-              role: currentPlayer.role,
-              avatarUrl: currentPlayer.avatarUrl
-            }}
-            onGameExit={handleGameExit}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  // Keep MapView mounted to persist camera and location between tab switches
 
   return (
     <div className="h-screen flex flex-col">
@@ -405,7 +285,74 @@ export default function PlayPage() {
       
       {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {renderActiveTab()}
+        {/* Map tab - always mounted, toggle visibility */}
+        <div className={activeTab === 'map' ? 'flex-1 relative h-full' : 'hidden'}>
+            <MapView
+            onLocationUpdate={handleLocationUpdate}
+            players={mapPlayers}
+              pins={pins.map(p => ({ lat: p.lat, lng: p.lng }))}
+            currentUserRole={currentPlayer.role}
+            currentUserId={user?.uid}
+            gameStatus={game.status}
+            isOwner={game.ownerUid === user?.uid}
+            countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
+            countdownDurationSec={game.countdownDurationSec}
+            onStartGame={handleStartGame}
+            onCountdownEnd={handleCountdownEnd}
+            gameStartAt={game.startAt ? game.startAt.toDate() : null}
+            captureRadiusM={game.captureRadiusM}
+            gameId={gameId}
+            runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
+            killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
+          />
+
+          {/* HUD Overlay */}
+          <HUD
+            gameStatus={game.status}
+            playerCount={players.length}
+            oniCount={oniCount}
+            runnerCount={runnerCount}
+            captures={currentPlayer.stats.captures}
+            capturedTimes={currentPlayer.stats.capturedTimes}
+          />
+
+          {/* Rescue Button */}
+          {rescuablePlayer && (
+            <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
+              <button
+                onClick={handleRescue}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
+              >
+                🚑 救助する
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Chat tab */}
+        {activeTab === 'chat' && (
+          <ChatView
+            gameId={gameId}
+            currentUser={{
+              uid: user?.uid || '',
+              nickname: currentPlayer.nickname
+            }}
+          />
+        )}
+
+        {/* Settings tab */}
+        {activeTab === 'settings' && (
+          <SettingsView
+            gameId={gameId}
+            currentUser={{
+              uid: user?.uid || '',
+              nickname: currentPlayer.nickname,
+              role: currentPlayer.role,
+              avatarUrl: currentPlayer.avatarUrl
+            }}
+            onGameExit={handleGameExit}
+          />
+        )}
       </div>
 
       {/* Status Bar (only show on map tab) */}

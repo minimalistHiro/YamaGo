@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // experimental: outputFileTracingExcludes removed to avoid micromatch recursion during build
   async headers() {
     return [
       {

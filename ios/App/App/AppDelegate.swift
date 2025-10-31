@@ -8,6 +8,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        // Disable back/forward swipe gestures in WKWebView to prevent navigating back to login via iOS edge-swipe.
+        if let bridgeVC = window?.rootViewController as? CAPBridgeViewController {
+            bridgeVC.webView?.allowsBackForwardNavigationGestures = false
+        }
         return true
     }
 

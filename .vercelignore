@@ -1,0 +1,20 @@
+# Exclude native mobile project files from Vercel upload/build
+android/
+ios/
+functions/
+
+# iOS/Android build artifacts and large vendor trees
+**/Pods/
+**/*.xcworkspace/
+**/*.xcodeproj/
+**/*.xcframework/
+**/*.xcuserdatad/
+**/*.pbxproj
+
+# Local dependencies (Vercel installs fresh)
+node_modules/
+
+# Misc
+*.log
+
+

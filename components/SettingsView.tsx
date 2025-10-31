@@ -187,6 +187,8 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
     }
   };
 
+  // (Theme selector removed)
+
   const handleBecomeOwner = async () => {
     try {
       setIsLoading(true);

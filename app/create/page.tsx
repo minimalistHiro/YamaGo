@@ -79,7 +79,7 @@ export default function CreatePage() {
   };
 
   const handleStartGame = () => {
-    router.push(`/play/${gameId}`);
+    router.replace(`/play/${gameId}`);
   };
 
   const handleCopyGameId = async () => {

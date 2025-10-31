@@ -211,6 +211,19 @@ export async function setGamePins(
   await addPins(gameId, pins);
 }
 
+// Subscribe to pins
+export function subscribeToPins(gameId: string, callback: (pins: PinPoint[]) => void): () => void {
+  const db = getDb();
+  const pinsRef = collection(db, 'games', gameId, 'pins');
+  return onSnapshot(pinsRef, (snapshot) => {
+    const pins: PinPoint[] = snapshot.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as any),
+    }));
+    callback(pins);
+  });
+}
+
 export async function startGameCountdown(gameId: string, countdownDurationSec: number = 900): Promise<void> {
   const db = getDb();
   const countdownStartAt = serverTimestamp() as Timestamp;

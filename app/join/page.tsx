@@ -112,7 +112,7 @@ export default function JoinPage() {
       // Join existing game
       await joinGame(gameId, uid, nickname.trim(), 'runner', avatarUrl);
       
-      router.push(`/play/${gameId}`);
+      router.replace(`/play/${gameId}`);
     } catch (err) {
       console.error('Join game error:', err);
       setError('ゲームに参加できませんでした。ゲームIDを確認してください。');
@@ -165,7 +165,7 @@ export default function JoinPage() {
       await joinGame(newGameId, uid, nickname.trim(), 'oni', avatarUrl);
       console.log('Joined game successfully');
       
-      router.push(`/admin/${newGameId}`);
+      router.replace(`/admin/${newGameId}`);
     } catch (err) {
       console.error('Create game error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';

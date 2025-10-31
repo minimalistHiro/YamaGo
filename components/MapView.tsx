@@ -22,6 +22,7 @@ interface MapViewProps {
     state?: 'active' | 'downed' | 'eliminated';
     lastRevealUntil?: Date | null;
   }>;
+  pins?: Array<{ lat: number; lng: number; type?: 'yellow' }>; // yellow pins
   currentUserRole?: 'oni' | 'runner';
   currentUserId?: string;
   gameStatus?: 'pending' | 'running' | 'ended';
@@ -60,6 +61,7 @@ const ROLE_PIN_STYLES: Record<'oni' | 'runner', { fill: string; border: string; 
 export default function MapView({
   onLocationUpdate,
   players = [],
+  pins = [],
   currentUserRole,
   currentUserId,
   gameStatus,
@@ -90,113 +92,59 @@ export default function MapView({
   const [localCountdownStartAt, setLocalCountdownStartAt] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
-  const createPlayerMarkerElement = (player: NonNullable<MapViewProps['players']>[number]) => {
-    const style = ROLE_PIN_STYLES[player.role];
-    const markerElement = document.createElement('div');
-    markerElement.className = 'player-marker';
-    markerElement.style.width = '40px';
-    markerElement.style.height = '50px';
-    markerElement.style.position = 'relative';
-    markerElement.style.display = 'flex';
-    markerElement.style.alignItems = 'center';
-    markerElement.style.justifyContent = 'center';
-    markerElement.style.pointerEvents = 'auto';
-    markerElement.style.cursor = 'pointer';
-    markerElement.style.transition = 'transform 0.15s ease';
-    markerElement.style.transformOrigin = 'bottom center';
-    markerElement.title = `${player.nickname} - ${player.role === 'oni' ? '鬼' : '逃走者'}`;
 
-    const pinHead = document.createElement('div');
-    pinHead.style.width = '36px';
-    pinHead.style.height = '36px';
-    pinHead.style.borderRadius = '50%';
-    pinHead.style.background = style.fill;
-    pinHead.style.border = `4px solid ${style.border}`;
-    pinHead.style.boxShadow = `0 4px 16px ${style.fill}80, 0 2px 8px rgba(0,0,0,0.3)`;
-    pinHead.style.display = 'flex';
-    pinHead.style.alignItems = 'center';
-    pinHead.style.justifyContent = 'center';
-    pinHead.style.color = '#fff';
-    pinHead.style.fontSize = '18px';
-    pinHead.style.fontWeight = 'bold';
-    pinHead.style.position = 'relative';
-    pinHead.style.overflow = 'hidden';
-    pinHead.style.transition = 'all 0.2s ease';
+  // Create pin icon as canvas for map symbol layer (teardrop-style pin)
+  const createPinCanvas = (role: 'oni' | 'runner', size: number = 40): HTMLCanvasElement => {
+    const scale = 2; // retina
+    const marginX = 8 * scale;
+    const marginTop = 6 * scale;
+    const marginBottom = 4 * scale;
+    const pointerH = 22 * scale; // pointer height
+    const w = size * scale + marginX * 2;
+    const h = size * scale + pointerH + marginTop + marginBottom;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
 
-    // 役割アイコンを表示
-    const roleIcon = document.createElement('span');
-    roleIcon.textContent = style.icon;
-    roleIcon.style.fontSize = '20px';
-    roleIcon.style.lineHeight = '1';
-    roleIcon.style.textShadow = '0 2px 4px rgba(0,0,0,0.3)';
-    pinHead.appendChild(roleIcon);
+    const style = ROLE_PIN_STYLES[role];
 
-    // アバター画像がある場合は上に表示（小さく）
-    if (player.avatarUrl) {
-      const avatarOverlay = document.createElement('img');
-      avatarOverlay.src = player.avatarUrl;
-      avatarOverlay.alt = player.nickname;
-      avatarOverlay.style.position = 'absolute';
-      avatarOverlay.style.bottom = '2px';
-      avatarOverlay.style.right = '2px';
-      avatarOverlay.style.width = '16px';
-      avatarOverlay.style.height = '16px';
-      avatarOverlay.style.borderRadius = '50%';
-      avatarOverlay.style.border = '2px solid white';
-      avatarOverlay.style.boxShadow = '0 1px 3px rgba(0,0,0,0.3)';
-      avatarOverlay.style.objectFit = 'cover';
-      pinHead.appendChild(avatarOverlay);
-    }
+    // Coordinates
+    const cx = w / 2;
+    const headR = (size / 2) * scale; // head radius
+    const tipY = h - marginBottom; // a bit above bottom to avoid clipping
+    const headCY = tipY - pointerH - headR;
 
-    const roleBadge = document.createElement('div');
-    roleBadge.textContent = player.role === 'oni' ? '鬼' : '逃';
-    roleBadge.style.position = 'absolute';
-    roleBadge.style.bottom = '-14px';
-    roleBadge.style.left = '50%';
-    roleBadge.style.transform = 'translateX(-50%)';
-    roleBadge.style.background = style.border;
-    roleBadge.style.color = '#fff';
-    roleBadge.style.fontSize = '9px';
-    roleBadge.style.fontWeight = 'bold';
-    roleBadge.style.padding = '2px 6px';
-    roleBadge.style.borderRadius = '8px';
-    roleBadge.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
-    roleBadge.style.whiteSpace = 'nowrap';
+    // Teardrop path (rounded head + tapered pointer)
+    ctx.save();
+    ctx.shadowColor = `${style.fill}80`;
+    ctx.shadowBlur = 12 * scale;
+    ctx.shadowOffsetY = 4 * scale;
+    ctx.beginPath();
+    // top arc
+    ctx.arc(cx, headCY, headR, Math.PI, 0);
+    // right bezier to bottom tip
+    ctx.quadraticCurveTo(cx + headR, headCY + headR * 0.85, cx, headCY + headR + pointerH);
+    // left bezier back to top
+    ctx.quadraticCurveTo(cx - headR, headCY + headR * 0.85, cx - headR, headCY);
+    ctx.closePath();
+    ctx.fillStyle = style.fill;
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.lineWidth = 4 * scale;
+    ctx.strokeStyle = style.border;
+    ctx.stroke();
+    ctx.restore();
 
-    const pinPointer = document.createElement('div');
-    pinPointer.style.position = 'absolute';
-    pinPointer.style.bottom = '0';
-    pinPointer.style.left = '50%';
-    pinPointer.style.transform = 'translateX(-50%)';
-    pinPointer.style.width = '0';
-    pinPointer.style.height = '0';
-    pinPointer.style.borderLeft = '10px solid transparent';
-    pinPointer.style.borderRight = '10px solid transparent';
-    pinPointer.style.borderTop = `16px solid ${style.fill}`;
-    pinPointer.style.filter = 'drop-shadow(0 3px 4px rgba(0,0,0,0.35))';
+    // Emoji role icon
+    ctx.font = `${24 * scale}px system-ui, Apple Color Emoji, Segoe UI Emoji`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(style.icon, cx, headCY);
 
-    if (player.state === 'downed') {
-      pinHead.style.boxShadow = '0 0 0 4px rgba(250,204,21,0.8), 0 4px 16px rgba(0,0,0,0.5)';
-      pinHead.style.animation = 'pulse 2s infinite';
-    } else if (player.state === 'eliminated') {
-      markerElement.style.opacity = '0.4';
-      pinHead.style.filter = 'grayscale(100%)';
-    }
-
-    markerElement.appendChild(pinHead);
-    markerElement.appendChild(roleBadge);
-    markerElement.appendChild(pinPointer);
-
-    markerElement.addEventListener('mouseenter', () => {
-      markerElement.style.transform = 'translateY(-6px) scale(1.1)';
-      pinHead.style.boxShadow = `0 6px 20px ${style.fill}a0, 0 2px 8px rgba(0,0,0,0.4)`;
-    });
-    markerElement.addEventListener('mouseleave', () => {
-      markerElement.style.transform = 'translateY(0) scale(1)';
-      pinHead.style.boxShadow = `0 4px 16px ${style.fill}80, 0 2px 8px rgba(0,0,0,0.3)`;
-    });
-
-    return markerElement;
+    return canvas;
   };
 
   // Create a circle polygon for 50m radius
@@ -359,20 +307,6 @@ export default function MapView({
       const lng = minLng + Math.random() * (maxLng - minLng);
       const lat = minLat + Math.random() * (maxLat - minLat);
       generated.push({ lat, lng });
-
-      const el = document.createElement('div');
-      el.style.width = '22px';
-      el.style.height = '22px';
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = '#f59e0b'; // yellow-500
-      el.style.border = '4px solid #d97706'; // yellow-600
-      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)';
-
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([lng, lat])
-        .addTo(map.current);
-
-      randomPinsRef.current.push(marker);
     }
 
     randomPinsPlacedRef.current = true;
@@ -387,6 +321,46 @@ export default function MapView({
     }
   };
 
+  // Render yellow pins via GeoJSON
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) return;
+
+    const sourceId = 'game-pins';
+    if (!map.current.getSource(sourceId)) {
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
+      map.current.addLayer({
+        id: 'game-pins-layer',
+        type: 'circle',
+        source: sourceId,
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#f59e0b',
+          'circle-stroke-color': '#d97706',
+          'circle-stroke-width': 2,
+          'circle-opacity': 0.95,
+        },
+      });
+    }
+
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: pins.map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: {},
+      })),
+    } as const;
+
+    const src = map.current.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+    if (src) {
+      (src as any).setData(featureCollection as any);
+    }
+  }, [pins, isMapLoaded]);
+
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -398,6 +372,7 @@ export default function MapView({
       container: mapContainer.current,
       style: {
         version: 8,
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
         sources: {
           'osm': {
             type: 'raster',
@@ -479,87 +454,118 @@ export default function MapView({
     };
   }, []);
 
-  // Update player markers
+  // Player rendering via GeoJSON Source + Layer
   useEffect(() => {
     if (!map.current || !isMapLoaded) return;
 
-    // Remove existing markers
-    const existingMarkers = document.querySelectorAll('.player-marker');
-    existingMarkers.forEach(marker => marker.remove());
+    // Ensure source and layer exist
+    if (!map.current.getSource('players')) {
+      map.current.addSource('players', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
 
-    // Get current user's location for distance calculations
-    const currentUserLocation = currentLocation;
-
-    // Filter and display players based on DbD visibility rules
-    const visiblePlayers = players.filter(player => {
-      // Don't show self
-      if (player.uid === currentUserId) return false;
-
-      // If no current location, don't show any remote players
-      if (!currentUserLocation) return false;
-
-      // Calculate distance
-      const distance = haversine(
-        currentUserLocation.lat, currentUserLocation.lng,
-        player.lat, player.lng
-      );
-
-      // DbD Visibility Rules
-      if (currentUserRole === 'oni') {
-        // Killer can see all runners within configured detection radius
-        if (player.role === 'runner' && player.state !== 'eliminated') {
-          return distance <= killerDetectRunnerRadiusM;
+      // Add custom pin images
+      (async () => {
+        try {
+          if (!map.current) return;
+          if (!map.current.hasImage('pin-oni')) {
+            const c1 = createPinCanvas('oni');
+            const b1 = await createImageBitmap(c1);
+            map.current.addImage('pin-oni', b1, { pixelRatio: 2 });
+          }
+          if (!map.current.hasImage('pin-runner')) {
+            const c2 = createPinCanvas('runner');
+            const b2 = await createImageBitmap(c2);
+            map.current.addImage('pin-runner', b2, { pixelRatio: 2 });
+          }
+        } catch (e) {
+          // noop; addImage may throw if image already added in rare cases
         }
-        // Killer can see other killers
-        if (player.role === 'oni') {
-          return true;
-        }
-      } else if (currentUserRole === 'runner') {
-        // Runner can see other runners at all times
-        if (player.role === 'runner') {
-          return true;
-        }
-        // Runner can see killers only within configured radius
-        if (player.role === 'oni') {
-          return distance <= runnerSeeKillerRadiusM;
-        }
-      }
+      })();
 
-      return false;
-    });
+      // Icon pins overlay using custom images (no circle background)
+      map.current.addLayer({
+        id: 'players-icons',
+        type: 'symbol',
+        source: 'players',
+        layout: {
+          'icon-image': ['get', 'iconImage'],
+          'icon-size': 0.75,
+          'icon-allow-overlap': true,
+          'icon-anchor': 'bottom'
+        }
+      });
 
-    // Add new markers
-    visiblePlayers.forEach(player => {
-      const markerElement = createPlayerMarkerElement(player);
-      markerElement.addEventListener('click', () => {
+      // Popup on click
+      map.current.on('click', 'players-icons', (e) => {
+        const feature = e.features && e.features[0];
+        if (!feature) return;
+        const coords = feature.geometry.type === 'Point' ? (feature.geometry as any).coordinates : null;
+        if (!coords) return;
+        const props: any = feature.properties || {};
         new maplibregl.Popup()
-          .setLngLat([player.lng, player.lat])
+          .setLngLat(coords)
           .setHTML(`
             <div class="p-3">
               <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200">
-                  ${player.avatarUrl ? 
-                    `<img src="${player.avatarUrl}" alt="${player.nickname}" class="w-full h-full object-cover" />` :
-                    `<div class="w-full h-full ${player.role === 'oni' ? 'bg-red-500' : 'bg-green-500'} flex items-center justify-center">
-                      <span class="text-white font-bold text-lg">${player.nickname.charAt(0).toUpperCase()}</span>
-                  </div>`
-                }
-                </div>
                 <div>
-                  <h3 class="font-semibold text-gray-800">${player.nickname}</h3>
-                  <p class="text-sm text-gray-600">${player.role === 'oni' ? '鬼' : '逃走者'}</p>
+                  <h3 class="font-semibold text-gray-800">${props.nickname || ''}</h3>
+                  <p class="text-sm text-gray-600">${props.role === 'oni' ? '鬼' : '逃走者'}</p>
                 </div>
               </div>
             </div>
           `)
           .addTo(map.current!);
       });
+    }
 
-      new maplibregl.Marker({ element: markerElement, anchor: 'bottom' })
-        .setLngLat([player.lng, player.lat])
-        .addTo(map.current!);
+    const currentUserLocation = currentLocation;
+    const visiblePlayers = players.filter((player) => {
+      if (player.uid === currentUserId) return false;
+      if (!currentUserLocation) return false;
+
+      const distance = haversine(
+        currentUserLocation.lat,
+        currentUserLocation.lng,
+        player.lat,
+        player.lng
+      );
+
+      if (currentUserRole === 'oni') {
+        if (player.role === 'runner' && player.state !== 'eliminated') {
+          return distance <= killerDetectRunnerRadiusM;
+        }
+        if (player.role === 'oni') {
+          return true;
+        }
+      } else if (currentUserRole === 'runner') {
+        if (player.role === 'runner') return true;
+        if (player.role === 'oni') return distance <= runnerSeeKillerRadiusM;
+      }
+      return false;
     });
-  }, [players, isMapLoaded, currentUserId, currentUserRole, currentLocation]);
+
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: visiblePlayers.map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: {
+          uid: p.uid,
+          nickname: p.nickname,
+          role: p.role,
+          state: p.state || 'active',
+          iconImage: p.role === 'oni' ? 'pin-oni' : 'pin-runner',
+        },
+      })),
+    } as const;
+
+    const src = map.current.getSource('players') as maplibregl.GeoJSONSource | undefined;
+    if (src) {
+      (src as any).setData(featureCollection as any);
+    }
+  }, [players, isMapLoaded, currentUserId, currentUserRole, currentLocation, runnerSeeKillerRadiusM, killerDetectRunnerRadiusM]);
 
   // Get current location function with improved error handling and retry mechanism
   const getCurrentLocation = () => {
