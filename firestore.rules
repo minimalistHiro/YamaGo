@@ -48,6 +48,18 @@ service cloud.firestore {
         // Only Cloud Functions can write events
         allow write: if false;
       }
+
+      // Capture requests subcollection (client fallback for capture)
+      match /captureRequests/{requestId} {
+        // Only authenticated players in the game can create a request
+        allow create: if request.auth != null &&
+          exists(/databases/$(database)/documents/games/$(gameId)/players/$(request.auth.uid)) &&
+          request.resource.data.attackerUid == request.auth.uid &&
+          request.resource.data.victimUid is string &&
+          request.resource.data.at is timestamp;
+        // No reads/updates/deletes from clients; Functions (admin) will clean up
+        allow read, update, delete: if false;
+      }
       
       // Chat messages subcollections (role-based)
       match /messages_oni/{messageId} {
