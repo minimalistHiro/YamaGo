@@ -380,6 +380,7 @@ export default function PlayPage() {
             players={mapPlayers}
               pins={pins.map(p => ({ lat: p.lat, lng: p.lng }))}
             currentUserRole={currentPlayer.role}
+              currentUserState={user?.uid ? (playersById[user.uid]?.state || currentPlayer.state) : currentPlayer.state}
             currentUserId={user?.uid}
             gameStatus={game.status}
             isOwner={game.ownerUid === user?.uid}
