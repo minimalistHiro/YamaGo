@@ -127,7 +127,7 @@ export default app;
 
 // Helper function to check if Firebase is initialized
 export const isFirebaseInitialized = (): boolean => {
-  return app !== null && auth !== null && db !== null;
+  return app !== null && auth !== null && db !== null && functions !== null;
 };
 
 // Helper function to get Firebase services with error handling
@@ -136,6 +136,15 @@ export const getFirebaseServices = () => {
     throw new Error('Firebase services can only be accessed on the client side.');
   }
   
+  // Lazily (re)hydrate functions if missing
+  if (app && !functions) {
+    try {
+      functions = getFunctions(app, 'us-central1');
+    } catch (e) {
+      // noop; handled by the check below
+    }
+  }
+
   if (!isFirebaseInitialized()) {
     console.error('Firebase initialization check failed:', {
       app: !!app,
