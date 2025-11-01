@@ -1,6 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // TEST MODE: allow everything (read and write) across all collections
+    match /{document=**} {
+      allow read, write: if true;
+    }
     // Games collection
     match /games/{gameId} {
       allow read: if true; // Anyone can read game data
