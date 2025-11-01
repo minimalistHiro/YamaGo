@@ -10,7 +10,8 @@ import {
   startGameCountdown,
   startGame,
   updateGame,
-  subscribeToEvents
+  subscribeToEvents,
+  updateLocation
 } from '@/lib/game';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
@@ -215,15 +216,19 @@ export default function PlayPage() {
     setIsCapturing(true);
     try {
       // Plan A: 捕獲は onLocationWrite のサーバー判定に一本化。
-      // ボタン押下時は直近の現在地を取得して Firestore の locations を更新し、
-      // サーバー側の距離判定を直ちに走らせるトリガにするのみ。
+      // ボタン押下時は非スロットルで games/{gameId}/locations に現在地を書き込み、
+      // サーバー側の距離判定トリガのみ行う。
       if (typeof window !== 'undefined' && navigator.geolocation) {
         await new Promise<void>((resolve) => {
           navigator.geolocation.getCurrentPosition(
             async (pos) => {
               const { latitude, longitude, accuracy } = pos.coords;
               try {
-                await updateLocationThrottled(latitude, longitude, accuracy || 0);
+                await updateLocation(gameId, user.uid, {
+                  lat: latitude,
+                  lng: longitude,
+                  accM: accuracy || 0
+                });
               } finally {
                 resolve();
               }
@@ -232,18 +237,6 @@ export default function PlayPage() {
             { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
           );
         });
-      }
-      // 追加: サーバー側の onCaptureRequest トリガを併用して確実に判定を走らせる
-      try {
-        const { db } = getFirebaseServices();
-        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
-        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
-          attackerUid: user.uid,
-          victimUid: capturableRunner.uid,
-          at: serverTimestamp()
-        });
-      } catch (e) {
-        // noop; onLocationWrite が機能するため致命ではない
       }
       // UI 的には少し待ってから自動捕獲イベントのポップアップを待つ
       setTimeout(() => setIsCapturing(false), 600);

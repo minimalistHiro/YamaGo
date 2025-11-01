@@ -19,7 +19,8 @@ export default function BackgroundLocationProvider({
   const { isInitialized, error, isCapacitor } = useBackgroundLocation({
     userId,
     role,
-    enabled: gameStatus === 'running' && !!role
+    enabled: gameStatus === 'running' && !!role,
+    gameId
   });
 
   useEffect(() => {

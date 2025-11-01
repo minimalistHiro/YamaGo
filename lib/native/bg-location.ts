@@ -1,6 +1,7 @@
 import { Geolocation } from '@capacitor/geolocation';
+import { updateLocation } from '../game';
 
-export async function initBackgroundLocation(userId: string, role: 'oni'|'runner') {
+export async function initBackgroundLocation(userId: string, role: 'oni'|'runner', gameId: string) {
   try {
     // Request permissions
     const permissions = await Geolocation.requestPermissions();
@@ -22,17 +23,13 @@ export async function initBackgroundLocation(userId: string, role: 'oni'|'runner
 
       if (position) {
         console.log('[BG] location', position.coords.latitude, position.coords.longitude);
-        
-        // Send location to Cloud Function
-        sendLocationToServer({
-          userId,
-          role,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy || 0,
-          speed: position.coords.speed || 0,
-          timestamp: position.timestamp,
-          source: 'native'
+        // Write directly to game locations to trigger onLocationWrite
+        updateLocation(gameId, userId, {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accM: position.coords.accuracy || 0
+        }).catch((e) => {
+          console.error('[BG] Failed to update game location:', e);
         });
       }
     });
@@ -44,23 +41,7 @@ export async function initBackgroundLocation(userId: string, role: 'oni'|'runner
   }
 }
 
-async function sendLocationToServer(data: any) {
-  try {
-    const response = await fetch('https://us-central1-yamago-2ae8d.cloudfunctions.net/ingestLocation', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      console.error('[BG] Failed to send location:', response.status);
-    }
-  } catch (error) {
-    console.error('[BG] Error sending location:', error);
-  }
-}
+// HTTP ingest endpoint is no longer used for capture flow (Plan A)
 
 export async function stopBackgroundLocation(watchId?: string) {
   if (watchId) {

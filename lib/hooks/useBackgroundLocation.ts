@@ -7,15 +7,16 @@ interface UseBackgroundLocationProps {
   userId: string;
   role: 'oni' | 'runner' | null;
   enabled: boolean;
+  gameId: string;
 }
 
-export function useBackgroundLocation({ userId, role, enabled }: UseBackgroundLocationProps) {
+export function useBackgroundLocation({ userId, role, enabled, gameId }: UseBackgroundLocationProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [watchId, setWatchId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!enabled || !userId || !role || typeof window === 'undefined') {
+    if (!enabled || !userId || !role || !gameId || typeof window === 'undefined') {
       return;
     }
 
@@ -29,7 +30,7 @@ export function useBackgroundLocation({ userId, role, enabled }: UseBackgroundLo
     const initializeLocation = async () => {
       try {
         console.log('[BG Location] Initializing background location for user:', userId, 'role:', role);
-        const id = await initBackgroundLocation(userId, role);
+        const id = await initBackgroundLocation(userId, role, gameId);
         if (id) {
           setWatchId(id);
           setIsInitialized(true);
