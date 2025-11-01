@@ -44,6 +44,7 @@ export default function PlayPage() {
   const [showCapturePopup, setShowCapturePopup] = useState(false);
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showGameEndPopup, setShowGameEndPopup] = useState(false);
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
@@ -136,6 +137,12 @@ export default function PlayPage() {
   }, [user, gameId, playersById]);
 
   // Alerts are handled centrally in the store; UI surfacing can be added later
+  // Show popup when game ends (e.g., Cloud Function ended the game)
+  useEffect(() => {
+    if (game?.status === 'ended') {
+      setShowGameEndPopup(true);
+    }
+  }, [game?.status]);
 
   const handleLocationUpdate = useCallback(async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
@@ -418,6 +425,23 @@ export default function PlayPage() {
             captures={currentPlayer.stats.captures}
             capturedTimes={currentPlayer.stats.capturedTimes}
           />
+
+          {showGameEndPopup && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[100]">
+              <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full mx-4 text-center">
+                <h3 className="text-xl font-bold mb-2">ゲームが終了しました</h3>
+                <p className="text-red-600 font-semibold mb-4">鬼の勝利！</p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    className="bg-gray-800 hover:bg-black text-white font-medium py-2 px-4 rounded"
+                    onClick={() => setShowGameEndPopup(false)}
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Rescue Button */}
           {rescuablePlayer && (
