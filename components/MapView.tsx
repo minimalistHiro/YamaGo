@@ -797,13 +797,9 @@ export default function MapView({
     tryGetLocation();
   };
 
-  // Location tracking for game (avoid duplicate watchers on Capacitor)
+  // Location tracking for game
   useEffect(() => {
     if (!onLocationUpdate) return;
-
-    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor;
-    // If running under Capacitor, background provider handles tracking
-    if (isCapacitor) return;
 
     let watchId: number | null = null;
     let running = false;
