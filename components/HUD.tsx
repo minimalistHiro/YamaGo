@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 interface HUDProps {
-  gameStatus: 'pending' | 'running' | 'ended';
+  gameStatus: 'pending' | 'countdown' | 'running' | 'ended';
   timeRemaining?: number;
   onStartGame?: () => void;
   onEndGame?: () => void;
@@ -66,6 +66,7 @@ export default function HUD({
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-lg">
             {gameStatus === 'pending' && '待機中'}
+            {gameStatus === 'countdown' && 'カウントダウン中'}
             {gameStatus === 'running' && 'ゲーム中'}
             {gameStatus === 'ended' && '終了'}
           </h3>
@@ -144,7 +145,7 @@ export default function HUD({
 
             {/* Action Buttons */}
             <div className="space-y-2">
-              {gameStatus === 'pending' && onStartGame && (
+              {(gameStatus === 'pending' || gameStatus === 'ended') && onStartGame && (
                 <button
                   onClick={onStartGame}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-colors"

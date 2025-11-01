@@ -21,7 +21,7 @@ import { getFirebaseServices } from './firebase/client';
 // Types
 export interface Game {
   id: string;
-  status: 'pending' | 'running' | 'ended';
+  status: 'pending' | 'countdown' | 'running' | 'ended';
   startAt: Timestamp | null;
   captureRadiusM: number;
   runnerSeeKillerRadiusM?: number;
@@ -205,6 +205,17 @@ export async function addPins(
   await Promise.all(writes);
 }
 
+export async function updatePinCleared(
+  gameId: string,
+  pinId: string,
+  cleared: boolean = true
+): Promise<void> {
+  const db = getDb();
+  await updateDoc(doc(db, 'games', gameId, 'pins', pinId), {
+    cleared
+  });
+}
+
 export async function setGamePins(
   gameId: string,
   pins: Array<{ lat: number; lng: number; type?: 'yellow'; cleared?: boolean }>
@@ -233,7 +244,7 @@ export async function startGameCountdown(gameId: string, countdownDurationSec: n
   await updateDoc(doc(db, 'games', gameId), {
     countdownStartAt,
     countdownDurationSec,
-    status: 'pending' // Keep as pending until countdown ends
+    status: 'countdown' // Mark countdown status until countdown ends
   });
 }
 
