@@ -797,63 +797,75 @@ export default function MapView({
     tryGetLocation();
   };
 
-  // Location tracking for game
+  // Location tracking for game (avoid duplicate watchers on Capacitor)
   useEffect(() => {
     if (!onLocationUpdate) return;
 
-    console.log('Starting location tracking...');
-    
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
-        console.log('Location update:', { latitude, longitude, accuracy });
-        
-        // Check if location is within Yamanote bounds
-        const withinBounds = isWithinYamanoteBounds(latitude, longitude);
-        
-        setCurrentLocation({ lat: latitude, lng: longitude });
-        setIsOutOfBounds(!withinBounds);
-        
-        // Update capture radius circle
-        updateCaptureRadiusCircle(latitude, longitude);
-        
-        // Update current location marker during game
-        if (map.current && currentLocationMarker.current) {
-          currentLocationMarker.current.setLngLat([longitude, latitude]);
-        }
-        
-        // Update radius circle during tracking
-        updateRadiusCircle(latitude, longitude);
-        
-        onLocationUpdate(latitude, longitude, accuracy);
-      },
-      (error) => {
-        console.error('Geolocation error:', error);
-        let errorMessage = '位置情報の取得に失敗しました';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = '位置情報の使用が拒否されました';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = '位置情報が利用できません';
-            break;
-          case error.TIMEOUT:
-            errorMessage = '位置情報の取得がタイムアウトしました';
-            break;
-        }
-        console.error(errorMessage);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 1000, // より頻繁に更新
-        timeout: 10000
-      }
-    );
+    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor;
+    // If running under Capacitor, background provider handles tracking
+    if (isCapacitor) return;
 
-    return () => {
-      console.log('Stopping location tracking...');
-      navigator.geolocation.clearWatch(watchId);
+    let watchId: number | null = null;
+    let running = false;
+
+    const start = () => {
+      if (running) return;
+      running = true;
+      console.log('Starting location tracking...');
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          console.log('Location update:', { latitude, longitude, accuracy });
+
+          const withinBounds = isWithinYamanoteBounds(latitude, longitude);
+          setCurrentLocation({ lat: latitude, lng: longitude });
+          setIsOutOfBounds(!withinBounds);
+
+          updateCaptureRadiusCircle(latitude, longitude);
+
+          if (map.current && currentLocationMarker.current) {
+            currentLocationMarker.current.setLngLat([longitude, latitude]);
+          }
+
+          updateRadiusCircle(latitude, longitude);
+          onLocationUpdate(latitude, longitude, accuracy);
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          let errorMessage = '位置情報の取得に失敗しました';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = '位置情報の使用が拒否されました';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = '位置情報が利用できません';
+              break;
+            case error.TIMEOUT:
+              errorMessage = '位置情報の取得がタイムアウトしました';
+              break;
+          }
+          console.error(errorMessage);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 1000,
+          timeout: 10000,
+        }
+      );
     };
+
+    const stop = () => {
+      if (!running) return;
+      running = false;
+      console.log('Stopping location tracking...');
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    };
+
+    start();
+    return () => stop();
   }, [onLocationUpdate]);
 
   // Handle tab visibility change - recheck location when tab becomes visible
