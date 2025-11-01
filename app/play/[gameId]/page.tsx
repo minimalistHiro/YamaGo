@@ -480,9 +480,18 @@ export default function PlayPage() {
         <div className="bg-white border-t border-gray-200 p-2">
           <div className="flex justify-between items-center text-sm">
             <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${currentPlayer.role === 'oni' ? 'bg-red-500' : 'bg-green-500'}`}></div>
-              <span className="font-medium">{currentPlayer.nickname}</span>
-              <span className="text-gray-500">({currentPlayer.role === 'oni' ? '鬼' : '逃走者'})</span>
+              {(() => {
+                const myState = user?.uid ? (playersById[user.uid]?.state || currentPlayer.state) : currentPlayer.state;
+                const dotColor = currentPlayer.role === 'oni' ? 'bg-red-500' : (myState && myState !== 'active' ? 'bg-gray-400' : 'bg-green-500');
+                const roleLabel = currentPlayer.role === 'oni' ? '鬼' : (myState && myState !== 'active' ? '逃走者（捕獲済み）' : '逃走者');
+                return (
+                  <>
+                    <div className={`w-3 h-3 rounded-full ${dotColor}`}></div>
+                    <span className="font-medium">{currentPlayer.nickname}</span>
+                    <span className="text-gray-500">({roleLabel})</span>
+                  </>
+                );
+              })()}
             </div>
             
             <div className="text-gray-500">
