@@ -10,6 +10,7 @@ import {
   subscribeToLocations, 
   updateGame,
   updatePlayer,
+  startGameCountdown,
   Game,
   Player,
   Location
@@ -83,10 +84,7 @@ export default function AdminPage() {
     if (!game || !isOwner) return;
 
     try {
-      await updateGame(gameId, {
-        status: 'running',
-        startAt: new Date() as any
-      });
+      await startGameCountdown(gameId, game.countdownDurationSec ?? 900);
     } catch (err) {
       console.error('Start game error:', err);
       setError('ゲームを開始できませんでした');
@@ -223,7 +221,7 @@ export default function AdminPage() {
           runnerCount={runnerCount}
           runnerCapturedCount={runnerCapturedCount}
           generatorsClearedCount={0}
-          onStartGame={game.status === 'pending' ? handleStartGame : undefined}
+          onStartGame={(game.status === 'pending' || game.status === 'ended') ? handleStartGame : undefined}
           onEndGame={game.status === 'running' ? handleEndGame : undefined}
         />
       </div>
@@ -238,8 +236,8 @@ export default function AdminPage() {
             <h4 className="font-semibold mb-2">ゲーム情報</h4>
             <div className="text-sm space-y-1">
               <p>ゲームID: <code className="bg-gray-200 px-1 rounded">{gameId}</code></p>
-              <p>状態: <span className={`font-semibold ${game.status === 'running' ? 'text-green-600' : game.status === 'ended' ? 'text-red-600' : 'text-yellow-600'}`}>
-                {game.status === 'pending' ? '待機中' : game.status === 'running' ? '実行中' : '終了'}
+              <p>状態: <span className={`font-semibold ${game.status === 'running' ? 'text-green-600' : game.status === 'ended' ? 'text-red-600' : game.status === 'countdown' ? 'text-blue-600' : 'text-yellow-600'}`}>
+                {game.status === 'pending' ? '待機中' : game.status === 'countdown' ? 'カウントダウン中' : game.status === 'running' ? '実行中' : '終了'}
               </span></p>
               <p>捕獲半径: {game.captureRadiusM}m</p>
             </div>
