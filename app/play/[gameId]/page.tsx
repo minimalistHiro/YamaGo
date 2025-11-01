@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
@@ -10,8 +10,11 @@ import {
   startGameCountdown,
   startGame,
   updateGame,
-  subscribeToEvents
+  subscribeToEvents,
+  updateLocation,
+  updatePlayer
 } from '@/lib/game';
+import { MAX_DOWNS, REVEAL_DURATION_SEC, RESCUE_COOLDOWN_SEC } from '@/lib/constants';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
 import HUD from '@/components/HUD';
@@ -134,16 +137,15 @@ export default function PlayPage() {
 
   // Alerts are handled centrally in the store; UI surfacing can be added later
 
-  const handleLocationUpdate = async (lat: number, lng: number, accuracy: number) => {
+  const handleLocationUpdate = useCallback(async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
 
-    // Test mode: allow updates even outside the Yamanote Line boundary
     if (!isWithinYamanoteLine(lat, lng)) {
       console.warn('Outside Yamanote Line boundary (test mode: still updating location)');
     }
 
     await updateLocationThrottled(lat, lng, accuracy);
-  };
+  }, [user, gameId, updateLocationThrottled]);
 
   // Check for rescuable players (downed runners within rescue radius)
   useEffect(() => {
@@ -215,43 +217,40 @@ export default function PlayPage() {
     if (!capturableRunner || !user) return;
     setIsCapturing(true);
     try {
-      const { functions, db } = getFirebaseServices();
-      const callAttempt = httpsCallable(functions, 'attemptCapture');
-      const result: any = await callAttempt({ gameId, victimUid: capturableRunner.uid });
-      if (result?.data?.ok === true) {
-        setCapturableRunner(null);
-        return;
+      // 新設計: クライアントから直接、逃走者のプレイヤー状態を更新する
+      const currentDowns = capturableRunner.downs || 0;
+      const newDowns = currentDowns + 1;
+      const newState: 'downed' | 'eliminated' = newDowns >= MAX_DOWNS ? 'eliminated' : 'downed';
+
+      const now = Date.now();
+      const revealUntil = new Date(now + REVEAL_DURATION_SEC * 1000);
+      const cooldownUntil = new Date(now + RESCUE_COOLDOWN_SEC * 1000);
+
+      // victim 更新（直接 Firestore 書き込み）
+      await updatePlayer(gameId, capturableRunner.uid, {
+        downs: newDowns,
+        state: newState,
+        lastDownAt: new Date(),
+        lastRevealUntil: revealUntil,
+        cooldownUntil: cooldownUntil,
+      } as any);
+
+      // attacker の捕獲数もローカルで加算（任意）
+      if (currentPlayer) {
+        await updatePlayer(gameId, user.uid, {
+          stats: {
+            captures: (currentPlayer.stats?.captures || 0) + 1,
+            capturedTimes: currentPlayer.stats?.capturedTimes || 0
+          }
+        } as any);
       }
-      // Fallback to event-driven capture request if callable returns not-ok
-      try {
-        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
-        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
-          attackerUid: user.uid,
-          victimUid: capturableRunner.uid,
-          at: serverTimestamp()
-        });
-        setCapturableRunner(null);
-      } catch (fallbackErr) {
-        console.error('Fallback capture request failed:', fallbackErr);
-        alert('捕獲要求の送信に失敗しました');
-      }
+
+      // UI 反映
+      setCapturedTargetName(capturableRunner.nickname || '逃走者');
+      setShowCapturePopup(true);
+      setIsCapturing(false);
     } catch (e) {
-      console.error('Capture call failed:', e);
-      // Fallback path if callable throws
-      try {
-        const { db } = getFirebaseServices();
-        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
-        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
-          attackerUid: user.uid,
-          victimUid: capturableRunner.uid,
-          at: serverTimestamp()
-        });
-        setCapturableRunner(null);
-      } catch (fallbackErr) {
-        console.error('Fallback capture request failed:', fallbackErr);
-        alert('捕獲要求の送信に失敗しました');
-      }
-    } finally {
+      console.error('Capture trigger failed:', e);
       setIsCapturing(false);
     }
   };
@@ -481,9 +480,18 @@ export default function PlayPage() {
         <div className="bg-white border-t border-gray-200 p-2">
           <div className="flex justify-between items-center text-sm">
             <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${currentPlayer.role === 'oni' ? 'bg-red-500' : 'bg-green-500'}`}></div>
-              <span className="font-medium">{currentPlayer.nickname}</span>
-              <span className="text-gray-500">({currentPlayer.role === 'oni' ? '鬼' : '逃走者'})</span>
+              {(() => {
+                const myState = user?.uid ? (playersById[user.uid]?.state || currentPlayer.state) : currentPlayer.state;
+                const dotColor = currentPlayer.role === 'oni' ? 'bg-red-500' : (myState && myState !== 'active' ? 'bg-gray-400' : 'bg-green-500');
+                const roleLabel = currentPlayer.role === 'oni' ? '鬼' : (myState && myState !== 'active' ? '逃走者（捕獲済み）' : '逃走者');
+                return (
+                  <>
+                    <div className={`w-3 h-3 rounded-full ${dotColor}`}></div>
+                    <span className="font-medium">{currentPlayer.nickname}</span>
+                    <span className="text-gray-500">({roleLabel})</span>
+                  </>
+                );
+              })()}
             </div>
             
             <div className="text-gray-500">

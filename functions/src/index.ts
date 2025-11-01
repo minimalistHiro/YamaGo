@@ -71,52 +71,62 @@ async function recordEvent(gameId: string, type: string, actorUid?: string, targ
   }
 }
 
-// Helper: Handle capture logic
-async function capture(gameId: string, attackerUid: string, victimUid: string) {
+// Helper: Handle capture logic (transactional & idempotent)
+async function capture(gameId: string, attackerUid: string, victimUid: string): Promise<{ updated: boolean; newDowns?: number; newState?: string }>
+{
   const now = admin.firestore.Timestamp.now();
   const revealUntil = admin.firestore.Timestamp.fromMillis(now.toMillis() + REVEAL_DURATION_SEC * 1000);
   const cooldownUntil = admin.firestore.Timestamp.fromMillis(now.toMillis() + RESCUE_COOLDOWN_SEC * 1000);
 
-  // Get victim data
   const victimRef = db.collection('games').doc(gameId).collection('players').doc(victimUid);
-  const victimDoc = await victimRef.get();
-  
-  if (!victimDoc.exists) return;
-  
-  const victimData = victimDoc.data();
-  if (!victimData || victimData.state === 'eliminated') return;
-
-  // Increment downs
-  const newDowns = (victimData.downs || 0) + 1;
-  const newState = newDowns >= MAX_DOWNS ? 'eliminated' : 'downed';
-
-  // Update victim
-  await victimRef.update({
-    downs: newDowns,
-    state: newState,
-    lastDownAt: now,
-    lastRevealUntil: revealUntil,
-    cooldownUntil: cooldownUntil,
-    'stats.capturedTimes': admin.firestore.FieldValue.increment(1)
-  });
-
-  // Update attacker stats
   const attackerRef = db.collection('games').doc(gameId).collection('players').doc(attackerUid);
-  await attackerRef.update({
-    'stats.captures': admin.firestore.FieldValue.increment(1)
+
+  let result: { updated: boolean; newDowns?: number; newState?: string } = { updated: false };
+
+  await db.runTransaction(async (tx) => {
+    const vSnap = await tx.get(victimRef);
+    if (!vSnap.exists) {
+      result = { updated: false };
+      return;
+    }
+    const vData = vSnap.data() as any;
+    // Already captured/eliminated → idempotent success (no-op)
+    if (!vData || vData.state === 'downed' || vData.state === 'eliminated') {
+      result = { updated: false };
+      return;
+    }
+
+    const newDowns = (vData.downs || 0) + 1;
+    const newState = newDowns >= MAX_DOWNS ? 'eliminated' : 'downed';
+
+    tx.update(victimRef, {
+      downs: newDowns,
+      state: newState,
+      lastDownAt: now,
+      lastRevealUntil: revealUntil,
+      cooldownUntil: cooldownUntil,
+      'stats.capturedTimes': admin.firestore.FieldValue.increment(1)
+    });
+
+    tx.update(attackerRef, {
+      'stats.captures': admin.firestore.FieldValue.increment(1)
+    });
+
+    result = { updated: true, newDowns, newState };
   });
 
-  // Record event
-  await recordEvent(gameId, 'capture', attackerUid, victimUid, {
-    downs: newDowns,
-    state: newState
-  });
-
-  console.log(`Capture! ${attackerUid} captured ${victimUid} (downs: ${newDowns}/${MAX_DOWNS})`);
-
-  if (newState === 'eliminated') {
-    await recordEvent(gameId, 'elimination', attackerUid, victimUid);
+  if (result.updated) {
+    await recordEvent(gameId, 'capture', attackerUid, victimUid, {
+      downs: result.newDowns,
+      state: result.newState
+    });
+    console.log(`Capture! ${attackerUid} captured ${victimUid} (downs: ${result.newDowns}/${MAX_DOWNS})`);
+    if (result.newState === 'eliminated') {
+      await recordEvent(gameId, 'elimination', attackerUid, victimUid);
+    }
   }
+
+  return result;
 }
 
 // Callable: Rescue function
@@ -202,88 +212,7 @@ export const rescue = functions
   }
 });
 
-// Callable: Attempt capture (fallback/manual trigger from client)
-export const attemptCapture = functions
-  .region('us-central1')
-  .https.onCall(async (data, context) => {
-  if (!context?.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
-
-  const gameId = (data && (data as any).gameId) as string | undefined;
-  const victimUid = (data && (data as any).victimUid) as string | undefined;
-  const attackerUid = context.auth.uid;
-
-  if (!gameId || !victimUid) {
-    throw new functions.https.HttpsError('invalid-argument', 'gameId and victimUid are required');
-  }
-
-  // Load game and ensure running
-  const gameDoc = await db.collection('games').doc(gameId).get();
-  if (!gameDoc.exists) {
-    throw new functions.https.HttpsError('not-found', 'Game not found');
-  }
-  const gameData = gameDoc.data();
-  if (!gameData || gameData.status !== 'running') {
-    throw new functions.https.HttpsError('failed-precondition', 'Game is not running');
-  }
-  const captureRadiusM = typeof gameData.captureRadiusM === 'number' ? gameData.captureRadiusM : DEFAULT_CAPTURE_RADIUS_M;
-
-  // Players
-  const attackerRef = db.collection('games').doc(gameId).collection('players').doc(attackerUid);
-  const victimRef = db.collection('games').doc(gameId).collection('players').doc(victimUid);
-  const [attackerDoc, victimDoc] = await Promise.all([attackerRef.get(), victimRef.get()]);
-  if (!attackerDoc.exists || !victimDoc.exists) {
-    throw new functions.https.HttpsError('not-found', 'Players not found');
-  }
-  const attacker = attackerDoc.data();
-  const victim = victimDoc.data();
-  if (!attacker?.active || !victim?.active) {
-    throw new functions.https.HttpsError('failed-precondition', 'Inactive players cannot capture');
-  }
-  if (attacker.role !== 'oni' || victim.role !== 'runner') {
-    throw new functions.https.HttpsError('failed-precondition', 'Role mismatch for capture');
-  }
-  if (victim.state === 'downed' || victim.state === 'eliminated') {
-    return { ok: false, reason: 'victim-not-active' };
-  }
-
-  // Cooldown check
-  const now = admin.firestore.Timestamp.now();
-  const inCooldown = victim.cooldownUntil && victim.cooldownUntil.toMillis() > now.toMillis();
-  if (inCooldown) {
-    return { ok: false, reason: 'victim-in-cooldown' };
-  }
-
-  // Locations
-  const attackerLocDoc = await db.collection('games').doc(gameId).collection('locations').doc(attackerUid).get();
-  const victimLocDoc = await db.collection('games').doc(gameId).collection('locations').doc(victimUid).get();
-  if (!attackerLocDoc.exists || !victimLocDoc.exists) {
-    throw new functions.https.HttpsError('failed-precondition', 'Missing locations');
-  }
-  const attackerLoc = attackerLocDoc.data();
-  const victimLoc = victimLocDoc.data();
-  if (!attackerLoc || !victimLoc) {
-    throw new functions.https.HttpsError('failed-precondition', 'Invalid locations');
-  }
-
-  // Boundary check (respect test flag)
-  if (!IGNORE_BOUNDARY_FOR_TEST) {
-    if (!isWithinYamanoteLine(attackerLoc.lat, attackerLoc.lng) || !isWithinYamanoteLine(victimLoc.lat, victimLoc.lng)) {
-      return { ok: false, reason: 'outside-boundary' };
-    }
-  }
-
-  // Distance
-  const distance = haversine(attackerLoc.lat, attackerLoc.lng, victimLoc.lat, victimLoc.lng);
-  if (distance > captureRadiusM) {
-    return { ok: false, reason: 'too-far', distance, captureRadiusM };
-  }
-
-  // Perform capture
-  await capture(gameId, attackerUid, victimUid);
-  return { ok: true };
-});
+// attemptCapture: removed in Plan A (auto-capture via onLocationWrite only)
 
 // Event-driven alternative: capture request documents
 export const onCaptureRequest = functions

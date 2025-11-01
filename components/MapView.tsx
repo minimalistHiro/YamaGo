@@ -93,6 +93,17 @@ export default function MapView({
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
+  // derive current user's state from players list to avoid extra props and keep Firestore-driven
+  const currentState: 'active' | 'downed' | 'eliminated' | undefined =
+    (players || []).find(p => p.uid === currentUserId)?.state;
+
+  const getCurrentUserDisplayColor = (): string => {
+    if (currentUserRole === 'oni') return ROLE_COLORS.oni;
+    // runner
+    if (currentState && currentState !== 'active') return '#9ca3af'; // gray-400 when captured
+    return ROLE_COLORS.runner;
+  };
+
   // Create pin icon as canvas for map symbol layer (teardrop-style pin)
   const createPinCanvas = (
     role: 'oni' | 'runner',
@@ -196,9 +207,14 @@ export default function MapView({
         },
         properties: {}
       });
+      const color = getCurrentUserDisplayColor();
+      try {
+        map.current.setPaintProperty('current-radius-circle-fill', 'fill-color', color);
+        map.current.setPaintProperty('current-radius-circle-stroke', 'line-color', color);
+      } catch {}
     } else {
       // Add new source and layers
-      const color = currentUserRole ? getPinColor(currentUserRole) : '#22c55e';
+      const color = currentUserRole ? getCurrentUserDisplayColor() : '#22c55e';
       
       map.current.addSource('current-radius-circle', {
         type: 'geojson',
@@ -257,7 +273,7 @@ export default function MapView({
     const circlePolygon = createCirclePolygon(lat, lng, captureRadiusM, 64);
     
     // Add new source and layers
-    const color = currentUserRole === 'oni' ? '#dc2626' : '#22c55e';
+    const color = currentUserRole === 'oni' ? '#dc2626' : (currentState && currentState !== 'active' ? '#9ca3af' : '#22c55e');
     
     map.current.addSource('capture-radius-circle', {
       type: 'geojson',
@@ -797,13 +813,9 @@ export default function MapView({
     tryGetLocation();
   };
 
-  // Location tracking for game (avoid duplicate watchers on Capacitor)
+  // Location tracking for game
   useEffect(() => {
     if (!onLocationUpdate) return;
-
-    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor;
-    // If running under Capacitor, background provider handles tracking
-    if (isCapacitor) return;
 
     let watchId: number | null = null;
     let running = false;
@@ -1018,7 +1030,14 @@ export default function MapView({
     if (currentLocation && isMapLoaded) {
       updateCaptureRadiusCircle(currentLocation.lat, currentLocation.lng);
     }
-  }, [captureRadiusM, currentLocation, isMapLoaded, currentUserRole]);
+  }, [captureRadiusM, currentLocation, isMapLoaded, currentUserRole, players, currentUserId]);
+
+  // Update current radius circle color on state/role changes
+  useEffect(() => {
+    if (currentLocation && isMapLoaded) {
+      updateRadiusCircle(currentLocation.lat, currentLocation.lng);
+    }
+  }, [currentUserRole, players, currentUserId, isMapLoaded]);
 
   // Format elapsed time as MM:SS
   const formatElapsedTime = (seconds: number): string => {
@@ -1044,9 +1063,9 @@ export default function MapView({
       {gameStatus === 'running' && (
         <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 space-y-2" style={{ zIndex: 60 }}>
           <div className="flex items-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${currentUserRole === 'oni' ? 'bg-red-500' : 'bg-green-500'}`}></div>
+          <div className={`w-3 h-3 rounded-full ${currentUserRole === 'oni' ? 'bg-red-500' : (currentState && currentState !== 'active' ? 'bg-gray-400' : 'bg-green-500')}`}></div>
             <span className="text-sm font-medium">
-              {currentUserRole === 'oni' ? '鬼' : '逃走者'}
+              {currentUserRole === 'oni' ? '鬼' : (currentState && currentState !== 'active' ? '逃走者（捕獲済み）' : '逃走者')}
             </span>
           </div>
           {/* Elapsed time display - starts counting from when "ゲーム開始" button was pressed (startAt in database) */}
