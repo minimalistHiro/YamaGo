@@ -215,43 +215,29 @@ export default function PlayPage() {
     if (!capturableRunner || !user) return;
     setIsCapturing(true);
     try {
-      const { functions, db } = getFirebaseServices();
-      const callAttempt = httpsCallable(functions, 'attemptCapture');
-      const result: any = await callAttempt({ gameId, victimUid: capturableRunner.uid });
-      if (result?.data?.ok === true) {
-        setCapturableRunner(null);
-        return;
-      }
-      // Fallback to event-driven capture request if callable returns not-ok
-      try {
-        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
-        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
-          attackerUid: user.uid,
-          victimUid: capturableRunner.uid,
-          at: serverTimestamp()
+      // Plan A: 捕獲は onLocationWrite のサーバー判定に一本化。
+      // ボタン押下時は直近の現在地を取得して Firestore の locations を更新し、
+      // サーバー側の距離判定を直ちに走らせるトリガにするのみ。
+      if (typeof window !== 'undefined' && navigator.geolocation) {
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              const { latitude, longitude, accuracy } = pos.coords;
+              try {
+                await updateLocationThrottled(latitude, longitude, accuracy || 0);
+              } finally {
+                resolve();
+              }
+            },
+            () => resolve(),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+          );
         });
-        setCapturableRunner(null);
-      } catch (fallbackErr) {
-        console.error('Fallback capture request failed:', fallbackErr);
-        alert('捕獲要求の送信に失敗しました');
       }
+      // UI 的には少し待ってから自動捕獲イベントのポップアップを待つ
+      setTimeout(() => setIsCapturing(false), 600);
     } catch (e) {
-      console.error('Capture call failed:', e);
-      // Fallback path if callable throws
-      try {
-        const { db } = getFirebaseServices();
-        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
-        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
-          attackerUid: user.uid,
-          victimUid: capturableRunner.uid,
-          at: serverTimestamp()
-        });
-        setCapturableRunner(null);
-      } catch (fallbackErr) {
-        console.error('Fallback capture request failed:', fallbackErr);
-        alert('捕獲要求の送信に失敗しました');
-      }
-    } finally {
+      console.error('Capture trigger failed:', e);
       setIsCapturing(false);
     }
   };
