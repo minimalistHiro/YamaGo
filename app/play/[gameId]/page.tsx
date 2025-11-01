@@ -11,8 +11,10 @@ import {
   startGame,
   updateGame,
   subscribeToEvents,
-  updateLocation
+  updateLocation,
+  updatePlayer
 } from '@/lib/game';
+import { MAX_DOWNS, REVEAL_DURATION_SEC, RESCUE_COOLDOWN_SEC } from '@/lib/constants';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
 import HUD from '@/components/HUD';
@@ -215,31 +217,38 @@ export default function PlayPage() {
     if (!capturableRunner || !user) return;
     setIsCapturing(true);
     try {
-      // Plan A: 捕獲は onLocationWrite のサーバー判定に一本化。
-      // ボタン押下時は非スロットルで games/{gameId}/locations に現在地を書き込み、
-      // サーバー側の距離判定トリガのみ行う。
-      if (typeof window !== 'undefined' && navigator.geolocation) {
-        await new Promise<void>((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-              const { latitude, longitude, accuracy } = pos.coords;
-              try {
-                await updateLocation(gameId, user.uid, {
-                  lat: latitude,
-                  lng: longitude,
-                  accM: accuracy || 0
-                });
-              } finally {
-                resolve();
-              }
-            },
-            () => resolve(),
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-          );
-        });
+      // 新設計: クライアントから直接、逃走者のプレイヤー状態を更新する
+      const currentDowns = capturableRunner.downs || 0;
+      const newDowns = currentDowns + 1;
+      const newState: 'downed' | 'eliminated' = newDowns >= MAX_DOWNS ? 'eliminated' : 'downed';
+
+      const now = Date.now();
+      const revealUntil = new Date(now + REVEAL_DURATION_SEC * 1000);
+      const cooldownUntil = new Date(now + RESCUE_COOLDOWN_SEC * 1000);
+
+      // victim 更新（直接 Firestore 書き込み）
+      await updatePlayer(gameId, capturableRunner.uid, {
+        downs: newDowns,
+        state: newState,
+        lastDownAt: new Date(),
+        lastRevealUntil: revealUntil,
+        cooldownUntil: cooldownUntil,
+      } as any);
+
+      // attacker の捕獲数もローカルで加算（任意）
+      if (currentPlayer) {
+        await updatePlayer(gameId, user.uid, {
+          stats: {
+            captures: (currentPlayer.stats?.captures || 0) + 1,
+            capturedTimes: currentPlayer.stats?.capturedTimes || 0
+          }
+        } as any);
       }
-      // UI 的には少し待ってから自動捕獲イベントのポップアップを待つ
-      setTimeout(() => setIsCapturing(false), 600);
+
+      // UI 反映
+      setCapturedTargetName(capturableRunner.nickname || '逃走者');
+      setShowCapturePopup(true);
+      setIsCapturing(false);
     } catch (e) {
       console.error('Capture trigger failed:', e);
       setIsCapturing(false);
