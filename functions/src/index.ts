@@ -71,52 +71,62 @@ async function recordEvent(gameId: string, type: string, actorUid?: string, targ
   }
 }
 
-// Helper: Handle capture logic
-async function capture(gameId: string, attackerUid: string, victimUid: string) {
+// Helper: Handle capture logic (transactional & idempotent)
+async function capture(gameId: string, attackerUid: string, victimUid: string): Promise<{ updated: boolean; newDowns?: number; newState?: string }>
+{
   const now = admin.firestore.Timestamp.now();
   const revealUntil = admin.firestore.Timestamp.fromMillis(now.toMillis() + REVEAL_DURATION_SEC * 1000);
   const cooldownUntil = admin.firestore.Timestamp.fromMillis(now.toMillis() + RESCUE_COOLDOWN_SEC * 1000);
 
-  // Get victim data
   const victimRef = db.collection('games').doc(gameId).collection('players').doc(victimUid);
-  const victimDoc = await victimRef.get();
-  
-  if (!victimDoc.exists) return;
-  
-  const victimData = victimDoc.data();
-  if (!victimData || victimData.state === 'eliminated') return;
-
-  // Increment downs
-  const newDowns = (victimData.downs || 0) + 1;
-  const newState = newDowns >= MAX_DOWNS ? 'eliminated' : 'downed';
-
-  // Update victim
-  await victimRef.update({
-    downs: newDowns,
-    state: newState,
-    lastDownAt: now,
-    lastRevealUntil: revealUntil,
-    cooldownUntil: cooldownUntil,
-    'stats.capturedTimes': admin.firestore.FieldValue.increment(1)
-  });
-
-  // Update attacker stats
   const attackerRef = db.collection('games').doc(gameId).collection('players').doc(attackerUid);
-  await attackerRef.update({
-    'stats.captures': admin.firestore.FieldValue.increment(1)
+
+  let result: { updated: boolean; newDowns?: number; newState?: string } = { updated: false };
+
+  await db.runTransaction(async (tx) => {
+    const vSnap = await tx.get(victimRef);
+    if (!vSnap.exists) {
+      result = { updated: false };
+      return;
+    }
+    const vData = vSnap.data() as any;
+    // Already captured/eliminated → idempotent success (no-op)
+    if (!vData || vData.state === 'downed' || vData.state === 'eliminated') {
+      result = { updated: false };
+      return;
+    }
+
+    const newDowns = (vData.downs || 0) + 1;
+    const newState = newDowns >= MAX_DOWNS ? 'eliminated' : 'downed';
+
+    tx.update(victimRef, {
+      downs: newDowns,
+      state: newState,
+      lastDownAt: now,
+      lastRevealUntil: revealUntil,
+      cooldownUntil: cooldownUntil,
+      'stats.capturedTimes': admin.firestore.FieldValue.increment(1)
+    });
+
+    tx.update(attackerRef, {
+      'stats.captures': admin.firestore.FieldValue.increment(1)
+    });
+
+    result = { updated: true, newDowns, newState };
   });
 
-  // Record event
-  await recordEvent(gameId, 'capture', attackerUid, victimUid, {
-    downs: newDowns,
-    state: newState
-  });
-
-  console.log(`Capture! ${attackerUid} captured ${victimUid} (downs: ${newDowns}/${MAX_DOWNS})`);
-
-  if (newState === 'eliminated') {
-    await recordEvent(gameId, 'elimination', attackerUid, victimUid);
+  if (result.updated) {
+    await recordEvent(gameId, 'capture', attackerUid, victimUid, {
+      downs: result.newDowns,
+      state: result.newState
+    });
+    console.log(`Capture! ${attackerUid} captured ${victimUid} (downs: ${result.newDowns}/${MAX_DOWNS})`);
+    if (result.newState === 'eliminated') {
+      await recordEvent(gameId, 'elimination', attackerUid, victimUid);
+    }
   }
+
+  return result;
 }
 
 // Callable: Rescue function
@@ -244,15 +254,17 @@ export const attemptCapture = functions
   if (attacker.role !== 'oni' || victim.role !== 'runner') {
     throw new functions.https.HttpsError('failed-precondition', 'Role mismatch for capture');
   }
+  // If victim already captured/eliminated, treat as success (idempotent)
   if (victim.state === 'downed' || victim.state === 'eliminated') {
-    return { ok: false, reason: 'victim-not-active' };
+    return { ok: true, reason: 'already-captured' };
   }
 
   // Cooldown check
   const now = admin.firestore.Timestamp.now();
   const inCooldown = victim.cooldownUntil && victim.cooldownUntil.toMillis() > now.toMillis();
   if (inCooldown) {
-    return { ok: false, reason: 'victim-in-cooldown' };
+    // Already captured shortly before – treat as success to be idempotent for the caller
+    return { ok: true, reason: 'already-captured' };
   }
 
   // Locations
@@ -280,9 +292,9 @@ export const attemptCapture = functions
     return { ok: false, reason: 'too-far', distance, captureRadiusM };
   }
 
-  // Perform capture
-  await capture(gameId, attackerUid, victimUid);
-  return { ok: true };
+  // Perform capture (transactional)
+  const res = await capture(gameId, attackerUid, victimUid);
+  return { ok: true, updated: !!res.updated };
 });
 
 // Event-driven alternative: capture request documents
