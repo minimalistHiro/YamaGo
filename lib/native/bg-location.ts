@@ -1,8 +1,8 @@
-import { Geolocation } from '@capacitor/geolocation';
 import { updateLocation } from '../game';
 
 export async function initBackgroundLocation(userId: string, role: 'oni'|'runner', gameId: string) {
   try {
+    const { Geolocation } = await import('@capacitor/geolocation');
     // Request permissions
     const permissions = await Geolocation.requestPermissions();
     if (permissions.location !== 'granted') {
@@ -45,6 +45,7 @@ export async function initBackgroundLocation(userId: string, role: 'oni'|'runner
 
 export async function stopBackgroundLocation(watchId?: string) {
   if (watchId) {
+    const { Geolocation } = await import('@capacitor/geolocation');
     await Geolocation.clearWatch({ id: watchId });
     console.log('[BG] Background location stopped');
   }
@@ -52,6 +53,7 @@ export async function stopBackgroundLocation(watchId?: string) {
 
 export async function getCurrentLocation() {
   try {
+    const { Geolocation } = await import('@capacitor/geolocation');
     const position = await Geolocation.getCurrentPosition({
       enableHighAccuracy: true,
       timeout: 30000,
