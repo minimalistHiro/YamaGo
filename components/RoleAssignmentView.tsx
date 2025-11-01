@@ -181,16 +181,18 @@ export default function RoleAssignmentView({ gameId, onBack, currentUserId }: Ro
                       <p className="text-xs text-red-600">タップで逃走者に変更</p>
                     </div>
 
-                    <button
-                      className="ml-2 p-2 rounded hover:bg-red-200 text-red-600"
-                      title="プレイヤーを削除"
-                      onClick={(e) => { e.stopPropagation(); handleDeletePlayer(player.uid); }}
-                      disabled={deletingUid === player.uid}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a2 2 0 012-2h4a2 2 0 012 2m-8 0h8" />
-                      </svg>
-                    </button>
+                    {currentUserId !== player.uid && (
+                      <button
+                        className="ml-2 p-2 rounded hover:bg-red-200 text-red-600"
+                        title="プレイヤーを削除"
+                        onClick={(e) => { e.stopPropagation(); handleDeletePlayer(player.uid); }}
+                        disabled={deletingUid === player.uid}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a2 2 0 012-2h4a2 2 0 012 2m-8 0h8" />
+                        </svg>
+                      </button>
+                    )}
                     
                     <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -256,16 +258,18 @@ export default function RoleAssignmentView({ gameId, onBack, currentUserId }: Ro
                       <p className="text-xs text-green-600">タップで鬼に変更</p>
                     </div>
 
-                    <button
-                      className="ml-2 p-2 rounded hover:bg-green-200 text-green-700"
-                      title="プレイヤーを削除"
-                      onClick={(e) => { e.stopPropagation(); handleDeletePlayer(player.uid); }}
-                      disabled={deletingUid === player.uid}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a2 2 0 012-2h4a2 2 0 012 2m-8 0h8" />
-                      </svg>
-                    </button>
+                    {currentUserId !== player.uid && (
+                      <button
+                        className="ml-2 p-2 rounded hover:bg-green-200 text-green-700"
+                        title="プレイヤーを削除"
+                        onClick={(e) => { e.stopPropagation(); handleDeletePlayer(player.uid); }}
+                        disabled={deletingUid === player.uid}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a2 2 0 012-2h4a2 2 0 012 2m-8 0h8" />
+                        </svg>
+                      </button>
+                    )}
                     
                     <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
