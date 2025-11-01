@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
@@ -134,16 +134,15 @@ export default function PlayPage() {
 
   // Alerts are handled centrally in the store; UI surfacing can be added later
 
-  const handleLocationUpdate = async (lat: number, lng: number, accuracy: number) => {
+  const handleLocationUpdate = useCallback(async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
 
-    // Test mode: allow updates even outside the Yamanote Line boundary
     if (!isWithinYamanoteLine(lat, lng)) {
       console.warn('Outside Yamanote Line boundary (test mode: still updating location)');
     }
 
     await updateLocationThrottled(lat, lng, accuracy);
-  };
+  }, [user, gameId, updateLocationThrottled]);
 
   // Check for rescuable players (downed runners within rescue radius)
   useEffect(() => {
@@ -233,6 +232,18 @@ export default function PlayPage() {
             { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
           );
         });
+      }
+      // 追加: サーバー側の onCaptureRequest トリガを併用して確実に判定を走らせる
+      try {
+        const { db } = getFirebaseServices();
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
+          attackerUid: user.uid,
+          victimUid: capturableRunner.uid,
+          at: serverTimestamp()
+        });
+      } catch (e) {
+        // noop; onLocationWrite が機能するため致命ではない
       }
       // UI 的には少し待ってから自動捕獲イベントのポップアップを待つ
       setTimeout(() => setIsCapturing(false), 600);
