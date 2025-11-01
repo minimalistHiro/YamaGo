@@ -8,7 +8,7 @@ import { haversine } from '@/lib/geo';
 import { 
   RESCUE_RADIUS_M 
 } from '@/lib/constants';
-import { setGamePins } from '@/lib/game';
+import { setGamePins, type PinPoint, updatePinCleared } from '@/lib/game';
 
 interface MapViewProps {
   onLocationUpdate?: (lat: number, lng: number, accuracy: number) => void;
@@ -22,7 +22,7 @@ interface MapViewProps {
     state?: 'active' | 'downed' | 'eliminated';
     lastRevealUntil?: Date | null;
   }>;
-  pins?: Array<{ lat: number; lng: number; type?: 'yellow' }>; // yellow pins
+  pins?: PinPoint[]; // yellow pins from database
   currentUserRole?: 'oni' | 'runner';
   currentUserId?: string;
   gameStatus?: 'pending' | 'countdown' | 'running' | 'ended';
@@ -91,6 +91,8 @@ export default function MapView({
   const [isCountdownActive, setIsCountdownActive] = useState(false);
   const [localCountdownStartAt, setLocalCountdownStartAt] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [nearbyPin, setNearbyPin] = useState<PinPoint | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
   // derive current user's state from players list to avoid extra props and keep Firestore-driven
@@ -377,7 +379,7 @@ export default function MapView({
       features: pins.map((p) => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-        properties: {},
+        properties: { id: p.id, cleared: !!p.cleared },
       })),
     } as const;
 
@@ -386,6 +388,45 @@ export default function MapView({
       (src as any).setData(featureCollection as any);
     }
   }, [pins, isMapLoaded]);
+
+  // Detect nearby uncleared pin for runner within capture radius
+  useEffect(() => {
+    if (!currentLocation || !pins || pins.length === 0) {
+      setNearbyPin(null);
+      return;
+    }
+    if (currentUserRole !== 'runner') {
+      setNearbyPin(null);
+      return;
+    }
+    if (typeof captureRadiusM !== 'number') {
+      setNearbyPin(null);
+      return;
+    }
+
+    let found: PinPoint | null = null;
+    for (const p of pins) {
+      if (p.cleared) continue;
+      const d = haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng);
+      if (d <= captureRadiusM) {
+        found = p;
+        break;
+      }
+    }
+    setNearbyPin(found);
+  }, [currentLocation, pins, currentUserRole, captureRadiusM]);
+
+  const handleClearNearbyPin = async () => {
+    if (!gameId || !nearbyPin) return;
+    setIsClearing(true);
+    try {
+      await updatePinCleared(gameId, nearbyPin.id, true);
+    } catch (e) {
+      console.error('Failed to clear pin:', e);
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -1115,6 +1156,18 @@ export default function MapView({
       )}
 
       {/* Gray overlay for oni during countdown */}
+      {/* Clear Pin Button for Runner when within capture radius */}
+      {gameStatus !== 'ended' && currentUserRole === 'runner' && nearbyPin && (
+        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
+          <button
+            onClick={handleClearNearbyPin}
+            disabled={isClearing}
+            className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isClearing ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {isClearing ? '解除中…' : '解除する'}
+          </button>
+        </div>
+      )}
       {isCountdownActive && currentUserRole === 'oni' && gameStatus !== 'ended' && (
         <div className="absolute inset-0 bg-gray-500 bg-opacity-50 z-40 pointer-events-none" />
       )}

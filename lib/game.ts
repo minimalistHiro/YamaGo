@@ -205,6 +205,17 @@ export async function addPins(
   await Promise.all(writes);
 }
 
+export async function updatePinCleared(
+  gameId: string,
+  pinId: string,
+  cleared: boolean = true
+): Promise<void> {
+  const db = getDb();
+  await updateDoc(doc(db, 'games', gameId, 'pins', pinId), {
+    cleared
+  });
+}
+
 export async function setGamePins(
   gameId: string,
   pins: Array<{ lat: number; lng: number; type?: 'yellow'; cleared?: boolean }>

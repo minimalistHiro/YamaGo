@@ -374,7 +374,7 @@ export default function PlayPage() {
             <MapView
             onLocationUpdate={handleLocationUpdate}
             players={mapPlayers}
-              pins={pins.map(p => ({ lat: p.lat, lng: p.lng }))}
+            pins={pins}
             currentUserRole={currentPlayer.role}
             currentUserId={user?.uid}
             gameStatus={game.status}
