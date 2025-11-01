@@ -40,6 +40,7 @@ export default function PlayPage() {
   const [capturableRunner, setCapturableRunner] = useState<Player | null>(null);
   const [showCapturePopup, setShowCapturePopup] = useState(false);
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
+  const [isCapturing, setIsCapturing] = useState(false);
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
@@ -202,7 +203,9 @@ export default function PlayPage() {
       const other = locations[p.uid];
       if (!other) return false;
       const d = haversine(currentLocation.lat, currentLocation.lng, other.lat, other.lng);
-      return d <= (game.captureRadiusM || 100);
+      // Strictly use DB-configured radius; if undefined, treat as not capturable
+      if (typeof game.captureRadiusM !== 'number') return false;
+      return d <= game.captureRadiusM;
     }) || null;
 
     setCapturableRunner(target);
@@ -210,16 +213,46 @@ export default function PlayPage() {
 
   const handleCapture = async () => {
     if (!capturableRunner || !user) return;
+    setIsCapturing(true);
     try {
-      const { db } = getFirebaseServices();
-      const ref = await (await import('firebase/firestore')).addDoc(
-        (await import('firebase/firestore')).collection(db, 'games', gameId, 'captureRequests'),
-        { attackerUid: user.uid, victimUid: capturableRunner.uid, at: (await import('firebase/firestore')).serverTimestamp() }
-      );
-      setCapturableRunner(null);
-      console.log('Capture request queued:', ref.id);
+      const { functions, db } = getFirebaseServices();
+      const callAttempt = httpsCallable(functions, 'attemptCapture');
+      const result: any = await callAttempt({ gameId, victimUid: capturableRunner.uid });
+      if (result?.data?.ok === true) {
+        setCapturableRunner(null);
+        return;
+      }
+      // Fallback to event-driven capture request if callable returns not-ok
+      try {
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
+          attackerUid: user.uid,
+          victimUid: capturableRunner.uid,
+          at: serverTimestamp()
+        });
+        setCapturableRunner(null);
+      } catch (fallbackErr) {
+        console.error('Fallback capture request failed:', fallbackErr);
+        alert('捕獲要求の送信に失敗しました');
+      }
     } catch (e) {
-      console.error('Capture request failed:', e);
+      console.error('Capture call failed:', e);
+      // Fallback path if callable throws
+      try {
+        const { db } = getFirebaseServices();
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        await addDoc(collection(db, 'games', gameId, 'captureRequests'), {
+          attackerUid: user.uid,
+          victimUid: capturableRunner.uid,
+          at: serverTimestamp()
+        });
+        setCapturableRunner(null);
+      } catch (fallbackErr) {
+        console.error('Fallback capture request failed:', fallbackErr);
+        alert('捕獲要求の送信に失敗しました');
+      }
+    } finally {
+      setIsCapturing(false);
     }
   };
 
@@ -408,9 +441,10 @@ export default function PlayPage() {
             <div className="absolute bottom-48 left-1/2 transform -translate-x-1/2 z-50">
               <button
                 onClick={handleCapture}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
+                disabled={isCapturing}
+                className={`bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isCapturing ? 'opacity-70 cursor-not-allowed' : 'animate-pulse'}`}
               >
-                👹 捕獲する
+                {isCapturing ? '👹 捕獲中…' : '👹 捕獲する'}
               </button>
             </div>
           )}

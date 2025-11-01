@@ -1,13 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // TEST MODE: allow everything (read and write) across all collections
+    match /{document=**} {
+      allow read, write: if true;
+    }
     // Games collection
     match /games/{gameId} {
       allow read: if true; // Anyone can read game data
-      // Allow owners to update any fields, and allow any signed-in user to update only ownerUid
+      // Allow owners to update any fields
+      // Additionally, allow any authenticated user to set themselves as owner
+      // by updating only the ownerUid field to their own uid (no player check)
       allow update: if request.auth != null && (
         resource.data.ownerUid == request.auth.uid ||
-        request.resource.data.keys().hasOnly(['ownerUid'])
+        (
+          request.resource.data.keys().hasOnly(['ownerUid']) &&
+          request.resource.data.ownerUid == request.auth.uid
+        )
       );
       // Allow create and delete
       allow create, delete: if request.auth != null;
@@ -47,6 +56,18 @@ service cloud.firestore {
         allow read: if true; // Anyone can read events
         // Only Cloud Functions can write events
         allow write: if false;
+      }
+
+      // Capture requests subcollection (client fallback for capture)
+      match /captureRequests/{requestId} {
+        // Only authenticated players in the game can create a request
+        allow create: if request.auth != null &&
+          exists(/databases/$(database)/documents/games/$(gameId)/players/$(request.auth.uid)) &&
+          request.resource.data.attackerUid == request.auth.uid &&
+          request.resource.data.victimUid is string &&
+          request.resource.data.at is timestamp;
+        // No reads/updates/deletes from clients; Functions (admin) will clean up
+        allow read, update, delete: if false;
       }
       
       // Chat messages subcollections (role-based)

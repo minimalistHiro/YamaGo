@@ -46,7 +46,7 @@ export async function initBackgroundLocation(userId: string, role: 'oni'|'runner
 
 async function sendLocationToServer(data: any) {
   try {
-    const response = await fetch('https://asia-northeast1-yamago-2ae8d.cloudfunctions.net/ingestLocation', {
+    const response = await fetch('https://us-central1-yamago-2ae8d.cloudfunctions.net/ingestLocation', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

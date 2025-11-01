@@ -1,4 +1,5 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { getAuth, connectAuthEmulator, Auth } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, Firestore } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator, Functions } from 'firebase/functions';
@@ -72,7 +73,7 @@ if (typeof window !== 'undefined' && isConfigValid) {
     // Initialize Firebase services
     auth = getAuth(app);
     db = getFirestore(app);
-    functions = getFunctions(app, 'asia-northeast1');
+    functions = getFunctions(app, 'us-central1');
     storage = getStorage(app);
 
     // Initialize Analytics only if measurementId is available
@@ -81,6 +82,19 @@ if (typeof window !== 'undefined' && isConfigValid) {
     }
 
     console.log('Firebase services initialized successfully');
+
+    // Initialize App Check if a site key is provided
+    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+      try {
+        initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
+          isTokenAutoRefreshEnabled: true,
+        });
+        console.log('Firebase App Check initialized');
+      } catch (error) {
+        console.log('Firebase App Check init:', (error as Error).message || 'skipped');
+      }
+    }
 
     // Connect to emulators only if explicitly enabled
     if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULATORS === 'true') {
