@@ -203,8 +203,9 @@ export default function PlayPage() {
       const other = locations[p.uid];
       if (!other) return false;
       const d = haversine(currentLocation.lat, currentLocation.lng, other.lat, other.lng);
-      // Align UI threshold with server default (50m) when not configured
-      return d <= (typeof game.captureRadiusM === 'number' ? game.captureRadiusM : 50);
+      // Strictly use DB-configured radius; if undefined, treat as not capturable
+      if (typeof game.captureRadiusM !== 'number') return false;
+      return d <= game.captureRadiusM;
     }) || null;
 
     setCapturableRunner(target);
