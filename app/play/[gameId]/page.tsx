@@ -259,11 +259,9 @@ export default function PlayPage() {
     if (!game || !user) return;
     
     try {
-      // Start countdown and update game status to 'running' simultaneously
-      // Keep countdown information so it continues to display
+      // Start countdown; database status becomes 'countdown'
       await startGameCountdown(gameId, game.countdownDurationSec ?? 900); // use DB-configured countdown
-      await startGame(gameId, true); // Update database to mark game as started, but keep countdown
-      console.log('Game started and countdown initiated');
+      console.log('Countdown initiated');
     } catch (error) {
       console.error('Failed to start game:', error);
       alert('ゲーム開始に失敗しました');
@@ -284,14 +282,12 @@ export default function PlayPage() {
 
   const handleCountdownEnd = async () => {
     // Countdown has ended, clear countdown information from database
-    // Game status is already 'running', just clean up countdown data
     if (!game) return;
     
     try {
-      await updateGame(gameId, {
-        countdownStartAt: null
-      });
-      console.log('Countdown ended, countdownStartAt cleared (duration retained)');
+      // Move to running state and set startAt; countdown will be cleared
+      await startGame(gameId);
+      console.log('Countdown ended, game started');
     } catch (error) {
       console.error('Failed to clear countdown data:', error);
     }

@@ -21,7 +21,7 @@ import { getFirebaseServices } from './firebase/client';
 // Types
 export interface Game {
   id: string;
-  status: 'pending' | 'running' | 'ended';
+  status: 'pending' | 'countdown' | 'running' | 'ended';
   startAt: Timestamp | null;
   captureRadiusM: number;
   runnerSeeKillerRadiusM?: number;
@@ -233,7 +233,7 @@ export async function startGameCountdown(gameId: string, countdownDurationSec: n
   await updateDoc(doc(db, 'games', gameId), {
     countdownStartAt,
     countdownDurationSec,
-    status: 'pending' // Keep as pending until countdown ends
+    status: 'countdown' // Mark countdown status until countdown ends
   });
 }
 

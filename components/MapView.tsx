@@ -25,7 +25,7 @@ interface MapViewProps {
   pins?: Array<{ lat: number; lng: number; type?: 'yellow' }>; // yellow pins
   currentUserRole?: 'oni' | 'runner';
   currentUserId?: string;
-  gameStatus?: 'pending' | 'running' | 'ended';
+  gameStatus?: 'pending' | 'countdown' | 'running' | 'ended';
   isOwner?: boolean;
   countdownStartAt?: Date | null;
   countdownDurationSec?: number | null;
