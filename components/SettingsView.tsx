@@ -274,7 +274,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{gameId}</span>
                 <button
                   onClick={handleCopyGameId}
-                  className={`p-1 rounded transition-colors ${
+                  className={`p-1 rounded-full transition-colors ${
                     copied 
                       ? 'bg-green-100 text-green-600' 
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
@@ -299,7 +299,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{currentUser.uid}</span>
                 <button
                   onClick={handleCopyUid}
-                  className={`p-1 rounded transition-colors ${
+                  className={`p-1 rounded-full transition-colors ${
                     uidCopied 
                       ? 'bg-green-100 text-green-600' 
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
@@ -390,7 +390,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 <button
                   onClick={handleEndGame}
                   disabled={isLoading}
-                  className="w-full bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="w-full bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
                 >
                   {isLoading ? '処理中...' : 'ゲームを終了'}
                 </button>
@@ -407,7 +407,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
               <button
                 onClick={handleRequestBecomeOwner}
                 disabled={isLoading}
-                className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-full transition-colors"
               >
                 {isLoading ? '処理中...' : '自分をオーナーにする'}
               </button>
@@ -416,7 +416,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
           <button
             onClick={handleExitGame}
             disabled={isLoading}
-            className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
           >
             {isLoading ? '処理中...' : 'ゲームから退出'}
           </button>
@@ -464,14 +464,14 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 <button
                   onClick={cancelBecomeOwner}
                   disabled={isLoading}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-full transition-colors"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={confirmBecomeOwner}
                   disabled={isLoading}
-                  className="flex-1 bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
                 >
                   {isLoading ? '処理中...' : 'オーナーになる'}
                 </button>
@@ -506,14 +506,14 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
                 <button
                   onClick={cancelExitGame}
                   disabled={isLoading}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-full transition-colors"
                 >
                   キャンセル
                 </button>
                 <button
                   onClick={confirmExitGame}
                   disabled={isLoading}
-                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
                 >
                   {isLoading ? '処理中...' : '退出する'}
                 </button>
