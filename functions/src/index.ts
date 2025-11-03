@@ -656,8 +656,8 @@ export const endGameWhenAllRunnersCaptured = functions.firestore
       const runners = players.filter((p) => p && p.role === 'runner' && p.active !== false);
       if (runners.length === 0) return; // no runners -> don't end automatically
 
-      const activeRunners = runners.filter((p) => !p.state || p.state === 'active');
-      if (activeRunners.length === 0) {
+      const capturedRunners = runners.filter((p) => p.state && p.state !== 'active');
+      if (capturedRunners.length === runners.length) {
         // All runners are captured
         await gameRef.update({ status: 'ended' });
         await recordEvent(gameId, 'game-end', undefined, undefined, { winner: 'oni' });
