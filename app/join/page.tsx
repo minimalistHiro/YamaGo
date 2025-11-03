@@ -56,19 +56,28 @@ export default function JoinPage() {
     }
   };
 
-  const fileToBase64 = async (file: File): Promise<string> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    const chunkSize = 0x8000;
-    let binary = '';
-
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, i + chunkSize);
-      binary += String.fromCharCode(...chunk);
-    }
-
-    return btoa(binary);
-  };
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const result = reader.result;
+          if (typeof result !== 'string') {
+            reject(new Error('画像データを読み込めませんでした'));
+            return;
+          }
+          const commaIndex = result.indexOf(',');
+          const base64 = commaIndex >= 0 ? result.slice(commaIndex + 1) : result;
+          resolve(base64);
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error('画像データの変換に失敗しました'));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error('画像データの読み込みに失敗しました'));
+      };
+      reader.readAsDataURL(file);
+    });
 
   const uploadAvatarViaCallable = async (file: File): Promise<string> => {
     try {
