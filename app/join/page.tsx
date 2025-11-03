@@ -4,9 +4,8 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInAnonymously, User } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { signInAnonymously } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { joinGame, createGame } from '@/lib/game';
 
@@ -57,28 +56,43 @@ export default function JoinPage() {
     }
   };
 
-  const uploadImageToStorage = async (file: File, uid: string): Promise<string> => {
+  const fileToBase64 = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    const chunkSize = 0x8000;
+    let binary = '';
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+
+    return btoa(binary);
+  };
+
+  const uploadAvatarViaCallable = async (file: File): Promise<string> => {
     try {
-      console.log('Starting image upload...', { fileName: file.name, size: file.size });
-      
-      // Get Firebase services (client-side only)
-      const { storage } = getFirebaseServices();
-      
-      const timestamp = Date.now();
-      const fileExtension = file.name.split('.').pop() || 'jpg';
-      const fileName = `avatars/${uid}_${timestamp}.${fileExtension}`;
-      const storageRef = ref(storage, fileName);
-      
-      console.log('Uploading to storage path:', fileName);
-      await uploadBytes(storageRef, file);
-      console.log('Upload completed, getting download URL...');
-      
-      const downloadURL = await getDownloadURL(storageRef);
-      console.log('Download URL obtained:', downloadURL);
-      
-      return downloadURL;
+      const { functions } = getFirebaseServices();
+      const callable = httpsCallable<
+        { file: string; contentType: string; fileName: string },
+        { downloadUrl?: string }
+      >(functions, 'uploadAvatar');
+
+      const base64Payload = await fileToBase64(file);
+      const response = await callable({
+        file: base64Payload,
+        contentType: file.type || 'application/octet-stream',
+        fileName: file.name || `avatar-${Date.now()}`,
+      });
+
+      const downloadUrl = (response.data as { downloadUrl?: string } | undefined)?.downloadUrl;
+      if (!downloadUrl || typeof downloadUrl !== 'string') {
+        throw new Error('アップロードのレスポンスが不正です');
+      }
+
+      return downloadUrl;
     } catch (error) {
-      console.error('Image upload error:', error);
+      console.error('Avatar upload error:', error);
       throw new Error(`画像のアップロードに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -95,7 +109,7 @@ export default function JoinPage() {
 
     try {
       // Get Firebase services (client-side only)
-      const { auth, db } = getFirebaseServices();
+      const { auth } = getFirebaseServices();
       
       // Anonymous authentication
       const userCredential = await signInAnonymously(auth);
@@ -104,7 +118,7 @@ export default function JoinPage() {
       // Upload avatar image if selected
       let avatarUrl = '';
       if (selectedImage) {
-        avatarUrl = await uploadImageToStorage(selectedImage, uid);
+        avatarUrl = await uploadAvatarViaCallable(selectedImage);
       }
 
       // Do not update ownerUid here; rely on server-side logic and joinGame
@@ -158,7 +172,7 @@ export default function JoinPage() {
       let avatarUrl = '';
       if (selectedImage) {
         console.log('Uploading avatar image...');
-        avatarUrl = await uploadImageToStorage(selectedImage, uid);
+        avatarUrl = await uploadAvatarViaCallable(selectedImage);
         console.log('Avatar uploaded:', avatarUrl);
       }
 

@@ -33,11 +33,59 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.endGameWhenAllRunnersCaptured = exports.getGameStats = exports.becomeOwner = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.onCaptureRequest = exports.rescue = void 0;
+exports.endGameWhenAllRunnersCaptured = exports.getGameStats = exports.becomeOwner = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.onCaptureRequest = exports.rescue = exports.uploadAvatar = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
+const crypto_1 = require("crypto");
 admin.initializeApp();
 const db = admin.firestore();
+exports.uploadAvatar = functions
+    .region('us-central1')
+    .https.onCall(async (data, context) => {
+    var _a;
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to upload an avatar.');
+    }
+    const { file: base64Payload, contentType, fileName } = data || {};
+    if (typeof base64Payload !== 'string' || base64Payload.length === 0) {
+        throw new functions.https.HttpsError('invalid-argument', 'Avatar payload is missing.');
+    }
+    if (typeof contentType !== 'string' || !contentType.startsWith('image/')) {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid avatar content type.');
+    }
+    const buffer = Buffer.from(base64Payload, 'base64');
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    if (buffer.length > MAX_SIZE_BYTES) {
+        throw new functions.https.HttpsError('invalid-argument', 'Avatar size must be 5MB or less.');
+    }
+    const bucket = admin.storage().bucket();
+    const extensionFromName = typeof fileName === 'string' && fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
+    const extensionFromType = (_a = contentType.split('/').pop()) === null || _a === void 0 ? void 0 : _a.toLowerCase();
+    const extension = (extensionFromName || extensionFromType || 'png').replace(/[^a-z0-9]/g, '');
+    const destinationPath = `avatars/${context.auth.uid}_${Date.now()}.${extension}`;
+    const downloadToken = (0, crypto_1.randomUUID)();
+    try {
+        await bucket.file(destinationPath).save(buffer, {
+            resumable: false,
+            metadata: {
+                contentType,
+                metadata: {
+                    firebaseStorageDownloadTokens: downloadToken,
+                    uploadedBy: context.auth.uid,
+                },
+            },
+        });
+        const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(destinationPath)}?alt=media&token=${downloadToken}`;
+        return {
+            downloadUrl,
+            path: destinationPath,
+        };
+    }
+    catch (error) {
+        console.error('Failed to upload avatar to storage:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to upload avatar.');
+    }
+});
 // DbD Mode Constants
 const DEFAULT_CAPTURE_RADIUS_M = 50;
 const RUNNER_SEE_KILLER_RADIUS_M = 200;

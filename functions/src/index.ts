@@ -1,9 +1,68 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { randomUUID } from 'crypto';
 
 admin.initializeApp();
 
 const db = admin.firestore();
+
+export const uploadAvatar = functions
+  .region('us-central1')
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to upload an avatar.');
+    }
+
+    const { file: base64Payload, contentType, fileName } = data || {};
+
+    if (typeof base64Payload !== 'string' || base64Payload.length === 0) {
+      throw new functions.https.HttpsError('invalid-argument', 'Avatar payload is missing.');
+    }
+
+    if (typeof contentType !== 'string' || !contentType.startsWith('image/')) {
+      throw new functions.https.HttpsError('invalid-argument', 'Invalid avatar content type.');
+    }
+
+    const buffer = Buffer.from(base64Payload, 'base64');
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    if (buffer.length > MAX_SIZE_BYTES) {
+      throw new functions.https.HttpsError('invalid-argument', 'Avatar size must be 5MB or less.');
+    }
+
+    const bucket = admin.storage().bucket();
+    const extensionFromName =
+      typeof fileName === 'string' && fileName.includes('.') ? fileName.split('.').pop()!.toLowerCase() : '';
+    const extensionFromType = contentType.split('/').pop()?.toLowerCase();
+    const extension = (extensionFromName || extensionFromType || 'png').replace(/[^a-z0-9]/g, '');
+
+    const destinationPath = `avatars/${context.auth.uid}_${Date.now()}.${extension}`;
+    const downloadToken = randomUUID();
+
+    try {
+      await bucket.file(destinationPath).save(buffer, {
+        resumable: false,
+        metadata: {
+          contentType,
+          metadata: {
+            firebaseStorageDownloadTokens: downloadToken,
+            uploadedBy: context.auth.uid,
+          },
+        },
+      });
+
+      const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(
+        destinationPath,
+      )}?alt=media&token=${downloadToken}`;
+
+      return {
+        downloadUrl,
+        path: destinationPath,
+      };
+    } catch (error) {
+      console.error('Failed to upload avatar to storage:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to upload avatar.');
+    }
+  });
 
 // DbD Mode Constants
 const DEFAULT_CAPTURE_RADIUS_M = 50;
