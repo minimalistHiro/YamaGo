@@ -45,6 +45,7 @@ export default function PlayPage() {
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [showGameEndPopup, setShowGameEndPopup] = useState(false);
+  const allPinsCleared = pins.length > 0 && pins.every(p => p.cleared);
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
@@ -449,7 +450,9 @@ export default function PlayPage() {
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[100]">
               <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full mx-4 text-center">
                 <h3 className="text-xl font-bold mb-2">ゲームが終了しました</h3>
-                <p className="text-red-600 font-semibold mb-4">鬼の勝利！</p>
+                <p className="font-semibold mb-4 {allPinsCleared ? 'text-green-600' : 'text-red-600'}">
+                  {allPinsCleared ? '逃走者の勝利！' : '鬼の勝利！'}
+                </p>
                 <div className="flex gap-2 justify-center">
                   <button
                     className="bg-gray-800 hover:bg-black text-white font-medium py-2 px-4 rounded"

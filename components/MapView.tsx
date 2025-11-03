@@ -8,7 +8,7 @@ import { haversine } from '@/lib/geo';
 import { 
   RESCUE_RADIUS_M 
 } from '@/lib/constants';
-import { setGamePins, type PinPoint, updatePinCleared } from '@/lib/game';
+import { setGamePins, type PinPoint, updatePinCleared, updateGame } from '@/lib/game';
 
 interface MapViewProps {
   onLocationUpdate?: (lat: number, lng: number, accuracy: number) => void;
@@ -421,6 +421,15 @@ export default function MapView({
     setIsClearing(true);
     try {
       await updatePinCleared(gameId, nearbyPin.id, true);
+      // If all pins are cleared, end the game (runners win)
+      try {
+        const allCleared = (pins || []).every((p) => (p.id === nearbyPin.id ? true : !!p.cleared));
+        if ((pins || []).length > 0 && allCleared) {
+          await updateGame(gameId, { status: 'ended' });
+        }
+      } catch (e) {
+        // non-fatal
+      }
     } catch (e) {
       console.error('Failed to clear pin:', e);
     } finally {
