@@ -72,6 +72,44 @@ export default function RoleAssignmentView({ gameId, onBack, currentUserId }: Ro
 
   const { oniCount, runnerCount } = getRoleCounts();
 
+  const handleRandomizeRoles = async () => {
+    if (players.length === 0) return;
+    setError('');
+    const confirmAssign = confirm('現在の人数を維持したまま役職をランダムに振り分けます。よろしいですか？');
+    if (!confirmAssign) return;
+
+    const shuffled = [...players];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const roleByUid: Record<string, 'oni' | 'runner'> = {};
+    shuffled.forEach((player, index) => {
+      roleByUid[player.uid] = index < oniCount ? 'oni' : 'runner';
+    });
+
+    const updates = players
+      .filter(player => roleByUid[player.uid] && roleByUid[player.uid] !== player.role)
+      .map(player => ({ uid: player.uid, role: roleByUid[player.uid] }));
+
+    try {
+      setIsSaving(true);
+      await Promise.all(
+        updates.map(({ uid, role }) => updatePlayer(gameId, uid, { role }))
+      );
+      setPlayers(prev => prev.map(player => ({
+        ...player,
+        role: roleByUid[player.uid] ?? player.role,
+      })));
+    } catch (err) {
+      console.error('Error randomizing roles:', err);
+      setError('役職のランダム振り分けに失敗しました');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-full bg-gray-50 flex items-center justify-center">
@@ -132,7 +170,16 @@ export default function RoleAssignmentView({ gameId, onBack, currentUserId }: Ro
 
         {/* Role Assignment Lists */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
-          <h3 className="text-md font-medium text-gray-800 mb-4">役職振り分け</h3>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+            <h3 className="text-md font-medium text-gray-800">役職振り分け</h3>
+            <button
+              onClick={handleRandomizeRoles}
+              disabled={isSaving || players.length === 0}
+              className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg shadow-sm hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? '振り分け中...' : 'ランダムに振り分ける'}
+            </button>
+          </div>
           
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

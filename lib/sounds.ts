@@ -8,13 +8,14 @@
  *   playSound('start');
  */
 
-export type SoundName = 'start' | 'hit' | 'notify';
+export type SoundName = 'start' | 'hit' | 'notify' | 'kodou_sound';
 
 // Map sound keys to public URLs
 const soundPathByName: Record<SoundName, string> = {
   start: '/sounds/start.mp3',
   hit: '/sounds/hit.mp3',
   notify: '/sounds/notify.mp3',
+  kodou_sound: '/sounds/kodou_sound.mp3',
 };
 
 const audioCache: Partial<Record<SoundName, HTMLAudioElement>> = {};
@@ -43,5 +44,4 @@ export async function playSound(name: SoundName, options?: { volume?: number }) 
     // Caller can trigger again on user gesture
   }
 }
-
 

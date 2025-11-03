@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getYamanoteCenter, getYamanoteBounds } from '@/lib/geo';
@@ -9,6 +9,7 @@ import {
   RESCUE_RADIUS_M 
 } from '@/lib/constants';
 import { setGamePins, type PinPoint, updatePinCleared, updateGame } from '@/lib/game';
+import { preloadSounds } from '@/lib/sounds';
 
 interface MapViewProps {
   onLocationUpdate?: (lat: number, lng: number, accuracy: number) => void;
@@ -83,6 +84,7 @@ export default function MapView({
   const captureRadiusCircle = useRef<{ id: string; center: [number, number]; radius: number } | null>(null);
   const randomPinsRef = useRef<maplibregl.Marker[]>([]);
   const randomPinsPlacedRef = useRef<boolean>(false);
+  const kodouSoundRef = useRef<HTMLAudioElement | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -94,6 +96,52 @@ export default function MapView({
   const [nearbyPin, setNearbyPin] = useState<PinPoint | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
+
+  useEffect(() => {
+    preloadSounds(['kodou_sound']);
+    if (typeof window === 'undefined') return;
+    const audio = new Audio('/sounds/kodou_sound.mp3');
+    audio.loop = true;
+    audio.preload = 'auto';
+    kodouSoundRef.current = audio;
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+      kodouSoundRef.current = null;
+    };
+  }, []);
+
+  const isOniWithinDetectionRadius = useMemo(() => {
+    if (currentUserRole !== 'runner' || !currentLocation) return false;
+    if (!killerDetectRunnerRadiusM || killerDetectRunnerRadiusM <= 0) return false;
+    return players.some((player) => {
+      if (player.role !== 'oni') return false;
+      if (player.state === 'eliminated') return false;
+      const distance = haversine(
+        currentLocation.lat,
+        currentLocation.lng,
+        player.lat,
+        player.lng
+      );
+      return distance <= killerDetectRunnerRadiusM;
+    });
+  }, [players, currentLocation, currentUserRole, killerDetectRunnerRadiusM]);
+
+  useEffect(() => {
+    const audio = kodouSoundRef.current;
+    if (!audio) return;
+    if (isOniWithinDetectionRadius) {
+      if (audio.paused) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {
+          // Ignore autoplay errors; user interaction may be required
+        });
+      }
+    } else if (!audio.paused) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, [isOniWithinDetectionRadius]);
 
   // derive current user's state from players list to avoid extra props and keep Firestore-driven
   const currentState: 'active' | 'downed' | 'eliminated' | undefined =
