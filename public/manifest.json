@@ -4,8 +4,8 @@
   "description": "山手線内で行うリアル鬼ごっこイベント用PWAアプリ",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ef4444",
+  "background_color": "#050810",
+  "theme_color": "#22B59B",
   "orientation": "portrait",
   "icons": [
     {

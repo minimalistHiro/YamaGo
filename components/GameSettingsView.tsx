@@ -81,47 +81,48 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
 
   if (isLoading) {
     return (
-      <div className="h-full bg-gray-50 flex items-center justify-center">
+      <div className="h-full bg-app flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">ゲーム設定を読み込み中...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyber-green mx-auto mb-6"></div>
+          <p className="text-muted uppercase tracking-[0.3em]">ゲーム設定を読み込み中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col">
+    <div className="h-full bg-app flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0 flex items-center">
+      <div className="bg-[rgba(3,22,27,0.96)] border-b border-cyber-green/35 p-5 flex-shrink-0 flex items-center justify-between shadow-[0_6px_24px_rgba(4,12,24,0.4)]">
         <button
           onClick={onBack}
-          className="mr-4 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="btn-surface inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs tracking-[0.2em]"
           aria-label="戻る"
         >
-          <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 19l-7-7 7-7" />
           </svg>
+          戻る
         </button>
-        <h2 className="text-lg font-semibold text-gray-800">ゲーム設定</h2>
+        <h2 className="text-lg font-semibold text-primary uppercase tracking-[0.35em]">ゲーム設定</h2>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="p-4 bg-[rgba(38,7,24,0.7)] border border-cyber-pink/50 rounded-2xl shadow-[0_0_20px_rgba(255,71,194,0.25)]">
+            <p className="text-xs text-cyber-pink uppercase tracking-[0.3em]">{error}</p>
           </div>
         )}
 
         <div className="space-y-6">
           {/* Pin Count */}
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h3 className="text-md font-medium text-gray-800 mb-4">発電所の数</h3>
+          <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
+            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">発電所の数</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">設置数: {pinCount}個</span>
-                <span className="text-sm text-gray-500 font-mono">{pinCount}</span>
+                <span className="text-xs text-muted uppercase tracking-[0.25em]">設置数: {pinCount}個</span>
+                <span className="text-xs text-cyber-glow font-mono tracking-[0.3em]">{pinCount}</span>
               </div>
               <input
                 type="range"
@@ -130,28 +131,28 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step="1"
                 value={pinCount}
                 onChange={(e) => setPinCount(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green"
                 style={{
-                  background: `linear-gradient(to right, #fbbf24 0%, #fbbf24 ${((pinCount - 1) / 19) * 100}%, #e5e7eb ${((pinCount - 1) / 19) * 100}%, #e5e7eb 100%)`
+                  background: `linear-gradient(to right, rgba(34,181,155,0.9) 0%, rgba(34,181,155,0.9) ${((pinCount - 1) / 19) * 100}%, rgba(5,28,34,0.8) ${((pinCount - 1) / 19) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
               />
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em]">
                 <span>1</span>
                 <span>20</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
                 ゲーム開始時にマップへ配置される発電所（黄色ピン）の数です。1〜20個の範囲で設定できます（初期値: 10個）。
               </p>
             </div>
           </div>
 
           {/* Capture Radius */}
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h3 className="text-md font-medium text-gray-800 mb-4">捕獲半径</h3>
+          <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
+            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">捕獲半径</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">半径: {captureRadiusM}m</span>
-                <span className="text-sm text-gray-500 font-mono">{captureRadiusM}m</span>
+                <span className="text-xs text-muted uppercase tracking-[0.25em]">半径: {captureRadiusM}m</span>
+                <span className="text-xs text-cyber-glow font-mono tracking-[0.3em]">{captureRadiusM}m</span>
               </div>
               <input
                 type="range"
@@ -160,28 +161,28 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step="10"
                 value={captureRadiusM}
                 onChange={(e) => setCaptureRadiusM(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-pink"
                 style={{
-                  background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((captureRadiusM - 10) / 190) * 100}%, #e5e7eb ${((captureRadiusM - 10) / 190) * 100}%, #e5e7eb 100%)`
+                  background: `linear-gradient(to right, rgba(255,71,194,0.9) 0%, rgba(255,71,194,0.9) ${((captureRadiusM - 10) / 190) * 100}%, rgba(5,28,34,0.8) ${((captureRadiusM - 10) / 190) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
               />
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em]">
                 <span>10m</span>
                 <span>200m</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
                 鬼が逃走者を捕獲できる距離を設定します。
               </p>
             </div>
           </div>
 
           {/* Runner visibility radius for killers */}
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h3 className="text-md font-medium text-gray-800 mb-4">逃走者が鬼を視認できる距離</h3>
+          <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
+            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">逃走者が鬼を視認できる距離</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">半径: {runnerSeeKillerRadiusM}m</span>
-                <span className="text-sm text-gray-500 font-mono">{runnerSeeKillerRadiusM}m</span>
+                <span className="text-xs text-muted uppercase tracking-[0.25em]">半径: {runnerSeeKillerRadiusM}m</span>
+                <span className="text-xs text-cyber-glow font-mono tracking-[0.3em]">{runnerSeeKillerRadiusM}m</span>
               </div>
               <input
                 type="range"
@@ -190,28 +191,28 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step="10"
                 value={runnerSeeKillerRadiusM}
                 onChange={(e) => setRunnerSeeKillerRadiusM(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green"
                 style={{
-                  background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, #e5e7eb ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, #e5e7eb 100%)`
+                  background: `linear-gradient(to right, rgba(34,181,155,0.9) 0%, rgba(34,181,155,0.9) ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
               />
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em]">
                 <span>50m</span>
                 <span>1000m</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
                 逃走者から見える鬼の最大距離を設定します（初期値: 200m）。
               </p>
             </div>
           </div>
 
           {/* Killer detection radius for runners */}
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h3 className="text-md font-medium text-gray-800 mb-4">鬼が逃走者を検知できる距離</h3>
+          <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
+            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">鬼が逃走者を検知できる距離</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">半径: {killerDetectRunnerRadiusM}m</span>
-                <span className="text-sm text-gray-500 font-mono">{killerDetectRunnerRadiusM}m</span>
+                <span className="text-xs text-muted uppercase tracking-[0.25em]">半径: {killerDetectRunnerRadiusM}m</span>
+                <span className="text-xs text-cyber-glow font-mono tracking-[0.3em]">{killerDetectRunnerRadiusM}m</span>
               </div>
               <input
                 type="range"
@@ -220,54 +221,54 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step="10"
                 value={killerDetectRunnerRadiusM}
                 onChange={(e) => setKillerDetectRunnerRadiusM(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-pink"
                 style={{
-                  background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${((killerDetectRunnerRadiusM - 50) / 950) * 100}%, #e5e7eb ${((killerDetectRunnerRadiusM - 50) / 950) * 100}%, #e5e7eb 100%)`
+                  background: `linear-gradient(to right, rgba(255,71,194,0.9) 0%, rgba(255,71,194,0.9) ${((killerDetectRunnerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) ${((killerDetectRunnerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
               />
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em]">
                 <span>50m</span>
                 <span>1000m</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
                 鬼が逃走者をマップ上で可視化できる最大距離を設定します（初期値: 500m）。
               </p>
             </div>
           </div>
 
           {/* Countdown Duration */}
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <h3 className="text-md font-medium text-gray-800 mb-4">カウントダウン時間</h3>
+          <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
+            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">カウントダウン時間</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">カウントダウン時間</span>
+                <span className="text-xs text-muted uppercase tracking-[0.25em]">カウントダウン時間</span>
                 <div className="flex items-center space-x-2">
                   <select
                     value={countdownMinutes}
                     onChange={(e) => setCountdownMinutes(Number(e.target.value))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg font-mono bg-white"
+                    className="px-3 py-2 border border-cyber-green/35 bg-[rgba(3,22,27,0.85)] text-app rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-cyber-green/60"
                   >
                     {Array.from({ length: 60 }, (_, i) => (
                       <option key={`m-${i}`} value={i}>{i}</option>
                     ))}
                   </select>
-                  <span className="text-gray-500">分</span>
+                  <span className="text-xs text-muted uppercase tracking-[0.25em]">分</span>
                   <select
                     value={countdownSeconds}
                     onChange={(e) => setCountdownSeconds(Number(e.target.value))}
-                    className="px-3 py-2 border border-gray-300 rounded-lg font-mono bg-white"
+                    className="px-3 py-2 border border-cyber-green/35 bg-[rgba(3,22,27,0.85)] text-app rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-cyber-green/60"
                   >
                     {Array.from({ length: 60 }, (_, i) => (
                       <option key={`s-${i}`} value={i}>{i}</option>
                     ))}
                   </select>
-                  <span className="text-gray-500">秒</span>
+                  <span className="text-xs text-muted uppercase tracking-[0.25em]">秒</span>
                 </div>
               </div>
-              <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                <p>合計: {countdownMinutes * 60 + countdownSeconds}秒 ({countdownMinutes}分{countdownSeconds}秒)</p>
+              <div className="text-xs text-muted bg-[rgba(5,32,40,0.75)] border border-cyber-green/30 p-4 rounded-xl">
+                <p className="tracking-[0.25em] uppercase">合計: {countdownMinutes * 60 + countdownSeconds} 秒 ({countdownMinutes}分{countdownSeconds}秒)</p>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
                 ゲーム開始ボタンを押してからカウントダウンが終了するまでの時間です。
               </p>
             </div>
@@ -275,11 +276,11 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
 
 
           {/* Save Button */}
-          <div className="bg-white rounded-lg p-4 shadow-sm">
+          <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              className="w-full btn-accent disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-xl uppercase tracking-[0.3em]"
             >
               {isSaving ? '保存中...' : '設定を保存'}
             </button>

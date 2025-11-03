@@ -8,9 +8,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'oni-red': '#ef4444',
-        'runner-green': '#22c55e',
-        'boundary-blue': '#3b82f6',
+        'cyber-void': '#050810',
+        'cyber-grid': '#0b1920',
+        'cyber-green': '#22B59B',
+        'cyber-purple': '#8A1FBD',
+        'cyber-pink': '#FF47C2',
+        'cyber-gold': '#FFD166',
+        'cyber-glow': '#5FFBF1',
       },
     },
   },

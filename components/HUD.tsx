@@ -62,11 +62,11 @@ export default function HUD({
   };
 
   return (
-    <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 min-w-[200px]">
-      <div className="space-y-3">
+    <div className="absolute top-4 right-4 bg-[rgba(3,22,27,0.92)] border border-cyber-green/40 rounded-2xl shadow-[0_18px_40px_rgba(4,12,24,0.65)] p-5 min-w-[220px] backdrop-blur">
+      <div className="space-y-4">
         {/* Header with toggle */}
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg">
+          <h3 className="font-semibold text-sm tracking-[0.3em] uppercase text-primary">
             {gameStatus === 'pending' && '待機中'}
             {gameStatus === 'countdown' && 'カウントダウン中'}
             {gameStatus === 'running' && 'ゲーム中'}
@@ -75,7 +75,7 @@ export default function HUD({
           <button
             type="button"
             aria-label="カードを折りたたむ/展開"
-            className="text-gray-500 hover:text-gray-700"
+            className="text-muted hover:text-cyber-green transition-colors"
             onClick={() => setIsCollapsed((v) => !v)}
           >
             {isCollapsed ? (
@@ -95,57 +95,62 @@ export default function HUD({
             {/* Timer */}
             {gameStatus === 'running' && timeLeft > 0 && (
               <div className="text-center">
-                <div className="text-2xl font-mono font-bold text-red-600">
+                <div className="text-2xl font-mono font-bold text-cyber-green drop-shadow-[0_0_12px_rgba(34,181,155,0.45)]">
                   {formatTime(timeLeft)}
                 </div>
-                <div className="text-sm text-gray-600">残り時間</div>
+                <div className="text-[10px] text-muted uppercase tracking-[0.3em] mt-1">残り時間</div>
               </div>
             )}
 
             {/* Player Stats */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>参加者:</span>
-                <span className="font-semibold">{playerCount}人</span>
+            <div className="space-y-3">
+              <div className="flex justify-between text-[11px] text-muted uppercase tracking-[0.25em]">
+                <span>参加者</span>
+                <span className="font-semibold text-app">{playerCount}人</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-red-600">鬼:</span>
-                <span className="font-semibold">{oniCount}人</span>
+              <div className="flex justify-between text-[11px] uppercase tracking-[0.25em] text-cyber-pink">
+                <span>鬼</span>
+                <span className="font-semibold text-app">{oniCount}人</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-green-600">逃走者:</span>
-                <span className="font-semibold">{runnerCount}人</span>
+              <div className="flex justify-between text-[11px] uppercase tracking-[0.25em] text-cyber-green">
+                <span>逃走者</span>
+                <span className="font-semibold text-app">{runnerCount}人</span>
               </div>
-              <div className="flex justify-between text-xs text-gray-600 pl-2">
-                <span>捕獲済み:</span>
-                <span className="font-semibold">{runnerCapturedCount}人</span>
+              <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em] pl-2">
+                <span>捕獲済み</span>
+                <span className="font-semibold text-app">{runnerCapturedCount}人</span>
               </div>
             </div>
 
             {/* Generators */}
-            <div className="border-t pt-2 space-y-1">
-              <div className="flex items-center justify-between text-sm font-medium text-yellow-500">
+            <div className="cyber-divider" />
+            <div className="pt-2 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.25em] text-cyber-gold">
                 <span>発電所</span>
                 {pinTargetCount !== undefined && (
-                  <span className="text-xs text-gray-500 font-semibold">{pinTargetCount}箇所</span>
+                  <span className="text-[10px] text-muted font-semibold">{pinTargetCount}箇所</span>
                 )}
               </div>
-              <div className="flex justify-between text-xs text-gray-600 pl-2">
-                <span>解除済み:</span>
-                <span className="font-semibold">{generatorsClearedCount}箇所</span>
+              <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em] pl-2">
+                <span>解除済み</span>
+                <span className="font-semibold text-app">{generatorsClearedCount}箇所</span>
               </div>
             </div>
 
             {/* Personal Stats */}
             {(captures > 0 || capturedTimes > 0) && (
-              <div className="border-t pt-2 space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>捕獲数:</span>
-                  <span className="font-semibold text-red-600">{captures}</span>
+              <div className="cyber-divider" />
+            )}
+
+            {(captures > 0 || capturedTimes > 0) && (
+              <div className="pt-2 space-y-2">
+                <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
+                  <span className="text-muted">捕獲数</span>
+                  <span className="font-semibold text-cyber-pink">{captures}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span>捕獲された回数:</span>
-                  <span className="font-semibold text-orange-600">{capturedTimes}</span>
+                <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
+                  <span className="text-muted">捕獲された回数</span>
+                  <span className="font-semibold text-cyber-gold">{capturedTimes}</span>
                 </div>
               </div>
             )}
@@ -155,7 +160,7 @@ export default function HUD({
               {(gameStatus === 'pending' || gameStatus === 'ended') && onStartGame && (
                 <button
                   onClick={onStartGame}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-colors"
+                  className="w-full btn-primary font-semibold py-2 px-4 rounded-lg uppercase tracking-[0.2em]"
                 >
                   ゲーム開始
                 </button>
@@ -164,7 +169,7 @@ export default function HUD({
               {gameStatus === 'running' && onEndGame && (
                 <button
                   onClick={onEndGame}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-colors"
+                  className="w-full btn-accent font-semibold py-2 px-4 rounded-lg uppercase tracking-[0.2em]"
                 >
                   ゲーム終了
                 </button>

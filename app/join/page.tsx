@@ -176,34 +176,44 @@ export default function JoinPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-green-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
+      <div className="absolute inset-0 opacity-40 blur-3xl pointer-events-none" aria-hidden>
+        <div className="w-72 h-72 brand-gradient rounded-full absolute -top-24 -left-10 mix-blend-screen" />
+        <div className="w-80 h-80 brand-gradient rounded-full absolute -bottom-16 -right-20 mix-blend-screen" />
+      </div>
+      <div className="max-w-2xl w-full cyber-card rounded-3xl border border-cyber-green/30 shadow-[0_0_50px_rgba(34,181,155,0.15)] p-8 relative">
+        <div className="absolute inset-x-8 -top-1 h-1 bg-gradient-to-r from-cyber-green via-cyber-glow to-cyber-pink rounded-full shadow-[0_0_20px_rgba(95,251,241,0.55)]" />
         {/* Back to Home Button */}
-        <div className="mb-4">
+        <div className="mb-8 flex items-center justify-between">
           <button
             onClick={handleBackToHome}
-            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+            className="btn-surface inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm tracking-[0.2em]"
+            type="button"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             戻る
           </button>
+          <span className="text-xs text-muted uppercase tracking-[0.4em]">Join Network</span>
         </div>
         
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
+        <h1 className="text-3xl font-semibold text-primary text-center mb-2 tracking-[0.4em] uppercase">
           ゲームに参加
         </h1>
+        <p className="text-xs text-muted text-center mb-10 tracking-[0.3em] uppercase">
+          Yamago Multiplayer Portal
+        </p>
 
-        <form onSubmit={handleJoinGame} className="space-y-4">
+        <form onSubmit={handleJoinGame} className="space-y-6">
           {/* Avatar Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs uppercase tracking-[0.3em] text-muted mb-3">
               アイコン画像（任意）
             </label>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="relative">
-                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-gray-300">
+                <div className="w-20 h-20 rounded-full bg-[rgba(5,30,36,0.85)] flex items-center justify-center overflow-hidden border border-cyber-green/40 shadow-[0_0_20px_rgba(34,181,155,0.2)]">
                   {imagePreview ? (
                     <img
                       src={imagePreview}
@@ -211,7 +221,7 @@ export default function JoinPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-8 h-8 text-cyber-glow/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   )}
@@ -228,7 +238,7 @@ export default function JoinPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
+                  className="btn-surface px-4 py-2 rounded-lg text-sm"
                 >
                   画像を選択
                 </button>
@@ -242,20 +252,20 @@ export default function JoinPage() {
                         fileInputRef.current.value = '';
                       }
                     }}
-                    className="ml-2 px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors"
+                    className="btn-accent ml-3 px-3 py-1 text-xs rounded-lg text-white opacity-80 hover:opacity-100"
                   >
                     削除
                   </button>
                 )}
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-[10px] text-muted mt-2 tracking-[0.2em] uppercase">
               5MB以下の画像ファイル（JPG、PNG、GIF）
             </p>
           </div>
 
           <div>
-            <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="nickname" className="block text-xs uppercase tracking-[0.3em] text-muted mb-2">
               ニックネーム
             </label>
             <input
@@ -263,7 +273,7 @@ export default function JoinPage() {
               id="nickname"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-4 py-3 rounded-xl bg-[rgba(3,22,27,0.85)] border border-cyber-green/40 text-app placeholder:text-cyber-green/50 focus:outline-none focus:ring-2 focus:ring-cyber-green/60 focus:border-cyber-green/60 transition-all"
               placeholder="あなたのニックネーム"
               maxLength={20}
               required
@@ -271,7 +281,7 @@ export default function JoinPage() {
           </div>
 
           <div>
-            <label htmlFor="gameId" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="gameId" className="block text-xs uppercase tracking-[0.3em] text-muted mb-2">
               ゲームID
             </label>
             <input
@@ -279,14 +289,14 @@ export default function JoinPage() {
               id="gameId"
               value={gameId}
               onChange={(e) => setGameId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-4 py-3 rounded-xl bg-[rgba(3,22,27,0.85)] border border-cyber-green/40 text-app placeholder:text-cyber-green/50 focus:outline-none focus:ring-2 focus:ring-cyber-green/60 focus:border-cyber-green/60 transition-all"
               placeholder="ゲームIDを入力"
               required
             />
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm text-center bg-red-50 p-2 rounded">
+            <div className="text-sm text-center bg-[rgba(38,7,24,0.7)] border border-cyber-pink/50 text-cyber-pink px-4 py-3 rounded-xl tracking-widest uppercase">
               {error}
             </div>
           )}
@@ -294,17 +304,17 @@ export default function JoinPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            className="w-full btn-accent disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-xl transition-transform"
           >
             {isLoading ? '参加中...' : 'ゲームに参加'}
           </button>
         </form>
 
 
-        <div className="mt-6 text-xs text-gray-500 text-center">
-          <p>• 位置情報の使用に同意してください</p>
-          <p>• 山手線内でのみプレイ可能です</p>
-          <p>• ゲーム開始30分後に鬼が有効化されます</p>
+        <div className="mt-10 text-[10px] text-muted text-center tracking-[0.35em] uppercase space-y-1">
+          <p>位置情報の使用に同意してください</p>
+          <p>山手線内でのみプレイ可能です</p>
+          <p>ゲーム開始30分後に鬼が有効化されます</p>
         </div>
       </div>
     </div>

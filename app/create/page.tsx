@@ -98,83 +98,80 @@ export default function CreatePage() {
 
   if (gameCreated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-red-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
+        <div className="absolute inset-0 opacity-35 blur-3xl pointer-events-none" aria-hidden>
+          <div className="w-80 h-80 brand-gradient rounded-full absolute -top-24 -right-10 mix-blend-screen" />
+          <div className="w-[22rem] h-[22rem] brand-gradient rounded-full absolute -bottom-32 -left-10 mix-blend-screen" />
+        </div>
+        <div className="max-w-2xl w-full cyber-card rounded-3xl border border-cyber-green/30 shadow-[0_0_55px_rgba(34,181,155,0.2)] p-10 relative">
+          <div className="absolute inset-x-10 -top-1 h-1 bg-gradient-to-r from-cyber-green via-cyber-glow to-cyber-pink rounded-full shadow-[0_0_20px_rgba(95,251,241,0.55)]" />
           {/* Back to Home Button */}
-          <div className="mb-4">
+          <div className="mb-10 flex items-center justify-between">
             <button
               onClick={handleBackToHome}
-              className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+              className="btn-surface inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm tracking-[0.25em]"
+              type="button"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               戻る
             </button>
+            <span className="text-xs text-muted uppercase tracking-[0.4em]">Session Deployed</span>
           </div>
           
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <div className="text-center space-y-8">
+            <div className="w-24 h-24 mx-auto rounded-full border border-cyber-green/40 bg-[rgba(3,22,27,0.85)] flex items-center justify-center shadow-[0_0_28px_rgba(34,181,155,0.3)]">
+              <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">
-              ゲームを作成しました！
-            </h1>
+            <div>
+              <h1 className="text-3xl font-semibold text-primary tracking-[0.35em] uppercase mb-3">
+                ゲームを作成しました
+              </h1>
+              <p className="text-xs text-muted tracking-[0.3em] uppercase">Share The Access Code</p>
+            </div>
             
-            <div className="mb-6">
-              <p className="text-gray-600 mb-2">ゲームID:</p>
-              <div className="flex items-center space-x-2">
-                <span className="font-mono bg-gray-100 px-3 py-2 rounded text-sm flex-1">{gameId}</span>
+            <div className="space-y-3">
+              <p className="text-xs text-muted uppercase tracking-[0.35em]">ゲームID</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <span className="font-mono text-base sm:flex-1 bg-[rgba(3,22,27,0.85)] border border-cyber-green/45 px-4 py-3 rounded-xl text-cyber-glow shadow-[0_0_20px_rgba(34,181,155,0.25)] tracking-[0.4em] uppercase">
+                  {gameId}
+                </span>
                 <button
                   onClick={handleCopyGameId}
-                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                    copied
-                      ? 'bg-green-100 text-green-700 border border-green-300'
-                      : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300'
+                  className={`btn-primary px-4 py-3 rounded-xl text-sm font-semibold uppercase tracking-[0.25em] ${
+                    copied ? 'opacity-80' : ''
                   }`}
                 >
-                  {copied ? (
-                    <>
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      コピー済み
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      コピー
-                    </>
-                  )}
+                  {copied ? 'コピー済み' : 'コピー'}
                 </button>
               </div>
             </div>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="font-medium text-blue-800 mb-2">ゲーム情報</h3>
-              <div className="text-sm text-blue-700 space-y-1">
-                <p>• ゲームがFirebaseに正常に保存されました</p>
-                <p>• あなたは鬼として参加しています</p>
-                <p>• 他のプレイヤーにゲームIDを共有してください</p>
-                <p>• ゲーム開始30分後に鬼が有効化されます</p>
+            <div className="bg-[rgba(5,32,40,0.8)] border border-cyber-green/35 rounded-2xl p-6 text-left space-y-2 shadow-[0_0_24px_rgba(34,181,155,0.2)]">
+              <h3 className="text-sm text-primary tracking-[0.3em] uppercase">ゲーム情報</h3>
+              <div className="cyber-divider" />
+              <div className="text-xs text-muted tracking-[0.25em] uppercase space-y-1">
+                <p>ゲームがFirebaseに正常に保存されました</p>
+                <p>あなたは鬼として参加しています</p>
+                <p>他のプレイヤーにゲームIDを共有してください</p>
+                <p>ゲーム開始30分後に鬼が有効化されます</p>
               </div>
             </div>
             
             <button
               onClick={handleStartGame}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors mb-4"
+              className="w-full btn-accent font-semibold py-3 px-4 rounded-xl uppercase tracking-[0.25em]"
             >
               ゲームを開始
             </button>
             
-            <div className="text-xs text-gray-500">
-              <p>• 位置情報の使用に同意してください</p>
-              <p>• 山手線内でのみプレイ可能です</p>
+            <div className="text-[10px] text-muted tracking-[0.35em] uppercase space-y-1">
+              <p>位置情報の使用に同意してください</p>
+              <p>山手線内でのみプレイ可能です</p>
             </div>
           </div>
         </div>
@@ -183,28 +180,38 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-red-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
+      <div className="absolute inset-0 opacity-35 blur-3xl pointer-events-none" aria-hidden>
+        <div className="w-[18rem] h-[18rem] brand-gradient rounded-full absolute -top-24 -left-14 mix-blend-screen" />
+        <div className="w-[20rem] h-[20rem] brand-gradient rounded-full absolute -bottom-20 -right-24 mix-blend-screen" />
+      </div>
+      <div className="max-w-2xl w-full cyber-card rounded-3xl border border-cyber-green/30 shadow-[0_0_50px_rgba(34,181,155,0.18)] p-8 relative">
+        <div className="absolute inset-x-8 -top-1 h-1 bg-gradient-to-r from-cyber-green via-cyber-glow to-cyber-pink rounded-full shadow-[0_0_18px_rgba(95,251,241,0.5)]" />
         {/* Back to Home Button */}
-        <div className="mb-4">
+        <div className="mb-8 flex items-center justify-between">
           <button
             onClick={handleBackToHome}
-            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+            className="btn-surface inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm tracking-[0.2em]"
+            type="button"
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             戻る
           </button>
+          <span className="text-xs text-muted uppercase tracking-[0.4em]">Create Session</span>
         </div>
         
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
+        <h1 className="text-3xl font-semibold text-primary text-center mb-2 tracking-[0.4em] uppercase">
           ゲームを作成
         </h1>
+        <p className="text-xs text-muted text-center mb-10 tracking-[0.3em] uppercase">
+          Launch The Yamago Arena
+        </p>
 
-        <form onSubmit={handleCreateGame} className="space-y-4">
+        <form onSubmit={handleCreateGame} className="space-y-6">
           <div>
-            <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="nickname" className="block text-xs uppercase tracking-[0.3em] text-muted mb-2">
               ニックネーム
             </label>
             <input
@@ -212,7 +219,7 @@ export default function CreatePage() {
               id="nickname"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-3 rounded-xl bg-[rgba(3,22,27,0.85)] border border-cyber-green/40 text-app placeholder:text-cyber-green/45 focus:outline-none focus:ring-2 focus:ring-cyber-green/60 focus:border-cyber-green/60 transition-all"
               placeholder="あなたのニックネーム"
               maxLength={20}
               required
@@ -220,7 +227,7 @@ export default function CreatePage() {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm text-center bg-red-50 p-2 rounded">
+            <div className="text-sm text-center bg-[rgba(38,7,24,0.7)] border border-cyber-pink/50 text-cyber-pink px-4 py-3 rounded-xl tracking-widest uppercase">
               {error}
             </div>
           )}
@@ -228,17 +235,17 @@ export default function CreatePage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            className="w-full btn-primary disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-xl uppercase tracking-[0.25em]"
           >
             {isLoading ? '作成中...' : 'ゲームを作成'}
           </button>
         </form>
 
-        <div className="mt-6 text-xs text-gray-500 text-center">
-          <p>• ゲーム作成者は鬼になります</p>
-          <p>• 位置情報の使用に同意してください</p>
-          <p>• 山手線内でのみプレイ可能です</p>
-          <p>• ゲーム開始30分後に鬼が有効化されます</p>
+        <div className="mt-10 text-[10px] text-muted text-center tracking-[0.35em] uppercase space-y-1">
+          <p>ゲーム作成者は鬼になります</p>
+          <p>位置情報の使用に同意してください</p>
+          <p>山手線内でのみプレイ可能です</p>
+          <p>ゲーム開始30分後に鬼が有効化されます</p>
         </div>
       </div>
     </div>

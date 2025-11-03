@@ -42,22 +42,35 @@ export default function BottomTabNavigation({ activeTab, onTabChange }: BottomTa
   ];
 
   return (
-    <div className="bg-white border-t border-gray-200 safe-area-pb">
+    <div className="bg-[rgba(3,22,27,0.92)] border-t border-cyber-green/30 backdrop-blur safe-area-pb shadow-[0_-10px_30px_rgba(4,12,24,0.55)]">
       <div className="flex">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex-1 flex flex-col items-center justify-center py-2 px-1 transition-colors ${
+            className={`flex-1 flex flex-col items-center justify-center py-2 px-1 transition-all duration-200 ${
               activeTab === tab.id
-                ? 'text-red-500'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-cyber-green'
+                : 'text-muted hover:text-cyber-green/80'
             }`}
           >
-            <div className={`mb-1 ${activeTab === tab.id ? 'text-red-500' : 'text-gray-500'}`}>
+            <div
+              className={`mb-1 transition-transform ${
+                activeTab === tab.id ? 'text-cyber-green scale-110 drop-shadow-[0_0_8px_rgba(34,181,155,0.4)]' : 'text-muted'
+              }`}
+            >
               {tab.icon}
             </div>
-            <span className="text-xs font-medium">{tab.label}</span>
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-[0.35em] ${
+                activeTab === tab.id ? 'text-cyber-green' : 'text-muted'
+              }`}
+            >
+              {tab.label}
+            </span>
+            {activeTab === tab.id && (
+              <span className="mt-1 h-[2px] w-10 bg-gradient-to-r from-cyber-green via-cyber-glow to-cyber-green rounded-full shadow-[0_0_12px_rgba(95,251,241,0.6)]" />
+            )}
           </button>
         ))}
       </div>

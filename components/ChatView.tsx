@@ -139,9 +139,9 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   // Show loading state while fetching player role
   if (playerRole === null) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-white items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
-        <p className="mt-2 text-gray-600">チャットを読み込み中...</p>
+      <div className="flex flex-col h-[100dvh] bg-app items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyber-green"></div>
+        <p className="mt-4 text-muted uppercase tracking-[0.3em]">チャットを読み込み中...</p>
       </div>
     );
   }
@@ -151,15 +151,23 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
     return null;
   }
 
+  const headerTheme =
+    playerRole === 'oni'
+      ? 'bg-gradient-to-r from-cyber-pink/95 via-cyber-purple/90 to-cyber-pink/85 border-cyber-pink/50 shadow-[0_6px_24px_rgba(138,31,189,0.35)]'
+      : 'bg-gradient-to-r from-cyber-green/95 via-cyber-glow/90 to-cyber-green/90 border-cyber-green/55 shadow-[0_6px_24px_rgba(34,181,155,0.35)]';
+  const sendButtonClass = playerRole === 'oni' ? 'btn-accent' : 'btn-primary';
+  const myBubbleTheme =
+    playerRole === 'oni'
+      ? 'bg-gradient-to-r from-cyber-pink to-cyber-purple text-white shadow-[0_0_18px_rgba(255,71,194,0.45)]'
+      : 'bg-gradient-to-r from-cyber-green to-cyber-glow text-[#031f1a] shadow-[0_0_18px_rgba(95,251,241,0.45)]';
+  const otherBubbleTheme = 'bg-[rgba(3,22,27,0.85)] border border-cyber-green/25 text-app shadow-[0_0_14px_rgba(34,181,155,0.2)]';
+  const systemBubbleTheme = 'bg-[rgba(138,31,189,0.18)] border border-cyber-purple/35 text-cyber-glow shadow-[0_0_16px_rgba(138,31,189,0.35)]';
+
   return (
-    <main className="flex flex-col h-full min-h-0 overflow-hidden bg-white">
+    <main className="flex flex-col h-full min-h-0 overflow-hidden bg-[rgba(3,22,27,0.94)] text-app">
       {/* Fixed Header */}
       <header
-        className={`sticky top-0 z-10 px-4 py-3 border-b text-white ${
-          playerRole === 'oni'
-            ? 'bg-red-500 border-red-600'
-            : 'bg-green-500 border-green-600'
-        }`}
+        className={`sticky top-0 z-20 px-4 py-4 border-b text-white uppercase tracking-[0.35em] ${headerTheme}`}
       >
         <h1 className="text-lg font-semibold">
           {playerRole === 'oni' ? '鬼チャット' : '逃走者チャット'}
@@ -170,7 +178,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       <section
         id="messages"
         ref={messagesContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-2 pb-2"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-6"
       >
         <div className="space-y-3">
           {messages.map((message) => (
@@ -182,12 +190,12 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
             >
               {message.uid !== currentUser.uid && message.type === 'user' && (
                 <div className="flex items-center mb-1">
-                  <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
-                    <span className="text-xs font-medium text-gray-600">
+                  <div className="w-7 h-7 bg-[rgba(3,22,27,0.8)] border border-cyber-green/35 rounded-full flex items-center justify-center mr-2 shadow-[0_0_12px_rgba(34,181,155,0.25)]">
+                    <span className="text-xs font-semibold text-cyber-glow tracking-[0.25em] uppercase">
                       {message.nickname.charAt(0)}
                     </span>
                   </div>
-                  <span className="text-xs font-medium text-gray-600">
+                  <span className="text-[10px] font-medium text-muted tracking-[0.25em] uppercase">
                     {message.nickname}
                   </span>
                 </div>
@@ -195,17 +203,15 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
               <div
                 className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                   message.type === 'system'
-                    ? 'bg-yellow-100 text-yellow-800 mx-auto'
+                    ? `${systemBubbleTheme} mx-auto`
                     : message.uid === currentUser.uid
-                    ? message.role === 'oni'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-green-500 text-white'
-                    : 'bg-white text-gray-800 border border-gray-200'
+                    ? myBubbleTheme
+                    : otherBubbleTheme
                 }`}
               >
-                <div className="text-sm">{message.message}</div>
+                <div className="text-sm leading-relaxed">{message.message}</div>
               </div>
-              <div className={`text-xs text-gray-500 mt-1 ${
+              <div className={`text-[10px] text-muted mt-1 tracking-[0.25em] uppercase ${
                 message.uid === currentUser.uid ? 'text-right' : 'text-left'
               }`}>
                 {message.timestamp?.toDate?.().toLocaleTimeString('ja-JP', {
@@ -221,7 +227,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
 
       {/* Fixed Message Input */}
       <footer
-        className="sticky bottom-0 z-10 bg-white/95 backdrop-blur border-t px-3 pt-3"
+        className="sticky bottom-0 z-20 bg-[rgba(3,22,27,0.96)] backdrop-blur border-t border-cyber-green/30 px-3 pt-3"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
       >
         <form onSubmit={handleSendMessage} className="flex space-x-2">
@@ -231,13 +237,13 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder={`${playerRole === 'oni' ? '鬼' : '逃走者'}チャットにメッセージを入力...`}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+              className="w-full px-4 py-3 bg-[rgba(3,22,27,0.85)] border border-cyber-green/35 rounded-xl text-app placeholder:text-cyber-green/45 focus:outline-none focus:ring-2 focus:ring-cyber-green/60 focus:border-cyber-green/60 pr-14 transition-all"
               maxLength={200}
               disabled={isLoading}
               autoComplete="off"
             />
             {newMessage.length > 0 && (
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[10px] text-muted tracking-[0.3em] uppercase">
                 {newMessage.length}/200
               </div>
             )}
@@ -245,10 +251,10 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
           <button
             type="submit"
             disabled={isLoading || !newMessage.trim()}
-            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center min-w-[60px]"
+            className={`${sendButtonClass} disabled:opacity-60 disabled:cursor-not-allowed px-5 py-2 rounded-xl transition-transform duration-200 flex items-center justify-center min-w-[80px] uppercase tracking-[0.3em]`}
           >
             {isLoading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             ) : (
               '送信'
             )}
