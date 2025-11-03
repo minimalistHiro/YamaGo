@@ -637,3 +637,33 @@ export const getGameStats = functions.https.onRequest(async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// End game when all active runners are captured (downed or eliminated)
+export const endGameWhenAllRunnersCaptured = functions.firestore
+  .document('games/{gameId}/players/{playerId}')
+  .onWrite(async (change, context) => {
+    const gameId = context.params.gameId as string;
+
+    try {
+      const gameRef = db.collection('games').doc(gameId);
+      const gameDoc = await gameRef.get();
+      if (!gameDoc.exists) return;
+      const gameData = gameDoc.data() as any;
+      if (!gameData || gameData.status !== 'running') return;
+
+      const playersSnapshot = await gameRef.collection('players').get();
+      const players = playersSnapshot.docs.map((d) => d.data() as any);
+      const runners = players.filter((p) => p && p.role === 'runner' && p.active !== false);
+      if (runners.length === 0) return; // no runners -> don't end automatically
+
+      const capturedRunners = runners.filter((p) => p.state && p.state !== 'active');
+      if (capturedRunners.length === runners.length) {
+        // All runners are captured
+        await gameRef.update({ status: 'ended' });
+        await recordEvent(gameId, 'game-end', undefined, undefined, { winner: 'oni' });
+        console.log(`[endGame] Game ${gameId} ended because all runners were captured`);
+      }
+    } catch (error) {
+      console.error(`[endGame] Failed to evaluate end condition for game ${gameId}:`, error);
+    }
+  });

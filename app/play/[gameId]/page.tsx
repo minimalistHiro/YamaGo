@@ -44,6 +44,8 @@ export default function PlayPage() {
   const [showCapturePopup, setShowCapturePopup] = useState(false);
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showGameEndPopup, setShowGameEndPopup] = useState(false);
+  const allPinsCleared = pins.length > 0 && pins.every(p => p.cleared);
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
@@ -136,6 +138,12 @@ export default function PlayPage() {
   }, [user, gameId, playersById]);
 
   // Alerts are handled centrally in the store; UI surfacing can be added later
+  // Show popup when game ends (e.g., Cloud Function ended the game)
+  useEffect(() => {
+    if (game?.status === 'ended') {
+      setShowGameEndPopup(true);
+    }
+  }, [game?.status]);
 
   const handleLocationUpdate = useCallback(async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
@@ -249,6 +257,25 @@ export default function PlayPage() {
       setCapturedTargetName(capturableRunner.nickname || '逃走者');
       setShowCapturePopup(true);
       setIsCapturing(false);
+
+      // After updating the victim locally in Firestore, check if all runners are captured
+      try {
+        const allRunners = players.filter(p => p.role === 'runner' && p.active);
+        if (allRunners.length > 0) {
+          const capturedCount = allRunners.filter(p => {
+            if (p.uid === capturableRunner.uid) {
+              return true; // just captured above
+            }
+            return p.state && p.state !== 'active';
+          }).length;
+          if (capturedCount === allRunners.length) {
+            await updateGame(gameId, { status: 'ended' });
+          }
+        }
+      } catch (e) {
+        // non-fatal
+        console.warn('Failed to update game end status after capture:', e);
+      }
     } catch (e) {
       console.error('Capture trigger failed:', e);
       setIsCapturing(false);
@@ -418,6 +445,25 @@ export default function PlayPage() {
             captures={currentPlayer.stats.captures}
             capturedTimes={currentPlayer.stats.capturedTimes}
           />
+
+          {showGameEndPopup && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[100]">
+              <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full mx-4 text-center">
+                <h3 className="text-xl font-bold mb-2">ゲームが終了しました</h3>
+                <p className="font-semibold mb-4 {allPinsCleared ? 'text-green-600' : 'text-red-600'}">
+                  {allPinsCleared ? '逃走者の勝利！' : '鬼の勝利！'}
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    className="bg-gray-800 hover:bg-black text-white font-medium py-2 px-4 rounded"
+                    onClick={() => setShowGameEndPopup(false)}
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Rescue Button */}
           {rescuablePlayer && (
