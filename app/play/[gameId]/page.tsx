@@ -256,6 +256,25 @@ export default function PlayPage() {
       setCapturedTargetName(capturableRunner.nickname || '逃走者');
       setShowCapturePopup(true);
       setIsCapturing(false);
+
+      // After updating the victim locally in Firestore, check if all runners are captured
+      try {
+        const allRunners = players.filter(p => p.role === 'runner' && p.active);
+        if (allRunners.length > 0) {
+          const capturedCount = allRunners.filter(p => {
+            if (p.uid === capturableRunner.uid) {
+              return true; // just captured above
+            }
+            return p.state && p.state !== 'active';
+          }).length;
+          if (capturedCount === allRunners.length) {
+            await updateGame(gameId, { status: 'ended' });
+          }
+        }
+      } catch (e) {
+        // non-fatal
+        console.warn('Failed to update game end status after capture:', e);
+      }
     } catch (e) {
       console.error('Capture trigger failed:', e);
       setIsCapturing(false);
