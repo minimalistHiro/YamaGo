@@ -41,28 +41,54 @@ admin.initializeApp();
 const db = admin.firestore();
 exports.uploadAvatar = functions
     .region('us-central1')
-    .https.onCall(async (data, context) => {
+    .https.onRequest(async (req, res) => {
     var _a;
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to upload an avatar.');
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
     }
-    const { file: base64Payload, contentType, fileName } = data || {};
+    if (req.method !== 'POST') {
+        res.status(405).json({ error: 'method-not-allowed' });
+        return;
+    }
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'unauthenticated' });
+        return;
+    }
+    let decodedToken;
+    try {
+        const idToken = authHeader.replace('Bearer ', '').trim();
+        decodedToken = await admin.auth().verifyIdToken(idToken);
+    }
+    catch (error) {
+        console.error('Failed to verify ID token:', error);
+        res.status(401).json({ error: 'unauthenticated' });
+        return;
+    }
+    const { file: base64Payload, contentType, fileName } = req.body || {};
     if (typeof base64Payload !== 'string' || base64Payload.length === 0) {
-        throw new functions.https.HttpsError('invalid-argument', 'Avatar payload is missing.');
+        res.status(400).json({ error: 'invalid-argument', message: 'Avatar payload is missing.' });
+        return;
     }
     if (typeof contentType !== 'string' || !contentType.startsWith('image/')) {
-        throw new functions.https.HttpsError('invalid-argument', 'Invalid avatar content type.');
+        res.status(400).json({ error: 'invalid-argument', message: 'Invalid avatar content type.' });
+        return;
     }
     const buffer = Buffer.from(base64Payload, 'base64');
     const MAX_SIZE_BYTES = 5 * 1024 * 1024;
     if (buffer.length > MAX_SIZE_BYTES) {
-        throw new functions.https.HttpsError('invalid-argument', 'Avatar size must be 5MB or less.');
+        res.status(400).json({ error: 'invalid-argument', message: 'Avatar size must be 5MB or less.' });
+        return;
     }
     const bucket = admin.storage().bucket();
     const extensionFromName = typeof fileName === 'string' && fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
     const extensionFromType = (_a = contentType.split('/').pop()) === null || _a === void 0 ? void 0 : _a.toLowerCase();
     const extension = (extensionFromName || extensionFromType || 'png').replace(/[^a-z0-9]/g, '');
-    const destinationPath = `avatars/${context.auth.uid}_${Date.now()}.${extension}`;
+    const destinationPath = `avatars/${decodedToken.uid}_${Date.now()}.${extension}`;
     const downloadToken = (0, crypto_1.randomUUID)();
     try {
         await bucket.file(destinationPath).save(buffer, {
@@ -71,19 +97,19 @@ exports.uploadAvatar = functions
                 contentType,
                 metadata: {
                     firebaseStorageDownloadTokens: downloadToken,
-                    uploadedBy: context.auth.uid,
+                    uploadedBy: decodedToken.uid,
                 },
             },
         });
         const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(destinationPath)}?alt=media&token=${downloadToken}`;
-        return {
+        res.status(200).json({
             downloadUrl,
             path: destinationPath,
-        };
+        });
     }
     catch (error) {
         console.error('Failed to upload avatar to storage:', error);
-        throw new functions.https.HttpsError('internal', 'Failed to upload avatar.');
+        res.status(500).json({ error: 'internal', message: 'Failed to upload avatar.' });
     }
 });
 // DbD Mode Constants

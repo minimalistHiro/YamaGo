@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInAnonymously } from 'firebase/auth';
-import { httpsCallable } from 'firebase/functions';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { joinGame, createGame } from '@/lib/game';
 
@@ -79,27 +78,45 @@ export default function JoinPage() {
       reader.readAsDataURL(file);
     });
 
-  const uploadAvatarViaCallable = async (file: File): Promise<string> => {
-    try {
-      const { functions } = getFirebaseServices();
-      const callable = httpsCallable<
-        { file: string; contentType: string; fileName: string },
-        { downloadUrl?: string }
-      >(functions, 'uploadAvatar');
+  const getUploadEndpoint = () => {
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    if (!projectId) {
+      throw new Error('Firebase プロジェクトIDが設定されていません');
+    }
+    return `https://us-central1-${projectId}.cloudfunctions.net/uploadAvatar`;
+  };
 
+  const uploadAvatarViaHttp = async (file: File, idToken: string): Promise<string> => {
+    try {
       const base64Payload = await fileToBase64(file);
-      const response = await callable({
-        file: base64Payload,
-        contentType: file.type || 'application/octet-stream',
-        fileName: file.name || `avatar-${Date.now()}`,
+      const response = await fetch(getUploadEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          file: base64Payload,
+          contentType: file.type || 'application/octet-stream',
+          fileName: file.name || `avatar-${Date.now()}`,
+        }),
       });
 
-      const downloadUrl = (response.data as { downloadUrl?: string } | undefined)?.downloadUrl;
-      if (!downloadUrl || typeof downloadUrl !== 'string') {
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const message =
+          typeof payload?.message === 'string'
+            ? payload.message
+            : '画像のアップロードに失敗しました';
+        throw new Error(message);
+      }
+
+      const payload = (await response.json()) as { downloadUrl?: string };
+      if (!payload.downloadUrl || typeof payload.downloadUrl !== 'string') {
         throw new Error('アップロードのレスポンスが不正です');
       }
 
-      return downloadUrl;
+      return payload.downloadUrl;
     } catch (error) {
       console.error('Avatar upload error:', error);
       throw new Error(`画像のアップロードに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -127,7 +144,8 @@ export default function JoinPage() {
       // Upload avatar image if selected
       let avatarUrl = '';
       if (selectedImage) {
-        avatarUrl = await uploadAvatarViaCallable(selectedImage);
+        const idToken = await userCredential.user.getIdToken();
+        avatarUrl = await uploadAvatarViaHttp(selectedImage, idToken);
       }
 
       // Do not update ownerUid here; rely on server-side logic and joinGame
@@ -181,7 +199,8 @@ export default function JoinPage() {
       let avatarUrl = '';
       if (selectedImage) {
         console.log('Uploading avatar image...');
-        avatarUrl = await uploadAvatarViaCallable(selectedImage);
+        const idToken = await userCredential.user.getIdToken();
+        avatarUrl = await uploadAvatarViaHttp(selectedImage, idToken);
         console.log('Avatar uploaded:', avatarUrl);
       }
 
