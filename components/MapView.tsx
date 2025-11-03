@@ -98,7 +98,7 @@ export default function MapView({
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
 
   useEffect(() => {
-    preloadSounds(['kodou_sound']);
+    preloadSounds(['kodou_sound', 'start_sound']);
     if (typeof window === 'undefined') return;
     const audio = new Audio('/sounds/kodou_sound.mp3');
     audio.loop = true;

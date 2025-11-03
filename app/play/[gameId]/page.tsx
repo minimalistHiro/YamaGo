@@ -24,6 +24,7 @@ import SettingsView from '@/components/SettingsView';
 import BackgroundLocationProvider from '@/components/BackgroundLocationProvider';
 import { useGameStore } from '@/lib/store/gameStore';
 import type { Player } from '@/lib/game';
+import { playSound, preloadSounds } from '@/lib/sounds';
 
 export default function PlayPage() {
   const params = useParams();
@@ -53,6 +54,10 @@ export default function PlayPage() {
 
   // Derived list used in multiple places
   const players = Object.values(playersById);
+
+  useEffect(() => {
+    preloadSounds(['start_sound']);
+  }, []);
   
   // Fetch current player data when switching to map or settings tab
   useEffect(() => {
@@ -284,6 +289,8 @@ export default function PlayPage() {
 
   const handleStartGame = async () => {
     if (!game || !user) return;
+
+    void playSound('start_sound');
     
     try {
       // Start countdown; database status becomes 'countdown'

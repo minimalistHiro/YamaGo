@@ -5,14 +5,14 @@
  * Example usage:
  *   import { playSound, preloadSounds, SoundName } from '@/lib/sounds';
  *   preloadSounds();
- *   playSound('start');
+ *   playSound('start_sound');
  */
 
-export type SoundName = 'start' | 'hit' | 'notify' | 'kodou_sound';
+export type SoundName = 'start_sound' | 'hit' | 'notify' | 'kodou_sound';
 
 // Map sound keys to public URLs
 const soundPathByName: Record<SoundName, string> = {
-  start: '/sounds/start.mp3',
+  start_sound: '/sounds/start_sound.mp3',
   hit: '/sounds/hit.mp3',
   notify: '/sounds/notify.mp3',
   kodou_sound: '/sounds/kodou_sound.mp3',
@@ -44,4 +44,3 @@ export async function playSound(name: SoundName, options?: { volume?: number }) 
     // Caller can trigger again on user gesture
   }
 }
-
