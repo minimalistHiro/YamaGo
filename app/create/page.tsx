@@ -235,7 +235,7 @@ export default function CreatePage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full btn-primary disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-xl uppercase tracking-[0.25em]"
+            className="w-full btn-primary disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-full uppercase tracking-[0.25em]"
           >
             {isLoading ? '作成中...' : 'ゲームを作成'}
           </button>

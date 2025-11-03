@@ -304,7 +304,7 @@ export default function JoinPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full btn-accent disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-xl transition-transform"
+            className="w-full btn-accent disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-full transition-transform"
           >
             {isLoading ? '参加中...' : 'ゲームに参加'}
           </button>

@@ -58,14 +58,14 @@ export default function Home() {
         <div className="space-y-4">
           <Link 
             href="/join"
-            className="block w-full btn-accent py-3 px-6 rounded-xl font-semibold"
+            className="block w-full btn-accent py-3 px-6 rounded-full font-semibold"
           >
             ゲームに参加
           </Link>
           
           <Link 
             href="/create"
-            className="block w-full btn-primary py-3 px-6 rounded-xl font-semibold"
+            className="block w-full btn-primary py-3 px-6 rounded-full font-semibold"
           >
             ゲームを作成
           </Link>
