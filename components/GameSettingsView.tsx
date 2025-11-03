@@ -18,6 +18,7 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
   const [captureRadiusM, setCaptureRadiusM] = useState<number>(100);
   const [runnerSeeKillerRadiusM, setRunnerSeeKillerRadiusM] = useState<number>(200);
   const [killerDetectRunnerRadiusM, setKillerDetectRunnerRadiusM] = useState<number>(500);
+  const [pinCount, setPinCount] = useState<number>(10);
   const [countdownMinutes, setCountdownMinutes] = useState<number>(0);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(20);
 
@@ -34,6 +35,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
         setCaptureRadiusM(gameData.captureRadiusM || 100);
         setRunnerSeeKillerRadiusM(gameData.runnerSeeKillerRadiusM || 200);
         setKillerDetectRunnerRadiusM(gameData.killerDetectRunnerRadiusM || 500);
+        const savedPinCount = Math.max(1, Math.min(20, gameData.pinCount ?? 10));
+        setPinCount(savedPinCount);
         
         // Convert countdownDurationSec to minutes and seconds
         const totalSeconds = gameData.countdownDurationSec || 900;
@@ -55,11 +58,13 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
       
       // Convert minutes and seconds to total seconds
       const totalCountdownSeconds = countdownMinutes * 60 + countdownSeconds;
+      const clampedPinCount = Math.max(1, Math.min(20, pinCount));
       
       await updateGame(gameId, {
         captureRadiusM,
         runnerSeeKillerRadiusM,
         killerDetectRunnerRadiusM,
+        pinCount: clampedPinCount,
         countdownDurationSec: totalCountdownSeconds
       });
       
@@ -110,6 +115,36 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
         )}
 
         <div className="space-y-6">
+          {/* Pin Count */}
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <h3 className="text-md font-medium text-gray-800 mb-4">発電所の数</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">設置数: {pinCount}個</span>
+                <span className="text-sm text-gray-500 font-mono">{pinCount}</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                step="1"
+                value={pinCount}
+                onChange={(e) => setPinCount(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #fbbf24 0%, #fbbf24 ${((pinCount - 1) / 19) * 100}%, #e5e7eb ${((pinCount - 1) / 19) * 100}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>1</span>
+                <span>20</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                ゲーム開始時にマップへ配置される発電所（黄色ピン）の数です。1〜20個の範囲で設定できます（初期値: 10個）。
+              </p>
+            </div>
+          </div>
+
           {/* Capture Radius */}
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <h3 className="text-md font-medium text-gray-800 mb-4">捕獲半径</h3>
@@ -254,4 +289,3 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
     </div>
   );
 }
-

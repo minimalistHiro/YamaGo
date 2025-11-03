@@ -422,6 +422,7 @@ export default function PlayPage() {
             gameId={gameId}
             runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
             killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
+            pinTargetCount={game.pinCount ?? 10}
           />
 
           {/* Capture Popup for Oni */}

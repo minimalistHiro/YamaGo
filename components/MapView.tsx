@@ -37,6 +37,7 @@ interface MapViewProps {
   gameId?: string;
   runnerSeeKillerRadiusM?: number;
   killerDetectRunnerRadiusM?: number;
+  pinTargetCount?: number;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -74,8 +75,9 @@ export default function MapView({
   gameStartAt,
   captureRadiusM = 100,
   gameId,
-  runnerSeeKillerRadiusM = 200
-  , killerDetectRunnerRadiusM = 500
+  runnerSeeKillerRadiusM = 200,
+  killerDetectRunnerRadiusM = 500,
+  pinTargetCount = 10,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -371,7 +373,7 @@ export default function MapView({
     }
   };
 
-  const placeRandomYellowPins = (count: number = 5) => {
+  const placeRandomYellowPins = (count: number = pinTargetCount) => {
     if (!map.current) return;
     const bounds = getYamanoteBounds();
     const [minLng, minLat] = bounds[0];
@@ -379,7 +381,8 @@ export default function MapView({
 
     clearRandomPins();
     const generated: Array<{ lat: number; lng: number }> = [];
-    for (let i = 0; i < count; i++) {
+    const effectiveCount = Math.max(1, Math.min(20, count));
+    for (let i = 0; i < effectiveCount; i++) {
       const lng = minLng + Math.random() * (maxLng - minLng);
       const lat = minLat + Math.random() * (maxLat - minLat);
       generated.push({ lat, lng });
@@ -1053,7 +1056,7 @@ export default function MapView({
         // Game should start automatically when countdown reaches 0
         // Notify parent component to update database
         if (!randomPinsPlacedRef.current && isMapLoaded && map.current) {
-          placeRandomYellowPins(5);
+          placeRandomYellowPins();
         }
         if (onCountdownEnd) {
           onCountdownEnd();
@@ -1070,7 +1073,7 @@ export default function MapView({
     return () => {
       clearInterval(interval);
     };
-  }, [localCountdownStartAt, countdownStartAt, countdownDurationSec, gameStatus]);
+  }, [localCountdownStartAt, countdownStartAt, countdownDurationSec, gameStatus, pinTargetCount]);
 
   // Clear local countdown when Firestore countdown is confirmed
   useEffect(() => {

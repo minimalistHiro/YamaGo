@@ -211,6 +211,7 @@ export default function AdminPage() {
           players={mapPlayers}
           currentUserRole="oni"
           gameStatus={game.status}
+          pinTargetCount={game.pinCount ?? 10}
         />
         
         {/* HUD Overlay */}
