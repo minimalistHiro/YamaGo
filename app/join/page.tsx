@@ -83,7 +83,7 @@ export default function JoinPage() {
     if (!projectId) {
       throw new Error('Firebase プロジェクトIDが設定されていません');
     }
-    return `https://us-central1-${projectId}.cloudfunctions.net/uploadAvatar`;
+    return `https://us-central1-${projectId}.cloudfunctions.net/uploadAvatarHttp`;
   };
 
   const uploadAvatarViaHttp = async (file: File, idToken: string): Promise<string> => {

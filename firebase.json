@@ -8,7 +8,12 @@
   },
   "functions": {
     "source": "functions",
-    "runtime": "nodejs20"
+    "runtime": "nodejs20",
+    "endpoints": {
+      "uploadAvatarHttp": {
+        "invoker": "public"
+      }
+    }
   },
   "emulators": {
     "auth": {

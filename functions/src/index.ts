@@ -6,7 +6,7 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
-export const uploadAvatar = functions
+export const uploadAvatarHttp = functions
   .region('us-central1')
   .https.onRequest(async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');

@@ -33,13 +33,13 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.endGameWhenAllRunnersCaptured = exports.getGameStats = exports.becomeOwner = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.onCaptureRequest = exports.rescue = exports.uploadAvatar = void 0;
+exports.endGameWhenAllRunnersCaptured = exports.getGameStats = exports.becomeOwner = exports.ingestLocation = exports.setOwnerOnFirstPlayerJoin = exports.onGameStart = exports.onLocationWrite = exports.onCaptureRequest = exports.rescue = exports.uploadAvatarHttp = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const crypto_1 = require("crypto");
 admin.initializeApp();
 const db = admin.firestore();
-exports.uploadAvatar = functions
+exports.uploadAvatarHttp = functions
     .region('us-central1')
     .https.onRequest(async (req, res) => {
     var _a;
