@@ -17,6 +17,17 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// Normalize common misconfiguration: developers sometimes copy the
+// "firebasestorage.googleapis.com" URL instead of the bucket host.
+if (firebaseConfig.storageBucket?.endsWith('.firebasestorage.com')) {
+  const normalizedBucket = firebaseConfig.storageBucket.replace(/\.firebasestorage\.com$/i, '.appspot.com');
+  console.warn(
+    '[YamaGo] Storage bucket misconfigured as *.firebasestorage.com. ' +
+    `Normalizing to ${normalizedBucket} so uploads succeed.`
+  );
+  firebaseConfig.storageBucket = normalizedBucket;
+}
+
 type FirebaseClientConfig = typeof firebaseConfig;
 
 declare global {

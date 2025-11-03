@@ -115,7 +115,14 @@ export default function JoinPage() {
       router.replace(`/play/${gameId}`);
     } catch (err) {
       console.error('Join game error:', err);
-      setError('ゲームに参加できませんでした。ゲームIDを確認してください。');
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('画像のアップロード')) {
+        setError(message);
+      } else if (message.includes('storage') && message.includes('bucket')) {
+        setError('画像のアップロードに失敗しました。ストレージ設定を確認してください。');
+      } else {
+        setError('ゲームに参加できませんでした。ゲームIDを確認してください。');
+      }
     } finally {
       setIsLoading(false);
     }
