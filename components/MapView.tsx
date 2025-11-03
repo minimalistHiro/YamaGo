@@ -417,10 +417,25 @@ export default function MapView({
         source: sourceId,
         paint: {
           'circle-radius': 6,
-          'circle-color': '#f59e0b',
-          'circle-stroke-color': '#d97706',
+          'circle-color': [
+            'case',
+            ['boolean', ['get', 'cleared'], false],
+            '#9ca3af',
+            '#f59e0b'
+          ],
+          'circle-stroke-color': [
+            'case',
+            ['boolean', ['get', 'cleared'], false],
+            '#6b7280',
+            '#d97706'
+          ],
           'circle-stroke-width': 2,
-          'circle-opacity': 0.95,
+          'circle-opacity': [
+            'case',
+            ['boolean', ['get', 'cleared'], false],
+            0.6,
+            0.95
+          ],
         },
       });
     }

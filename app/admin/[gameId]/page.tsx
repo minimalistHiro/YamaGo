@@ -222,6 +222,7 @@ export default function AdminPage() {
           runnerCount={runnerCount}
           runnerCapturedCount={runnerCapturedCount}
           generatorsClearedCount={0}
+          pinTargetCount={game.pinCount ?? 10}
           onStartGame={(game.status === 'pending' || game.status === 'ended') ? handleStartGame : undefined}
           onEndGame={game.status === 'running' ? handleEndGame : undefined}
         />

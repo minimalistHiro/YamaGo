@@ -14,6 +14,7 @@ interface HUDProps {
   capturedTimes?: number;
   runnerCapturedCount?: number;
   generatorsClearedCount?: number;
+  pinTargetCount?: number;
 }
 
 export default function HUD({
@@ -27,7 +28,8 @@ export default function HUD({
   captures = 0,
   capturedTimes = 0,
   runnerCapturedCount = 0,
-  generatorsClearedCount = 0
+  generatorsClearedCount = 0,
+  pinTargetCount,
 }: HUDProps) {
   const [timeLeft, setTimeLeft] = useState(timeRemaining || 0);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -122,7 +124,12 @@ export default function HUD({
 
             {/* Generators */}
             <div className="border-t pt-2 space-y-1">
-              <div className="text-sm font-medium text-yellow-500">発電所</div>
+              <div className="flex items-center justify-between text-sm font-medium text-yellow-500">
+                <span>発電所</span>
+                {pinTargetCount !== undefined && (
+                  <span className="text-xs text-gray-500 font-semibold">{pinTargetCount}箇所</span>
+                )}
+              </div>
               <div className="flex justify-between text-xs text-gray-600 pl-2">
                 <span>解除済み:</span>
                 <span className="font-semibold">{generatorsClearedCount}箇所</span>

@@ -450,6 +450,7 @@ export default function PlayPage() {
             runnerCount={runnerCount}
             runnerCapturedCount={runnerCapturedCount}
             generatorsClearedCount={generatorsClearedCount}
+            pinTargetCount={game.pinCount ?? 10}
             captures={currentPlayer.stats.captures}
             capturedTimes={currentPlayer.stats.capturedTimes}
           />
