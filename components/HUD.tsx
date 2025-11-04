@@ -128,7 +128,7 @@ export default function HUD({
               <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.25em] text-app">
                 <span className="text-cyber-gold">発電所</span>
                 {pinTargetCount !== undefined && (
-                  <span className="text-[10px] text-muted font-semibold">{pinTargetCount}箇所</span>
+                  <span className="text-[10px] text-app font-semibold">{pinTargetCount}箇所</span>
                 )}
               </div>
               <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em] pl-2">

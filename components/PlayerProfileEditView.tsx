@@ -147,7 +147,7 @@ export default function PlayerProfileEditView({
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
                 maxLength={20}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-cyber-green/60 focus:border-cyber-green/60"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-cyber-green/60 focus:border-cyber-green/60"
                 placeholder="ユーザー名を入力"
               />
               <p className="text-xs text-gray-400 mt-1 text-right">{nickname.length}/20</p>
