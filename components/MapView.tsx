@@ -38,6 +38,7 @@ interface MapViewProps {
   runnerSeeKillerRadiusM?: number;
   killerDetectRunnerRadiusM?: number;
   pinTargetCount?: number;
+  gameDurationSec?: number | null;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -78,6 +79,7 @@ export default function MapView({
   runnerSeeKillerRadiusM = 200,
   killerDetectRunnerRadiusM = 500,
   pinTargetCount = 10,
+  gameDurationSec,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -94,7 +96,7 @@ export default function MapView({
   const [countdownTimeLeft, setCountdownTimeLeft] = useState<number | null>(null);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
   const [localCountdownStartAt, setLocalCountdownStartAt] = useState<Date | null>(null);
-  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [gameTimeRemaining, setGameTimeRemaining] = useState<number | null>(null);
   const [nearbyPin, setNearbyPin] = useState<PinPoint | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
@@ -1107,18 +1109,20 @@ export default function MapView({
     }
   }, [countdownStartAt, localCountdownStartAt]);
 
-  // Calculate elapsed time since game start
+  // Calculate remaining time until game ends
   useEffect(() => {
     if (!gameStartAt || gameStatus !== 'running') {
-      setElapsedTime(0);
+      setGameTimeRemaining(null);
       return;
     }
 
     const updateElapsedTime = () => {
       const now = Date.now();
       const startTime = gameStartAt.getTime();
+      const durationSec = gameDurationSec ?? 7200;
       const elapsed = Math.floor((now - startTime) / 1000); // elapsed time in seconds
-      setElapsedTime(elapsed);
+      const remaining = Math.max(0, durationSec - elapsed);
+      setGameTimeRemaining(remaining);
     };
 
     // Initial update
@@ -1130,7 +1134,7 @@ export default function MapView({
     return () => {
       clearInterval(interval);
     };
-  }, [gameStartAt, gameStatus]);
+  }, [gameStartAt, gameStatus, gameDurationSec]);
 
   // Stop and clear countdown when game status becomes ended
   useEffect(() => {
@@ -1155,10 +1159,14 @@ export default function MapView({
     }
   }, [currentUserRole, players, currentUserId, isMapLoaded]);
 
-  // Format elapsed time as MM:SS
-  const formatElapsedTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
+  // Format duration as hh:mm:ss or mm:ss
+  const formatDuration = (seconds: number): string => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -1175,7 +1183,7 @@ export default function MapView({
         </div>
       )}
       
-      {/* Game status and elapsed time - always visible when game is running */}
+      {/* Game status and remaining time - always visible when game is running */}
       {gameStatus === 'running' && (
         <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 space-y-2" style={{ zIndex: 60 }}>
           <div className="flex items-center space-x-2">
@@ -1184,12 +1192,12 @@ export default function MapView({
               {currentUserRole === 'oni' ? '鬼' : (currentState && currentState !== 'active' ? '逃走者（捕獲済み）' : '逃走者')}
             </span>
           </div>
-          {/* Elapsed time display - starts counting from when "ゲーム開始" button was pressed (startAt in database) */}
-          {gameStartAt && (
+          {/* Remaining time display */}
+          {gameStartAt && gameTimeRemaining !== null && (
             <div className="flex items-center space-x-2 pt-1 border-t border-gray-200">
-              <span className="text-xs text-gray-500">経過時間</span>
+              <span className="text-xs text-gray-500">残り時間</span>
               <span className="text-lg font-mono font-bold text-gray-800">
-                {formatElapsedTime(elapsedTime)}
+                {formatDuration(gameTimeRemaining)}
               </span>
             </div>
           )}

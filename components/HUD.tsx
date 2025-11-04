@@ -31,17 +31,19 @@ export default function HUD({
   generatorsClearedCount = 0,
   pinTargetCount,
 }: HUDProps) {
-  const [timeLeft, setTimeLeft] = useState(timeRemaining || 0);
+  const [timeLeft, setTimeLeft] = useState<number | null>(timeRemaining ?? null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     if (timeRemaining !== undefined) {
       setTimeLeft(timeRemaining);
+    } else {
+      setTimeLeft(null);
     }
   }, [timeRemaining]);
 
   useEffect(() => {
-    if (gameStatus === 'running' && timeLeft > 0) {
+    if (gameStatus === 'running' && timeLeft !== null && timeLeft > 0) {
       const timer = setInterval(() => {
         setTimeLeft(prev => Math.max(0, prev - 1));
       }, 1000);
@@ -56,9 +58,9 @@ export default function HUD({
     const secs = seconds % 60;
     
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -93,7 +95,7 @@ export default function HUD({
         {!isCollapsed && (
           <>
             {/* Timer */}
-            {gameStatus === 'running' && timeLeft > 0 && (
+            {gameStatus === 'running' && timeLeft !== null && (
               <div className="text-center">
                 <div className="text-2xl font-mono font-bold text-cyber-green drop-shadow-[0_0_12px_rgba(34,181,155,0.45)]">
                   {formatTime(timeLeft)}

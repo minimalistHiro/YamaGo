@@ -23,6 +23,7 @@ export interface Game {
   id: string;
   status: 'pending' | 'countdown' | 'running' | 'ended';
   startAt: Timestamp | null;
+  gameDurationSec?: number | null;
   captureRadiusM: number;
   runnerSeeKillerRadiusM?: number;
   killerDetectRunnerRadiusM?: number;
@@ -126,6 +127,7 @@ export async function createGame(ownerUid: string, gameData: Partial<Game> = {})
       killerDetectRunnerRadiusM: 500,
       pinCount: 10,
       startDelaySec: 1800, // 30 minutes
+      gameDurationSec: 7200, // 2 hours
       countdownDurationSec: 900, // 15 minutes
       ownerUid,
       createdAt: serverTimestamp() as Timestamp,

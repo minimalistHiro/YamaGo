@@ -211,6 +211,10 @@ export default function AdminPage() {
           players={mapPlayers}
           currentUserRole="oni"
           gameStatus={game.status}
+          countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
+          countdownDurationSec={game.countdownDurationSec}
+          gameStartAt={game.startAt ? game.startAt.toDate() : null}
+          gameDurationSec={game.gameDurationSec ?? undefined}
           pinTargetCount={game.pinCount ?? 10}
         />
         

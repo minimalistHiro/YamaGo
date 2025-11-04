@@ -21,6 +21,7 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
   const [pinCount, setPinCount] = useState<number>(10);
   const [countdownMinutes, setCountdownMinutes] = useState<number>(0);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(20);
+  const [gameDurationMinutes, setGameDurationMinutes] = useState<number>(120);
 
   useEffect(() => {
     loadGameSettings();
@@ -42,6 +43,9 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
         const totalSeconds = gameData.countdownDurationSec || 900;
         setCountdownMinutes(Math.floor(totalSeconds / 60));
         setCountdownSeconds(totalSeconds % 60);
+
+        const totalGameDurationSec = gameData.gameDurationSec ?? 7200;
+        setGameDurationMinutes(Math.floor(totalGameDurationSec / 60));
       }
     } catch (err) {
       console.error('Error loading game settings:', err);
@@ -59,13 +63,15 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
       // Convert minutes and seconds to total seconds
       const totalCountdownSeconds = countdownMinutes * 60 + countdownSeconds;
       const clampedPinCount = Math.max(1, Math.min(20, pinCount));
+      const clampedGameDurationMinutes = Math.max(10, Math.min(480, gameDurationMinutes));
       
       await updateGame(gameId, {
         captureRadiusM,
         runnerSeeKillerRadiusM,
         killerDetectRunnerRadiusM,
         pinCount: clampedPinCount,
-        countdownDurationSec: totalCountdownSeconds
+        countdownDurationSec: totalCountdownSeconds,
+        gameDurationSec: clampedGameDurationMinutes * 60
       });
       
       // Show success message then automatically return
@@ -89,6 +95,26 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
       </div>
     );
   }
+
+  const formatGameDurationLabel = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    const parts: string[] = [];
+
+    if (hours > 0) {
+      parts.push(`${hours}時間`);
+    }
+
+    if (mins > 0) {
+      parts.push(`${mins}分`);
+    }
+
+    if (parts.length === 0) {
+      parts.push('0分');
+    }
+
+    return parts.join(' ');
+  };
 
   return (
     <div className="h-full bg-app flex flex-col">
@@ -142,6 +168,40 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
               </div>
               <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
                 ゲーム開始時にマップへ配置される発電所（黄色ピン）の数です。1〜20個の範囲で設定できます（初期値: 10個）。
+              </p>
+            </div>
+          </div>
+
+          {/* Game Duration */}
+          <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
+            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">ゲーム時間</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted uppercase tracking-[0.25em]">
+                  長さ: {formatGameDurationLabel(gameDurationMinutes)}
+                </span>
+                <span className="text-xs text-cyber-glow font-mono tracking-[0.3em]">
+                  {gameDurationMinutes}分
+                </span>
+              </div>
+              <input
+                type="range"
+                min={10}
+                max={480}
+                step={5}
+                value={gameDurationMinutes}
+                onChange={(e) => setGameDurationMinutes(Number(e.target.value))}
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green"
+                style={{
+                  background: `linear-gradient(to right, rgba(34,181,155,0.9) 0%, rgba(34,181,155,0.9) ${((gameDurationMinutes - 10) / 470) * 100}%, rgba(5,28,34,0.8) ${((gameDurationMinutes - 10) / 470) * 100}%, rgba(5,28,34,0.8) 100%)`
+                }}
+              />
+              <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em]">
+                <span>10分</span>
+                <span>8時間</span>
+              </div>
+              <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
+                ゲーム開始から終了までの制限時間です。10分〜8時間の範囲で設定できます（初期値: 2時間）。
               </p>
             </div>
           </div>

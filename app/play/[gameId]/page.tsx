@@ -46,6 +46,7 @@ export default function PlayPage() {
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [showGameEndPopup, setShowGameEndPopup] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const allPinsCleared = pins.length > 0 && pins.every(p => p.cleared);
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
@@ -149,6 +150,29 @@ export default function PlayPage() {
       setShowGameEndPopup(true);
     }
   }, [game?.status]);
+
+  // Track remaining time for HUD countdown
+  useEffect(() => {
+    if (!game || !game.startAt || game.status !== 'running') {
+      setTimeRemaining(null);
+      return;
+    }
+
+    const durationSec = game.gameDurationSec ?? 7200;
+    const startDate = game.startAt.toDate();
+
+    const updateRemaining = () => {
+      const now = Date.now();
+      const elapsed = Math.floor((now - startDate.getTime()) / 1000);
+      const remaining = Math.max(0, durationSec - elapsed);
+      setTimeRemaining(remaining);
+    };
+
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 1000);
+
+    return () => clearInterval(interval);
+  }, [game?.startAt?.seconds, game?.startAt?.nanoseconds, game?.status, game?.gameDurationSec]);
 
   const handleLocationUpdate = useCallback(async (lat: number, lng: number, accuracy: number) => {
     if (!user || !gameId) return;
@@ -423,6 +447,7 @@ export default function PlayPage() {
             runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
             killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
             pinTargetCount={game.pinCount ?? 10}
+            gameDurationSec={game.gameDurationSec ?? undefined}
           />
 
           {/* Capture Popup for Oni */}
@@ -445,6 +470,7 @@ export default function PlayPage() {
           {/* HUD Overlay */}
           <HUD
             gameStatus={game.status}
+            timeRemaining={timeRemaining ?? undefined}
             playerCount={players.length}
             oniCount={oniCount}
             runnerCount={runnerCount}
