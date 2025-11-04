@@ -204,7 +204,6 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
             const playerProfile = playersByUid[message.uid];
             const displayNickname = message.nickname || playerProfile?.nickname || '';
             const avatarUrl = playerProfile?.avatarUrl;
-            const avatarInitial = displayNickname ? displayNickname.charAt(0).toUpperCase() : '?';
 
             return (
               <div
@@ -225,9 +224,11 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-xs font-semibold text-cyber-glow tracking-[0.25em] uppercase">
-                          {avatarInitial}
-                        </span>
+                        <img
+                          src="/icons/default-avatar.svg"
+                          alt="デフォルトアイコン"
+                          className="w-5 h-5 opacity-80"
+                        />
                       )}
                     </div>
                     {displayNickname && (

@@ -280,7 +280,7 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full btn-accent disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-xl uppercase tracking-[0.3em]"
+              className="w-full btn-accent disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-6 rounded-full uppercase tracking-[0.3em]"
             >
               {isSaving ? '保存中...' : '設定を保存'}
             </button>
