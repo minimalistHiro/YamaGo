@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { deletePlayer, getGame, Game, updateGame } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
 import GameSettingsView from './GameSettingsView';
+import PlayerProfileEditView from './PlayerProfileEditView';
 
 interface SettingsViewProps {
   gameId: string;
@@ -21,7 +21,6 @@ interface SettingsViewProps {
 }
 
 export default function SettingsView({ gameId, currentUser, onGameExit }: SettingsViewProps) {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [uidCopied, setUidCopied] = useState(false);
@@ -31,6 +30,12 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
   const [showRoleAssignment, setShowRoleAssignment] = useState(false);
   const [showGameSettings, setShowGameSettings] = useState(false);
   const [showBecomeOwnerConfirm, setShowBecomeOwnerConfirm] = useState(false);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [userProfile, setUserProfile] = useState(currentUser);
+
+  useEffect(() => {
+    setUserProfile(currentUser);
+  }, [currentUser.uid, currentUser.nickname, currentUser.role, currentUser.avatarUrl]);
 
   useEffect(() => {
     loadGameInfo();
@@ -59,14 +64,14 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
       console.log('Starting game exit process...');
       
       // Delete avatar from storage if exists
-      if (currentUser.avatarUrl) {
+      if (userProfile.avatarUrl) {
         console.log('Deleting avatar from storage...');
-        await deleteAvatarFromStorage(currentUser.avatarUrl);
+        await deleteAvatarFromStorage(userProfile.avatarUrl);
       }
       
       // Delete player data from database
       console.log('Deleting player data...');
-      await deletePlayer(gameId, currentUser.uid);
+      await deletePlayer(gameId, userProfile.uid);
       console.log('Player data deleted successfully');
       
       // Delete user account
@@ -138,7 +143,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
 
   const handleCopyUid = async () => {
     try {
-      await navigator.clipboard.writeText(currentUser.uid);
+      await navigator.clipboard.writeText(userProfile.uid);
       setUidCopied(true);
       setTimeout(() => setUidCopied(false), 2000);
     } catch (error) {
@@ -210,12 +215,29 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
 
   // Show role assignment view if requested
   if (showRoleAssignment) {
-    return <RoleAssignmentView gameId={gameId} onBack={handleBackFromRoleAssignment} currentUserId={currentUser.uid} />;
+    return <RoleAssignmentView gameId={gameId} onBack={handleBackFromRoleAssignment} currentUserId={userProfile.uid} />;
   }
 
   // Show game settings view if requested
   if (showGameSettings) {
     return <GameSettingsView gameId={gameId} onBack={handleBackFromGameSettings} />;
+  }
+
+  if (showProfileEditor) {
+    return (
+      <PlayerProfileEditView
+        gameId={gameId}
+        user={userProfile}
+        onBack={() => setShowProfileEditor(false)}
+        onProfileUpdated={(profile) => {
+          setUserProfile((prev) => ({
+            ...prev,
+            ...profile
+          }));
+          setShowProfileEditor(false);
+        }}
+      />
+    );
   }
 
   return (
@@ -235,24 +257,38 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
           {/* Avatar */}
           <div className="flex items-center space-x-4 mb-4">
             <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-gray-300">
-              {currentUser.avatarUrl ? (
+              {userProfile.avatarUrl ? (
                 <img
-                  src={currentUser.avatarUrl}
+                  src={userProfile.avatarUrl}
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className={`w-full h-full ${currentUser.role === 'oni' ? 'bg-red-500' : 'bg-green-500'} flex items-center justify-center`}>
-                  <span className="text-white font-bold text-xl">
-                    {currentUser.nickname.charAt(0).toUpperCase()}
-                  </span>
+                <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                  <img
+                    src="/icons/default-avatar.svg"
+                    alt="デフォルトアイコン"
+                    className="w-10 h-10 opacity-80"
+                  />
                 </div>
               )}
             </div>
-            <div>
-              <h4 className="font-medium text-gray-800">{currentUser.nickname}</h4>
-              <p className={`text-sm ${currentUser.role === 'oni' ? 'text-red-600' : 'text-green-600'}`}>
-                {currentUser.role === 'oni' ? '鬼' : '逃走者'}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-gray-800 truncate">{userProfile.nickname}</h4>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileEditor(true)}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5h2m-8 4h10M5 13h10m-6 4h6" />
+                  </svg>
+                  編集
+                </button>
+              </div>
+              <p className={`text-sm ${userProfile.role === 'oni' ? 'text-red-600' : 'text-green-600'}`}>
+                {userProfile.role === 'oni' ? '鬼' : '逃走者'}
               </p>
             </div>
           </div>
@@ -260,12 +296,12 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-600">ニックネーム:</span>
-              <span className="font-medium">{currentUser.nickname}</span>
+              <span className="font-medium">{userProfile.nickname}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">役職:</span>
-              <span className={`font-medium ${currentUser.role === 'oni' ? 'text-red-600' : 'text-green-600'}`}>
-                {currentUser.role === 'oni' ? '鬼' : '逃走者'}
+              <span className={`font-medium ${userProfile.role === 'oni' ? 'text-red-600' : 'text-green-600'}`}>
+                {userProfile.role === 'oni' ? '鬼' : '逃走者'}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -296,7 +332,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
             <div className="flex justify-between items-center">
               <span className="text-gray-600">ユーザーID:</span>
               <div className="flex items-center space-x-2">
-                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{currentUser.uid}</span>
+                <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{userProfile.uid}</span>
                 <button
                   onClick={handleCopyUid}
                   className={`p-1 rounded-full transition-colors ${
