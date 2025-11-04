@@ -11,7 +11,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { getFirebaseServices } from '../lib/firebase/client';
-import { getPlayer } from '../lib/game';
+import { getPlayer, subscribeToPlayers, type Player } from '../lib/game';
 
 interface ChatMessage {
   id: string;
@@ -36,6 +36,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [playerRole, setPlayerRole] = useState<'oni' | 'runner' | null>(null);
+  const [playersByUid, setPlayersByUid] = useState<Record<string, Player>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +94,22 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       unsubscribe();
     };
   }, [gameId, playerRole]);
+
+  useEffect(() => {
+    if (!gameId) return;
+
+    const unsubscribe = subscribeToPlayers(gameId, (players) => {
+      const mapped = players.reduce<Record<string, Player>>((acc, player) => {
+        acc[player.uid] = player;
+        return acc;
+      }, {});
+      setPlayersByUid(mapped);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [gameId]);
 
   const scrollToBottom = () => {
     const container = messagesContainerRef.current;
@@ -181,46 +198,73 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-4 pb-6"
       >
         <div className="space-y-3">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex flex-col first:mt-0 ${
-                message.uid === currentUser.uid ? 'items-end' : 'items-start'
-              }`}
-            >
-              {message.uid !== currentUser.uid && message.type === 'user' && (
-                <div className="flex items-center mb-1">
-                  <div className="w-7 h-7 bg-[rgba(3,22,27,0.8)] border border-cyber-green/35 rounded-full flex items-center justify-center mr-2 shadow-[0_0_12px_rgba(34,181,155,0.25)]">
-                    <span className="text-xs font-semibold text-cyber-glow tracking-[0.25em] uppercase">
-                      {message.nickname.charAt(0)}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-medium text-muted tracking-[0.25em] uppercase">
-                    {message.nickname}
-                  </span>
-                </div>
-              )}
+          {messages.map((message) => {
+            const isCurrentUser = message.uid === currentUser.uid;
+            const isUserMessage = message.type === 'user';
+            const playerProfile = playersByUid[message.uid];
+            const displayNickname = message.nickname || playerProfile?.nickname || '';
+            const avatarUrl = playerProfile?.avatarUrl;
+            const avatarInitial = displayNickname ? displayNickname.charAt(0).toUpperCase() : '?';
+
+            return (
               <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.type === 'system'
-                    ? `${systemBubbleTheme} mx-auto`
-                    : message.uid === currentUser.uid
-                    ? myBubbleTheme
-                    : otherBubbleTheme
-                }`}
+                key={message.id}
+                className={`flex flex-col first:mt-0 ${isCurrentUser ? 'items-end' : 'items-start'}`}
               >
-                <div className="text-sm leading-relaxed">{message.message}</div>
+                {isUserMessage && (
+                  <div
+                    className={`flex items-center mb-1 gap-2 ${
+                      isCurrentUser ? 'justify-end flex-row-reverse' : ''
+                    }`}
+                  >
+                    <div className="w-7 h-7 bg-[rgba(3,22,27,0.8)] border border-cyber-green/35 rounded-full flex items-center justify-center shadow-[0_0_12px_rgba(34,181,155,0.25)] overflow-hidden">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={`${displayNickname || 'ユーザー'}のアイコン`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-semibold text-cyber-glow tracking-[0.25em] uppercase">
+                          {avatarInitial}
+                        </span>
+                      )}
+                    </div>
+                    {displayNickname && (
+                      <span
+                        className={`text-[10px] font-medium text-muted tracking-[0.25em] uppercase ${
+                          isCurrentUser ? 'text-right' : ''
+                        }`}
+                      >
+                        {displayNickname}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div
+                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    message.type === 'system'
+                      ? `${systemBubbleTheme} mx-auto`
+                      : isCurrentUser
+                      ? myBubbleTheme
+                      : otherBubbleTheme
+                  }`}
+                >
+                  <div className="text-sm leading-relaxed">{message.message}</div>
+                </div>
+                <div
+                  className={`text-[10px] text-muted mt-1 tracking-[0.25em] uppercase ${
+                    isCurrentUser ? 'text-right' : 'text-left'
+                  }`}
+                >
+                  {message.timestamp?.toDate?.().toLocaleTimeString('ja-JP', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) || '--:--'}
+                </div>
               </div>
-              <div className={`text-[10px] text-muted mt-1 tracking-[0.25em] uppercase ${
-                message.uid === currentUser.uid ? 'text-right' : 'text-left'
-              }`}>
-                {message.timestamp?.toDate?.().toLocaleTimeString('ja-JP', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                }) || '--:--'}
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
       </section>
