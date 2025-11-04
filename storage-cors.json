@@ -1,0 +1,13 @@
+[
+  {
+    "origin": [
+      "https://yama-cn2zuo2l0-minimalisthiros-projects.vercel.app",
+      "https://*.vercel.app",
+      "http://localhost:3000",
+      "https://localhost:3000"
+    ],
+    "method": ["GET", "HEAD", "POST", "PUT"],
+    "responseHeader": ["Content-Type", "Authorization", "x-goog-meta-*"],
+    "maxAgeSeconds": 3600
+  }
+]

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInAnonymously } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { joinGame, createGame } from '@/lib/game';
 
@@ -55,68 +56,19 @@ export default function JoinPage() {
     }
   };
 
-  const fileToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const result = reader.result;
-          if (typeof result !== 'string') {
-            reject(new Error('画像データを読み込めませんでした'));
-            return;
-          }
-          const commaIndex = result.indexOf(',');
-          const base64 = commaIndex >= 0 ? result.slice(commaIndex + 1) : result;
-          resolve(base64);
-        } catch (err) {
-          reject(err instanceof Error ? err : new Error('画像データの変換に失敗しました'));
-        }
-      };
-      reader.onerror = () => {
-        reject(new Error('画像データの読み込みに失敗しました'));
-      };
-      reader.readAsDataURL(file);
-    });
-
-  const getUploadEndpoint = () => {
-    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    if (!projectId) {
-      throw new Error('Firebase プロジェクトIDが設定されていません');
-    }
-    return `https://us-central1-${projectId}.cloudfunctions.net/uploadAvatarHttp`;
-  };
-
-  const uploadAvatarViaHttp = async (file: File, idToken: string): Promise<string> => {
+  const uploadAvatarToStorage = async (file: File, uid: string): Promise<string> => {
     try {
-      const base64Payload = await fileToBase64(file);
-      const response = await fetch(getUploadEndpoint(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          file: base64Payload,
-          contentType: file.type || 'application/octet-stream',
-          fileName: file.name || `avatar-${Date.now()}`,
-        }),
+      const { storage } = getFirebaseServices();
+      const extensionFromName = file.name?.split('.').pop()?.toLowerCase();
+      const extensionFromType = file.type.split('/').pop();
+      const safeExtension = (extensionFromName || extensionFromType || 'png').replace(/[^a-z0-9]/g, '');
+      const fileRef = ref(storage, `avatars/${uid}_${Date.now()}.${safeExtension}`);
+
+      await uploadBytes(fileRef, file, {
+        contentType: file.type || 'application/octet-stream',
       });
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        const message =
-          typeof payload?.message === 'string'
-            ? payload.message
-            : '画像のアップロードに失敗しました';
-        throw new Error(message);
-      }
-
-      const payload = (await response.json()) as { downloadUrl?: string };
-      if (!payload.downloadUrl || typeof payload.downloadUrl !== 'string') {
-        throw new Error('アップロードのレスポンスが不正です');
-      }
-
-      return payload.downloadUrl;
+      return await getDownloadURL(fileRef);
     } catch (error) {
       console.error('Avatar upload error:', error);
       throw new Error(`画像のアップロードに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -144,8 +96,7 @@ export default function JoinPage() {
       // Upload avatar image if selected
       let avatarUrl = '';
       if (selectedImage) {
-        const idToken = await userCredential.user.getIdToken();
-        avatarUrl = await uploadAvatarViaHttp(selectedImage, idToken);
+        avatarUrl = await uploadAvatarToStorage(selectedImage, uid);
       }
 
       // Do not update ownerUid here; rely on server-side logic and joinGame
@@ -199,8 +150,7 @@ export default function JoinPage() {
       let avatarUrl = '';
       if (selectedImage) {
         console.log('Uploading avatar image...');
-        const idToken = await userCredential.user.getIdToken();
-        avatarUrl = await uploadAvatarViaHttp(selectedImage, idToken);
+        avatarUrl = await uploadAvatarToStorage(selectedImage, uid);
         console.log('Avatar uploaded:', avatarUrl);
       }
 

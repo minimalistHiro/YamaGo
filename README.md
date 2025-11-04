@@ -145,7 +145,19 @@ firebase login
 firebase init
 ```
 
-### 4. 開発サーバー起動
+### 4. Storage の CORS 設定（ブラウザから直接アップロードする場合）
+
+`storage-cors.json` を編集し、`origin` に Vercel で公開するドメインとローカル開発用の URL を記載します。次に以下のコマンドで Cloud Storage に反映します。
+
+```bash
+# ログイン済み前提で実行
+gsutil cors set storage-cors.json gs://<your-project-id>.appspot.com
+
+# 反映内容を確認
+gsutil cors get gs://<your-project-id>.appspot.com
+```
+
+### 5. 開発サーバー起動
 
 ```bash
 # Firebase エミュレータを起動
@@ -155,7 +167,7 @@ firebase emulators:start
 npm run dev
 ```
 
-### 5. アクセス
+### 6. アクセス
 
 - **アプリ**: http://localhost:3000
 - **Firebase Emulator UI**: http://localhost:4000
@@ -311,4 +323,3 @@ RESCUE_COOLDOWN_SEC = 30        // 救助後クールダウン（秒）
 ## 📄 ライセンス
 
 MIT License
-
