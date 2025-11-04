@@ -125,8 +125,8 @@ export default function HUD({
             {/* Generators */}
             <div className="cyber-divider" />
             <div className="pt-2 space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.25em] text-cyber-gold">
-                <span>発電所</span>
+              <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.25em] text-app">
+                <span className="text-cyber-gold">発電所</span>
                 {pinTargetCount !== undefined && (
                   <span className="text-[10px] text-muted font-semibold">{pinTargetCount}箇所</span>
                 )}

@@ -220,7 +220,7 @@ export default function RoleAssignmentView({ gameId, onBack, currentUserId }: Ro
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <h5 className="font-medium text-gray-800 truncate">{player.nickname}</h5>
+                        <h5 className="font-medium text-gray-900 truncate">{player.nickname}</h5>
                         {currentUserId === player.uid && (
                           <span className="text-[10px] px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">自分</span>
                         )}
@@ -297,7 +297,7 @@ export default function RoleAssignmentView({ gameId, onBack, currentUserId }: Ro
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <h5 className="font-medium text-gray-800 truncate">{player.nickname}</h5>
+                        <h5 className="font-medium text-gray-900 truncate">{player.nickname}</h5>
                         {currentUserId === player.uid && (
                           <span className="text-[10px] px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">自分</span>
                         )}
