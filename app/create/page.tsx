@@ -140,7 +140,7 @@ export default function CreatePage() {
             <div className="space-y-3">
               <p className="text-xs text-muted uppercase tracking-[0.35em]">ゲームID</p>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <span className="font-mono text-base sm:flex-1 bg-[rgba(3,22,27,0.85)] border border-cyber-green/45 px-4 py-3 rounded-xl text-cyber-glow shadow-[0_0_20px_rgba(34,181,155,0.25)] tracking-[0.4em] uppercase">
+                <span className="font-mono text-base sm:flex-1 w-full break-all bg-[rgba(3,22,27,0.85)] border border-cyber-green/45 px-4 py-3 rounded-xl text-cyber-glow shadow-[0_0_20px_rgba(34,181,155,0.25)] tracking-[0.18em]">
                   {gameId}
                 </span>
                 <button
