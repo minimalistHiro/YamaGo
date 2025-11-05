@@ -122,7 +122,6 @@ export default function MapView({
   const [isClearing, setIsClearing] = useState(false);
   const [showGeneratorCleared, setShowGeneratorCleared] = useState(false);
   const [showGeneratorClearedAlert, setShowGeneratorClearedAlert] = useState(false);
-  const generatorAlertTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearedPinIdsRef = useRef<Set<string>>(new Set());
   const isInitialClearedCheckRef = useRef(true);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
@@ -146,17 +145,10 @@ export default function MapView({
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (generatorAlertTimeoutRef.current) {
-        clearTimeout(generatorAlertTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     if (currentUserRole === 'oni') {
       isInitialClearedCheckRef.current = true;
       clearedPinIdsRef.current = new Set<string>((pins || []).filter((p) => p.cleared).map((p) => p.id));
+      setShowGeneratorClearedAlert(false);
     }
   }, [currentUserRole]);
 
@@ -605,6 +597,7 @@ export default function MapView({
   useEffect(() => {
     if (!pins) {
       clearedPinIdsRef.current = new Set();
+      setShowGeneratorClearedAlert(false);
       return;
     }
 
@@ -620,19 +613,9 @@ export default function MapView({
       const isInitialCheck = isInitialClearedCheckRef.current;
       if (hasNewCleared && !isInitialCheck) {
         setShowGeneratorClearedAlert(true);
-        if (generatorAlertTimeoutRef.current) {
-          clearTimeout(generatorAlertTimeoutRef.current);
-        }
-        generatorAlertTimeoutRef.current = setTimeout(() => {
-          setShowGeneratorClearedAlert(false);
-        }, 3000);
       }
     } else {
       setShowGeneratorClearedAlert(false);
-      if (generatorAlertTimeoutRef.current) {
-        clearTimeout(generatorAlertTimeoutRef.current);
-        generatorAlertTimeoutRef.current = null;
-      }
     }
 
     isInitialClearedCheckRef.current = false;
@@ -1490,10 +1473,17 @@ export default function MapView({
       )}
 
       {showGeneratorClearedAlert && currentUserRole === 'oni' && (
-        <div className="absolute top-20 right-4 z-50">
-          <div className="bg-black/80 text-white px-4 py-3 rounded-lg shadow-lg border border-cyber-green/50">
-            <div className="text-lg font-semibold">⚡️ 発電機が解除されました！</div>
-            <div className="text-xs text-gray-200 mt-1">逃走者が発電所を1つ解除しました。</div>
+        <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/40">
+          <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-green/50 px-8 py-6 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
+            <div className="text-4xl mb-3">⚡️</div>
+            <p className="text-lg font-semibold text-primary">逃走者が発電機を解除しました！</p>
+            <p className="text-xs text-muted mt-2">状況を確認して対応しましょう。</p>
+            <button
+              className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
+              onClick={() => setShowGeneratorClearedAlert(false)}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

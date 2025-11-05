@@ -488,13 +488,15 @@ export default function PlayPage() {
 
           {/* Capture Popup for Oni */}
           {showCapturePopup && (
-            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-50">
-              <div className="bg-black/80 text-white px-4 py-3 rounded shadow-lg flex items-center space-x-4">
-                <div>
-                  <span className="font-semibold">{capturedTargetName}</span> を捕獲しました
-                </div>
+            <div className="absolute inset-0 flex items-center justify-center z-[120] bg-black/40">
+              <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-green/50 px-8 py-6 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
+                <div className="text-4xl mb-3">👹</div>
+                <p className="text-lg font-semibold text-primary">
+                  {capturedTargetName} を捕獲しました！
+                </p>
+                <p className="text-xs text-muted mt-2">逃走者の状況を確認しましょう。</p>
                 <button
-                  className="bg-white text-black px-3 py-1 rounded font-semibold hover:bg-gray-200"
+                  className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
                   onClick={() => setShowCapturePopup(false)}
                 >
                   OK
