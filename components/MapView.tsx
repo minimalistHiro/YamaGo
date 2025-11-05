@@ -8,7 +8,7 @@ import { haversine } from '@/lib/geo';
 import { 
   RESCUE_RADIUS_M 
 } from '@/lib/constants';
-import { setGamePins, type PinPoint, updatePinCleared, updateGame } from '@/lib/game';
+import { setGamePins, type PinPoint, updatePinCleared, updateGame, resetRunnersAndGenerators } from '@/lib/game';
 import { preloadSounds } from '@/lib/sounds';
 import { createBaseMapStyle } from '@/lib/mapStyle';
 
@@ -400,7 +400,7 @@ export default function MapView({
     }
   };
 
-  const placeRandomYellowPins = (count: number = pinTargetCount) => {
+  const placeRandomYellowPins = async (count: number = pinTargetCount): Promise<void> => {
     const bounds = getYamanoteBounds();
     const [minLng, minLat] = bounds[0];
     const [maxLng, maxLat] = bounds[1];
@@ -419,7 +419,7 @@ export default function MapView({
     // Persist to database only from the owner client to avoid duplicates
     if (isOwner && gameId) {
       try {
-        void setGamePins(gameId, generated.map(p => ({ lat: p.lat, lng: p.lng, type: 'yellow' })));
+        await setGamePins(gameId, generated.map(p => ({ lat: p.lat, lng: p.lng, type: 'yellow' })));
       } catch (e) {
         console.error('Failed to save pins:', e);
       }
@@ -1202,10 +1202,23 @@ export default function MapView({
   useEffect(() => {
     const previous = prevGameStatusRef.current;
     if (gameStatus === 'ended' && previous !== 'ended') {
-      placeRandomYellowPins(pinTargetCount);
+      void (async () => {
+        try {
+          await placeRandomYellowPins(pinTargetCount);
+        } catch (e) {
+          console.error('Failed to reshuffle generators on game end:', e);
+        }
+        if (isOwner && gameId) {
+          try {
+            await resetRunnersAndGenerators(gameId);
+          } catch (e) {
+            console.error('Failed to reset runners and generators:', e);
+          }
+        }
+      })();
     }
     prevGameStatusRef.current = gameStatus;
-  }, [gameStatus, pinTargetCount]);
+  }, [gameStatus, pinTargetCount, isOwner, gameId]);
 
   // Calculate remaining time until game ends
   useEffect(() => {

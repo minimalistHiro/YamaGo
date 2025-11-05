@@ -14,7 +14,8 @@ import {
   serverTimestamp,
   Timestamp,
   Firestore,
-  deleteField
+  deleteField,
+  writeBatch
 } from 'firebase/firestore';
 import { getFirebaseServices } from './firebase/client';
 
@@ -233,6 +234,34 @@ export async function updatePinPosition(
     lat,
     lng,
   });
+}
+
+export async function resetRunnersAndGenerators(gameId: string): Promise<void> {
+  const db = getDb();
+  const batch = writeBatch(db);
+
+  const playersSnapshot = await getDocs(collection(db, 'games', gameId, 'players'));
+  playersSnapshot.forEach((playerDoc) => {
+    batch.update(playerDoc.ref, {
+      state: 'active',
+      downs: 0,
+      lastDownAt: null,
+      lastRescuedAt: null,
+      lastRevealUntil: null,
+      cooldownUntil: null,
+    });
+  });
+
+  const pinsSnapshot = await getDocs(collection(db, 'games', gameId, 'pins'));
+  pinsSnapshot.forEach((pinDoc) => {
+    batch.update(pinDoc.ref, {
+      cleared: false,
+    });
+  });
+
+  if (!playersSnapshot.empty || !pinsSnapshot.empty) {
+    await batch.commit();
+  }
 }
 
 export async function setGamePins(
