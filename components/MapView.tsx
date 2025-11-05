@@ -40,6 +40,9 @@ interface MapViewProps {
   killerDetectRunnerRadiusM?: number;
   pinTargetCount?: number;
   gameDurationSec?: number | null;
+  pinEditingMode?: boolean;
+  onPinDragStart?: (pinId: string) => void;
+  onPinDragEnd?: (pinId: string, lat: number, lng: number) => void;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -81,6 +84,9 @@ export default function MapView({
   killerDetectRunnerRadiusM = 500,
   pinTargetCount = 10,
   gameDurationSec,
+  pinEditingMode = false,
+  onPinDragStart,
+  onPinDragEnd,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -90,6 +96,7 @@ export default function MapView({
   const randomPinsRef = useRef<maplibregl.Marker[]>([]);
   const randomPinsPlacedRef = useRef<boolean>(false);
   const kodouSoundRef = useRef<HTMLAudioElement | null>(null);
+  const editingMarkersRef = useRef<Record<string, maplibregl.Marker>>({});
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -101,6 +108,10 @@ export default function MapView({
   const [nearbyPin, setNearbyPin] = useState<PinPoint | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
+  const clearEditingMarkers = () => {
+    Object.values(editingMarkersRef.current).forEach((marker) => marker.remove());
+    editingMarkersRef.current = {};
+  };
 
   useEffect(() => {
     preloadSounds(['kodou_sound', 'start_sound']);
@@ -406,8 +417,18 @@ export default function MapView({
   // Render yellow pins via GeoJSON
   useEffect(() => {
     if (!map.current || !isMapLoaded) return;
-
     const sourceId = 'game-pins';
+
+    if (pinEditingMode) {
+      if (map.current.getLayer('game-pins-layer')) {
+        map.current.removeLayer('game-pins-layer');
+      }
+      if (map.current.getSource(sourceId)) {
+        map.current.removeSource(sourceId);
+      }
+      return;
+    }
+
     if (!map.current.getSource(sourceId)) {
       map.current.addSource(sourceId, {
         type: 'geojson',
@@ -456,7 +477,69 @@ export default function MapView({
     if (src) {
       (src as any).setData(featureCollection as any);
     }
-  }, [pins, isMapLoaded]);
+  }, [pins, isMapLoaded, pinEditingMode]);
+
+  useEffect(() => {
+    if (!map.current || !isMapLoaded) {
+      clearEditingMarkers();
+      return;
+    }
+    if (!pinEditingMode) {
+      clearEditingMarkers();
+      return;
+    }
+
+    const markers = editingMarkersRef.current;
+    const nextIds = new Set(pins.map((p) => p.id));
+
+    // Remove markers no longer present
+    Object.keys(markers).forEach((pinId) => {
+      if (!nextIds.has(pinId)) {
+        markers[pinId].remove();
+        delete markers[pinId];
+      }
+    });
+
+    pins.forEach((pin, index) => {
+      let marker = markers[pin.id];
+
+      if (!marker) {
+        const el = document.createElement('div');
+        el.className = 'relative flex h-9 w-9 items-center justify-center';
+        const circle = document.createElement('div');
+        circle.className =
+          'h-6 w-6 rounded-full border border-[#d97706] bg-[#f59e0b] shadow-[0_4px_12px_rgba(245,158,11,0.4)]';
+        const label = document.createElement('span');
+        label.className =
+          'absolute -bottom-3 text-[10px] font-semibold uppercase tracking-wider text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]';
+        label.setAttribute('data-pin-label', 'true');
+        label.textContent = `#${index + 1}`;
+        el.appendChild(circle);
+        el.appendChild(label);
+
+        marker = new maplibregl.Marker({ element: el, draggable: true })
+          .setLngLat([pin.lng, pin.lat])
+          .addTo(map.current!);
+
+        marker.on('dragstart', () => {
+          onPinDragStart?.(pin.id);
+        });
+
+        marker.on('dragend', () => {
+          const { lat, lng } = marker!.getLngLat();
+          void onPinDragEnd?.(pin.id, lat, lng);
+        });
+
+        markers[pin.id] = marker;
+      } else {
+        marker.setLngLat([pin.lng, pin.lat]);
+        const label = marker.getElement().querySelector('[data-pin-label]');
+        if (label) {
+          label.textContent = `#${index + 1}`;
+        }
+      }
+    });
+  }, [pinEditingMode, pins, isMapLoaded, onPinDragEnd, onPinDragStart]);
 
   // Detect nearby uncleared pin for runner within capture radius
   useEffect(() => {
@@ -564,10 +647,12 @@ export default function MapView({
              });
 
                         // Auto-get current location when map loads
-             setTimeout(() => {
-               console.log('Map loaded, requesting current location...');
-               getCurrentLocation();
-             }, 1000); // 1秒後に位置取得を実行
+             if (!pinEditingMode) {
+               setTimeout(() => {
+                 console.log('Map loaded, requesting current location...');
+                 getCurrentLocation();
+               }, 1000); // 1秒後に位置取得を実行
+             }
            });
 
     return () => {
@@ -575,6 +660,7 @@ export default function MapView({
         if (currentLocationMarker.current) {
           currentLocationMarker.current.remove();
         }
+        clearEditingMarkers();
         map.current.remove();
         map.current = null;
       }
@@ -1167,7 +1253,7 @@ export default function MapView({
       )}
       
       {/* Owner Start Game Button - Show when game is pending or ended; if ended, ignore countdown flags */}
-      {isOwner && 
+      {!pinEditingMode && isOwner && 
        (gameStatus === 'pending' || gameStatus === 'ended') &&
        (gameStatus === 'ended' || (!isCountdownActive && countdownTimeLeft === null)) && (
         <button
@@ -1179,7 +1265,7 @@ export default function MapView({
       )}
 
       {/* Countdown Display - Oni: full-screen overlay */}
-      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'oni' && (
+      {!pinEditingMode && isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'oni' && (
         <div className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 pointer-events-none">
           <div className="text-center">
             <div className="text-white text-8xl font-bold mb-4 animate-pulse">
@@ -1191,7 +1277,7 @@ export default function MapView({
       )}
 
       {/* Countdown Display - Runner: bottom-right, no gray-out */}
-      {isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'runner' && (
+      {!pinEditingMode && isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'runner' && (
         <div className="absolute bottom-20 right-4 z-50">
           <div className="bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-3 border border-gray-200 flex items-center space-x-3">
             <span className="text-sm text-gray-600">鬼が出発するまで</span>
@@ -1202,7 +1288,7 @@ export default function MapView({
 
       {/* Gray overlay for oni during countdown */}
       {/* Clear Pin Button for Runner when within capture radius */}
-      {gameStatus !== 'ended' && currentUserRole === 'runner' && nearbyPin && (
+      {!pinEditingMode && gameStatus !== 'ended' && currentUserRole === 'runner' && nearbyPin && (
         <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
           <button
             onClick={handleClearNearbyPin}
@@ -1213,29 +1299,31 @@ export default function MapView({
           </button>
         </div>
       )}
-      {isCountdownActive && currentUserRole === 'oni' && gameStatus !== 'ended' && (
+      {!pinEditingMode && isCountdownActive && currentUserRole === 'oni' && gameStatus !== 'ended' && (
         <div className="absolute inset-0 bg-gray-500 bg-opacity-50 z-40 pointer-events-none" />
       )}
 
       {/* Current Location Button */}
-      <button
-        onClick={getCurrentLocation}
-        disabled={isLocating}
-        className="absolute bottom-20 right-4 bg-white hover:bg-gray-50 disabled:bg-gray-200 text-gray-700 rounded-full shadow-lg p-3 transition-colors"
-        title="現在地を表示"
-      >
-        {isLocating ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-        ) : (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        )}
-      </button>
+      {!pinEditingMode && (
+        <button
+          onClick={getCurrentLocation}
+          disabled={isLocating}
+          className="absolute bottom-20 right-4 bg-white hover:bg-gray-50 disabled:bg-gray-200 text-gray-700 rounded-full shadow-lg p-3 transition-colors"
+          title="現在地を表示"
+        >
+          {isLocating ? (
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )}
+        </button>
+      )}
 
       {/* Out of bounds overlay */}
-      {isOutOfBounds && (
+      {!pinEditingMode && isOutOfBounds && (
         <>
           {/* Gray overlay */}
           <div className="absolute inset-0 bg-gray-500 bg-opacity-50 z-10 pointer-events-none" />
@@ -1259,7 +1347,7 @@ export default function MapView({
 
 
       {/* Debug Info */}
-      {!currentLocation && (
+      {!pinEditingMode && !currentLocation && (
         <div className="absolute top-4 right-4 bg-yellow-100 border border-yellow-400 rounded-lg p-2 max-w-xs">
           <div className="text-xs text-yellow-800">
             <div className="font-medium">位置情報デバッグ</div>
