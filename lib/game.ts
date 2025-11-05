@@ -373,6 +373,53 @@ export async function reconcilePinsWithTargetCount(gameId: string, targetCount: 
   }
 }
 
+export async function reseedPinsWithRandomLocations(gameId: string, targetCount: number): Promise<void> {
+  if (targetCount <= 0) {
+    await clearPins(gameId);
+    return;
+  }
+
+  const uniqueKeys = new Set<string>();
+  const pins: Array<{ lat: number; lng: number; type: 'yellow'; cleared: boolean }> = [];
+  let attempts = 0;
+
+  const maxAttempts = targetCount * 200;
+
+  while (pins.length < targetCount && attempts < maxAttempts) {
+    const candidate = generateCandidatePoint();
+    const key = formatPinKey(candidate.lat, candidate.lng);
+    if (uniqueKeys.has(key)) {
+      attempts += 1;
+      continue;
+    }
+    uniqueKeys.add(key);
+    pins.push({
+      lat: candidate.lat,
+      lng: candidate.lng,
+      type: 'yellow',
+      cleared: false,
+    });
+  }
+
+  while (pins.length < targetCount) {
+    const center = getYamanoteCenter();
+    const key = formatPinKey(center.lat, center.lng + pins.length * 0.0001);
+    if (!uniqueKeys.has(key)) {
+      uniqueKeys.add(key);
+      pins.push({
+        lat: center.lat,
+        lng: center.lng + pins.length * 0.0001,
+        type: 'yellow',
+        cleared: false,
+      });
+    } else {
+      break;
+    }
+  }
+
+  await setGamePins(gameId, pins);
+}
+
 // Subscribe to pins
 export function subscribeToPins(gameId: string, callback: (pins: PinPoint[]) => void): () => void {
   const db = getDb();

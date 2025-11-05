@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getGame, updateGame, Game, reconcilePinsWithTargetCount } from '@/lib/game';
+import { getGame, updateGame, Game, reconcilePinsWithTargetCount, reseedPinsWithRandomLocations } from '@/lib/game';
 import PinLocationEditor from './PinLocationEditor';
 
 interface GameSettingsViewProps {
@@ -14,6 +14,7 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
   const [game, setGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPreparingPins, setIsPreparingPins] = useState(false);
   const [error, setError] = useState('');
   
   // Settings state
@@ -25,7 +26,7 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
   const [countdownMinutes, setCountdownMinutes] = useState<number>(0);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(20);
   const [gameDurationMinutes, setGameDurationMinutes] = useState<number>(120);
-  const isBusy = isSaving;
+  const isBusy = isSaving || isPreparingPins;
   const [isEditingPins, setIsEditingPins] = useState(false);
 
   useEffect(() => {
@@ -178,7 +179,9 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
       {isBusy && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[rgba(1,10,14,0.75)] backdrop-blur-sm">
           <div className="h-12 w-12 rounded-full border-2 border-cyber-green border-t-transparent animate-spin" aria-hidden />
-          <p className="mt-4 text-xs text-cyber-green tracking-[0.3em] uppercase">保存中...</p>
+          <p className="mt-4 text-xs text-cyber-green tracking-[0.3em] uppercase">
+            {isSaving ? '保存中...' : '再配置中...'}
+          </p>
         </div>
       )}
       {/* Header */}
@@ -237,10 +240,7 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
               <div className="pt-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsEditingPins(true);
-                    onPinEditModeChange?.(true);
-                  }}
+                  onClick={handleEditPinsClick}
                   className="btn-surface w-full rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] transition-colors hover:border-cyber-green/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isBusy}
                 >
@@ -476,3 +476,28 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
     </div>
   );
 }
+  const handleEditPinsClick = async () => {
+    if (isBusy) return;
+    try {
+      setError('');
+      setIsPreparingPins(true);
+      const clampedPinCount = Math.max(1, Math.min(20, pinCount));
+      await updateGame(gameId, { pinCount: clampedPinCount });
+      await reseedPinsWithRandomLocations(gameId, clampedPinCount);
+      setGame((prev) =>
+        prev
+          ? {
+              ...prev,
+              pinCount: clampedPinCount,
+            }
+          : prev
+      );
+      setIsEditingPins(true);
+      onPinEditModeChange?.(true);
+    } catch (err) {
+      console.error('Failed to prepare pin editor', err);
+      setError('発電所の再配置に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsPreparingPins(false);
+    }
+  };
