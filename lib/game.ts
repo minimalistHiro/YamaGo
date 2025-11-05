@@ -27,6 +27,7 @@ export interface Game {
   captureRadiusM: number;
   runnerSeeKillerRadiusM?: number;
   killerDetectRunnerRadiusM?: number;
+  killerSeeGeneratorRadiusM?: number;
   pinCount?: number;
   startDelaySec: number;
   ownerUid: string;
@@ -125,6 +126,7 @@ export async function createGame(ownerUid: string, gameData: Partial<Game> = {})
       captureRadiusM: 100,
       runnerSeeKillerRadiusM: 3000,
       killerDetectRunnerRadiusM: 500,
+      killerSeeGeneratorRadiusM: 3000,
       pinCount: 10,
       startDelaySec: 1800, // 30 minutes
       gameDurationSec: 7200, // 2 hours

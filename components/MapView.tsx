@@ -43,6 +43,7 @@ interface MapViewProps {
   pinEditingMode?: boolean;
   onPinDragStart?: (pinId: string) => void;
   onPinDragEnd?: (pinId: string, lat: number, lng: number) => void;
+  killerSeeGeneratorRadiusM?: number;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -97,6 +98,7 @@ export default function MapView({
   pinEditingMode = false,
   onPinDragStart,
   onPinDragEnd,
+  killerSeeGeneratorRadiusM = 3000,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -464,11 +466,13 @@ export default function MapView({
     }
 
     const filteredPins = (() => {
-      if (currentUserRole === 'runner' && currentLocation && typeof runnerSeeKillerRadiusM === 'number') {
-        return pins.filter((p) => {
-          const distance = haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng);
-          return distance <= runnerSeeKillerRadiusM;
-        });
+      if (currentLocation) {
+        if (currentUserRole === 'runner' && typeof runnerSeeKillerRadiusM === 'number') {
+          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= runnerSeeKillerRadiusM);
+        }
+        if (currentUserRole === 'oni' && typeof killerSeeGeneratorRadiusM === 'number') {
+          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= killerSeeGeneratorRadiusM);
+        }
       }
       return pins;
     })();
@@ -486,7 +490,7 @@ export default function MapView({
     if (src) {
       (src as any).setData(featureCollection as any);
     }
-  }, [pins, isMapLoaded, pinEditingMode, currentUserRole, currentLocation, runnerSeeKillerRadiusM]);
+  }, [pins, isMapLoaded, pinEditingMode, currentUserRole, currentLocation, runnerSeeKillerRadiusM, killerSeeGeneratorRadiusM]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {

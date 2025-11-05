@@ -20,6 +20,7 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
   const [captureRadiusM, setCaptureRadiusM] = useState<number>(100);
   const [runnerSeeKillerRadiusM, setRunnerSeeKillerRadiusM] = useState<number>(3000);
   const [killerDetectRunnerRadiusM, setKillerDetectRunnerRadiusM] = useState<number>(500);
+  const [killerSeeGeneratorRadiusM, setKillerSeeGeneratorRadiusM] = useState<number>(3000);
   const [pinCount, setPinCount] = useState<number>(10);
   const [countdownMinutes, setCountdownMinutes] = useState<number>(0);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(20);
@@ -47,6 +48,8 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
         const runnerVisibilityRadius = Math.max(100, Math.min(10000, gameData.runnerSeeKillerRadiusM ?? 3000));
         setRunnerSeeKillerRadiusM(runnerVisibilityRadius);
         setKillerDetectRunnerRadiusM(gameData.killerDetectRunnerRadiusM || 500);
+        const killerSeeRadius = Math.max(100, Math.min(10000, gameData.killerSeeGeneratorRadiusM ?? 3000));
+        setKillerSeeGeneratorRadiusM(killerSeeRadius);
         const savedPinCount = Math.max(1, Math.min(20, gameData.pinCount ?? 10));
         setPinCount(savedPinCount);
         
@@ -75,11 +78,13 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
       const totalCountdownSeconds = countdownMinutes * 60 + countdownSeconds;
       const clampedPinCount = Math.max(1, Math.min(20, pinCount));
       const clampedRunnerSeeKillerRadiusM = Math.max(100, Math.min(10000, runnerSeeKillerRadiusM));
+      const clampedKillerSeeGeneratorRadiusM = Math.max(100, Math.min(10000, killerSeeGeneratorRadiusM));
       const clampedGameDurationMinutes = Math.max(10, Math.min(480, gameDurationMinutes));
       
       await updateGame(gameId, {
         captureRadiusM,
         runnerSeeKillerRadiusM: clampedRunnerSeeKillerRadiusM,
+        killerSeeGeneratorRadiusM: clampedKillerSeeGeneratorRadiusM,
         killerDetectRunnerRadiusM,
         pinCount: clampedPinCount,
         countdownDurationSec: totalCountdownSeconds,
@@ -325,6 +330,41 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
               </div>
               <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
                 逃走者から見える発電所の最大距離を設定します（初期値: 3km）。
+              </p>
+            </div>
+          </div>
+
+          {/* Killer visibility radius for generators */}
+          <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
+            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">鬼が発電所を検知できる距離</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted uppercase tracking-[0.25em]">
+                  半径: {formatDistanceLabel(killerSeeGeneratorRadiusM)}
+                </span>
+                <span className="text-xs text-cyber-glow font-mono tracking-[0.3em]">
+                  {formatDistanceLabel(killerSeeGeneratorRadiusM)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="100"
+                max="10000"
+                step="50"
+                value={killerSeeGeneratorRadiusM}
+                onChange={(e) => setKillerSeeGeneratorRadiusM(Number(e.target.value))}
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-pink disabled:cursor-not-allowed"
+                disabled={isBusy}
+                style={{
+                  background: `linear-gradient(to right, rgba(255,71,194,0.9) 0%, rgba(255,71,194,0.9) ${((killerSeeGeneratorRadiusM - 100) / 9900) * 100}%, rgba(5,28,34,0.8) ${((killerSeeGeneratorRadiusM - 100) / 9900) * 100}%, rgba(5,28,34,0.8) 100%)`
+                }}
+              />
+              <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em]">
+                <span>100m</span>
+                <span>10km</span>
+              </div>
+              <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
+                鬼がレーダーで検知できる発電所の最大距離です（初期値: 3km）。
               </p>
             </div>
           </div>
