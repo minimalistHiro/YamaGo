@@ -7,9 +7,10 @@ import PinLocationEditor from './PinLocationEditor';
 interface GameSettingsViewProps {
   gameId: string;
   onBack: () => void;
+  onPinEditModeChange?: (isEditing: boolean) => void;
 }
 
-export default function GameSettingsView({ gameId, onBack }: GameSettingsViewProps) {
+export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }: GameSettingsViewProps) {
   const [game, setGame] = useState<Game | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -99,8 +100,22 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
     );
   }
 
+  useEffect(() => {
+    return () => {
+      onPinEditModeChange?.(false);
+    };
+  }, [onPinEditModeChange]);
+
   if (isEditingPins) {
-    return <PinLocationEditor gameId={gameId} onBack={() => setIsEditingPins(false)} />;
+    return (
+      <PinLocationEditor
+        gameId={gameId}
+        onBack={() => {
+          setIsEditingPins(false);
+          onPinEditModeChange?.(false);
+        }}
+      />
+    );
   }
 
   const formatGameDurationLabel = (minutes: number) => {
@@ -187,7 +202,10 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
               <div className="pt-3">
                 <button
                   type="button"
-                  onClick={() => setIsEditingPins(true)}
+                  onClick={() => {
+                    setIsEditingPins(true);
+                    onPinEditModeChange?.(true);
+                  }}
                   className="btn-surface w-full rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] transition-colors hover:border-cyber-green/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isBusy}
                 >

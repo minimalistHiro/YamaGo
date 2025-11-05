@@ -18,9 +18,10 @@ interface SettingsViewProps {
     avatarUrl?: string;
   };
   onGameExit: () => void;
+  onPinEditModeChange?: (isEditing: boolean) => void;
 }
 
-export default function SettingsView({ gameId, currentUser, onGameExit }: SettingsViewProps) {
+export default function SettingsView({ gameId, currentUser, onGameExit, onPinEditModeChange }: SettingsViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [uidCopied, setUidCopied] = useState(false);
@@ -165,6 +166,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
 
   const handleBackFromGameSettings = () => {
     setShowGameSettings(false);
+    onPinEditModeChange?.(false);
   };
 
   const handleRequestBecomeOwner = () => {
@@ -220,7 +222,13 @@ export default function SettingsView({ gameId, currentUser, onGameExit }: Settin
 
   // Show game settings view if requested
   if (showGameSettings) {
-    return <GameSettingsView gameId={gameId} onBack={handleBackFromGameSettings} />;
+    return (
+      <GameSettingsView
+        gameId={gameId}
+        onBack={handleBackFromGameSettings}
+        onPinEditModeChange={onPinEditModeChange}
+      />
+    );
   }
 
   if (showProfileEditor) {

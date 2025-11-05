@@ -47,6 +47,7 @@ export default function PlayPage() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [showGameEndPopup, setShowGameEndPopup] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [isEditingPins, setIsEditingPins] = useState(false);
   const allPinsCleared = pins.length > 0 && pins.every(p => p.cleared);
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
@@ -429,26 +430,28 @@ export default function PlayPage() {
       <div className="flex-1 min-h-0 overflow-hidden">
         {/* Map tab - always mounted, toggle visibility */}
         <div className={activeTab === 'map' ? 'flex-1 relative h-full' : 'hidden'}>
+          {!isEditingPins && (
             <MapView
-            onLocationUpdate={handleLocationUpdate}
-            players={mapPlayers}
-            pins={pins}
-            currentUserRole={currentPlayer.role}
-            currentUserId={user?.uid}
-            gameStatus={game.status}
-            isOwner={game.ownerUid === user?.uid}
-            countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
-            countdownDurationSec={game.countdownDurationSec}
-            onStartGame={handleStartGame}
-            onCountdownEnd={handleCountdownEnd}
-            gameStartAt={game.startAt ? game.startAt.toDate() : null}
-            captureRadiusM={game.captureRadiusM}
-            gameId={gameId}
-            runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
-            killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
-            pinTargetCount={game.pinCount ?? 10}
-            gameDurationSec={game.gameDurationSec ?? undefined}
-          />
+              onLocationUpdate={handleLocationUpdate}
+              players={mapPlayers}
+              pins={pins}
+              currentUserRole={currentPlayer.role}
+              currentUserId={user?.uid}
+              gameStatus={game.status}
+              isOwner={game.ownerUid === user?.uid}
+              countdownStartAt={game.countdownStartAt ? game.countdownStartAt.toDate() : null}
+              countdownDurationSec={game.countdownDurationSec}
+              onStartGame={handleStartGame}
+              onCountdownEnd={handleCountdownEnd}
+              gameStartAt={game.startAt ? game.startAt.toDate() : null}
+              captureRadiusM={game.captureRadiusM}
+              gameId={gameId}
+              runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM || 200}
+              killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
+              pinTargetCount={game.pinCount ?? 10}
+              gameDurationSec={game.gameDurationSec ?? undefined}
+            />
+          )}
 
           {/* Capture Popup for Oni */}
           {showCapturePopup && (
@@ -548,6 +551,7 @@ export default function PlayPage() {
               avatarUrl: currentPlayer.avatarUrl
             }}
             onGameExit={handleGameExit}
+            onPinEditModeChange={setIsEditingPins}
           />
         )}
       </div>
