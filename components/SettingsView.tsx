@@ -443,15 +443,20 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
               </div>
             </div>
 
-            {isOwner && game?.status === 'running' && (
+            {isOwner && (
               <div className="pt-2">
                 <button
                   onClick={handleEndGame}
-                  disabled={isLoading}
+                  disabled={isLoading || game?.status !== 'running'}
                   className="w-full bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
                 >
                   {isLoading ? '処理中...' : 'ゲームを終了'}
                 </button>
+                {game?.status !== 'running' && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    ゲーム開始後に終了できます。
+                  </p>
+                )}
               </div>
             )}
           </div>
