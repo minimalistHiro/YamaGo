@@ -74,18 +74,23 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
     if (isBusy) return;
     try {
       setError('');
-      setIsPreparingPins(true);
       const clampedPinCount = Math.max(1, Math.min(20, pinCount));
-      await updateGame(gameId, { pinCount: clampedPinCount });
-      await reseedPinsWithRandomLocations(gameId, clampedPinCount);
-      setGame((prev) =>
-        prev
-          ? {
-              ...prev,
-              pinCount: clampedPinCount,
-            }
-          : prev
-      );
+      const previousPinCount = game?.pinCount ?? pinCount;
+
+      if (previousPinCount !== clampedPinCount) {
+        setIsPreparingPins(true);
+        await updateGame(gameId, { pinCount: clampedPinCount });
+        await reseedPinsWithRandomLocations(gameId, clampedPinCount);
+        setGame((prev) =>
+          prev
+            ? {
+                ...prev,
+                pinCount: clampedPinCount,
+              }
+            : prev
+        );
+      }
+
       setIsEditingPins(true);
       onPinEditModeChange?.(true);
     } catch (err) {

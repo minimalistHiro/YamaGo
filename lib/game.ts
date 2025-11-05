@@ -278,21 +278,15 @@ const PIN_DUPLICATE_PRECISION = 6;
 const formatPinKey = (lat: number, lng: number): string =>
   `${lat.toFixed(PIN_DUPLICATE_PRECISION)}:${lng.toFixed(PIN_DUPLICATE_PRECISION)}`;
 
-const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
-
 function generateCandidatePoint(): { lat: number; lng: number } {
   const [sw, ne] = getYamanoteBounds();
   const minLng = sw[0];
   const minLat = sw[1];
   const maxLng = ne[0];
   const maxLat = ne[1];
-  const center = getYamanoteCenter();
 
-  const jitterLat = (Math.random() - 0.5) * 0.02; // ~±1km
-  const jitterLng = (Math.random() - 0.5) * 0.02;
-
-  const lat = clamp(center.lat + jitterLat, minLat, maxLat);
-  const lng = clamp(center.lng + jitterLng, minLng, maxLng);
+  const lat = minLat + Math.random() * (maxLat - minLat);
+  const lng = minLng + Math.random() * (maxLng - minLng);
 
   return { lat, lng };
 }
