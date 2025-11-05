@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
-import { deletePlayer, getGame, Game, updateGame } from '@/lib/game';
+import { deletePlayer, deleteGame, getGame, Game, updateGame } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
 import GameSettingsView from './GameSettingsView';
 import PlayerProfileEditView from './PlayerProfileEditView';
@@ -59,7 +59,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
     setShowExitConfirm(true);
   };
 
-  const confirmExitGame = async () => {
+  const confirmExitGame = async (deleteGameData: boolean = false) => {
     setShowExitConfirm(false);
     setIsLoading(true);
     setIsExitProcessing(true);
@@ -71,11 +71,22 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
         console.log('Deleting avatar from storage...');
         await deleteAvatarFromStorage(userProfile.avatarUrl);
       }
-      
-      // Delete player data from database
-      console.log('Deleting player data...');
-      await deletePlayer(gameId, userProfile.uid);
-      console.log('Player data deleted successfully');
+
+      if (deleteGameData && isOwner) {
+        console.log('Owner selected to delete game. Removing game data...');
+        await deleteGame(gameId);
+        console.log('Game data deleted successfully');
+      } else {
+        // Delete player data from database
+        console.log('Deleting player data...');
+        await deletePlayer(gameId, userProfile.uid);
+        console.log('Player data deleted successfully');
+
+        if (isOwner) {
+          console.log('Clearing owner assignment from game record...');
+          await updateGame(gameId, { ownerUid: '' });
+        }
+      }
       
       // Delete user account
       console.log('Deleting user account...');
@@ -553,30 +564,67 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
             </div>
             
             <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                ゲームから退出しますか？
-              </h3>
-              <p className="text-sm text-gray-500 mb-6">
-                アカウントとプレイヤーデータが完全に削除されます。<br />
-                この操作は取り消すことができません。
-              </p>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={cancelExitGame}
-                  disabled={isLoading}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-full transition-colors"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={confirmExitGame}
-                  disabled={isLoading}
-                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
-                >
-                  {isLoading ? '処理中...' : '退出する'}
-                </button>
-              </div>
+              {isOwner ? (
+                <>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    退出方法を選択してください
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                    オーナーが退出する場合、ゲームを削除するか残すかを選べます。<br />
+                    いずれの場合も、ご自身のアカウントとプレイヤーデータは削除されます。
+                  </p>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => confirmExitGame(true)}
+                      disabled={isLoading}
+                      className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
+                    >
+                      {isLoading ? '処理中...' : 'ゲームを削除して退出'}
+                    </button>
+                    <button
+                      onClick={() => confirmExitGame(false)}
+                      disabled={isLoading}
+                      className="w-full bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
+                    >
+                      {isLoading ? '処理中...' : 'ゲームを残して退出'}
+                    </button>
+                    <button
+                      onClick={cancelExitGame}
+                      disabled={isLoading}
+                      className="w-full bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-full transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    ゲームから退出しますか？
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-6">
+                    アカウントとプレイヤーデータが完全に削除されます。<br />
+                    この操作は取り消すことができません。
+                  </p>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={cancelExitGame}
+                      disabled={isLoading}
+                      className="flex-1 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-full transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={() => confirmExitGame()}
+                      disabled={isLoading}
+                      className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
+                    >
+                      {isLoading ? '処理中...' : '退出する'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

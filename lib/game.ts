@@ -737,3 +737,49 @@ export async function deletePlayer(gameId: string, uid: string): Promise<void> {
     throw new Error(`Failed to delete player: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
+
+export async function deleteGame(gameId: string): Promise<void> {
+  try {
+    console.log('Deleting game:', gameId);
+    const db = getDb();
+    const gameRef = doc(db, 'games', gameId);
+    const subcollections = ['players', 'locations', 'captures', 'alerts', 'events', 'pins'];
+    const batchSizeLimit = 400;
+
+    const deleteSubcollection = async (collectionName: string) => {
+      const subcollectionRef = collection(db, 'games', gameId, collectionName);
+      const snapshot = await getDocs(subcollectionRef);
+      if (snapshot.empty) {
+        return;
+      }
+
+      let batch = writeBatch(db);
+      let operations = 0;
+
+      for (const docSnap of snapshot.docs) {
+        batch.delete(docSnap.ref);
+        operations += 1;
+
+        if (operations >= batchSizeLimit) {
+          await batch.commit();
+          batch = writeBatch(db);
+          operations = 0;
+        }
+      }
+
+      if (operations > 0) {
+        await batch.commit();
+      }
+    };
+
+    for (const collectionName of subcollections) {
+      await deleteSubcollection(collectionName);
+    }
+
+    await deleteDoc(gameRef);
+    console.log('Game deleted successfully:', gameId);
+  } catch (error) {
+    console.error('Error deleting game:', error);
+    throw new Error(`Failed to delete game: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
