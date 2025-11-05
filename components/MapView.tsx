@@ -64,6 +64,16 @@ const ROLE_PIN_STYLES: Record<'oni' | 'runner', { fill: string; border: string; 
     icon: '🏃',
   },
 };
+const GENERATOR_PIN_STYLE = {
+  fill: '#f59e0b',
+  border: '#d97706',
+  icon: '⚡️',
+};
+const GENERATOR_PIN_STYLE_CLEARED = {
+  fill: '#9ca3af',
+  border: '#6b7280',
+  icon: '⚡️',
+};
 
 export default function MapView({
   onLocationUpdate,
@@ -437,29 +447,18 @@ export default function MapView({
 
       map.current.addLayer({
         id: 'game-pins-layer',
-        type: 'circle',
+        type: 'symbol',
         source: sourceId,
-        paint: {
-          'circle-radius': 6,
-          'circle-color': [
+        layout: {
+          'icon-image': [
             'case',
             ['boolean', ['get', 'cleared'], false],
-            '#9ca3af',
-            '#f59e0b'
+            'pin-generator-cleared',
+            'pin-generator'
           ],
-          'circle-stroke-color': [
-            'case',
-            ['boolean', ['get', 'cleared'], false],
-            '#6b7280',
-            '#d97706'
-          ],
-          'circle-stroke-width': 2,
-          'circle-opacity': [
-            'case',
-            ['boolean', ['get', 'cleared'], false],
-            0.6,
-            0.95
-          ],
+          'icon-size': 0.75,
+          'icon-allow-overlap': true,
+          'icon-anchor': 'bottom'
         },
       });
     }
@@ -706,6 +705,16 @@ export default function MapView({
             const c3 = createPinCanvas('runner', 40, { fill: '#9ca3af', border: '#6b7280' }); // gray variants
             const b3 = await createImageBitmap(c3);
             map.current.addImage('pin-runner-captured', b3, { pixelRatio: 2 });
+          }
+          if (!map.current.hasImage('pin-generator')) {
+            const cg = createPinCanvas('runner', 40, { fill: GENERATOR_PIN_STYLE.fill, border: GENERATOR_PIN_STYLE.border, icon: GENERATOR_PIN_STYLE.icon });
+            const bg = await createImageBitmap(cg);
+            map.current.addImage('pin-generator', bg, { pixelRatio: 2 });
+          }
+          if (!map.current.hasImage('pin-generator-cleared')) {
+            const cg2 = createPinCanvas('runner', 40, { fill: GENERATOR_PIN_STYLE_CLEARED.fill, border: GENERATOR_PIN_STYLE_CLEARED.border, icon: GENERATOR_PIN_STYLE_CLEARED.icon });
+            const bg2 = await createImageBitmap(cg2);
+            map.current.addImage('pin-generator-cleared', bg2, { pixelRatio: 2 });
           }
         } catch (e) {
           // noop; addImage may throw if image already added in rare cases
