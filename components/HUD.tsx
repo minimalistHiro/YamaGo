@@ -45,7 +45,10 @@ export default function HUD({
   useEffect(() => {
     if (gameStatus === 'running' && timeLeft !== null && timeLeft > 0) {
       const timer = setInterval(() => {
-        setTimeLeft(prev => Math.max(0, prev - 1));
+        setTimeLeft((prev) => {
+          if (prev === null) return prev;
+          return Math.max(0, prev - 1);
+        });
       }, 1000);
 
       return () => clearInterval(timer);
