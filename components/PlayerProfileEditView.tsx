@@ -30,6 +30,7 @@ export default function PlayerProfileEditView({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const isBusy = isSaving;
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSelectImage = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (isBusy) return;
@@ -111,11 +112,20 @@ export default function PlayerProfileEditView({
       setError(message);
     } finally {
       setIsSaving(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
     }
   };
 
   return (
     <div className="h-full bg-gray-50 flex flex-col relative">
+      {showSuccess && (
+        <div className="absolute inset-0 z-40 flex items-start justify-center pointer-events-none">
+          <div className="mt-6 px-4 py-3 rounded-full bg-cyber-green text-[#031f1a] shadow-lg font-semibold tracking-[0.3em] uppercase">
+            保存しました
+          </div>
+        </div>
+      )}
       {isBusy && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm">
           <div className="h-10 w-10 rounded-full border-2 border-cyber-green border-t-transparent animate-spin" aria-hidden />
