@@ -28,6 +28,12 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
   const [isEditingPins, setIsEditingPins] = useState(false);
 
   useEffect(() => {
+    return () => {
+      onPinEditModeChange?.(false);
+    };
+  }, [onPinEditModeChange]);
+
+  useEffect(() => {
     loadGameSettings();
   }, [gameId]);
 
@@ -99,12 +105,6 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
       </div>
     );
   }
-
-  useEffect(() => {
-    return () => {
-      onPinEditModeChange?.(false);
-    };
-  }, [onPinEditModeChange]);
 
   if (isEditingPins) {
     return (
