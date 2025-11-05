@@ -121,6 +121,10 @@ export default function MapView({
   const [nearbyPin, setNearbyPin] = useState<PinPoint | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [showGeneratorCleared, setShowGeneratorCleared] = useState(false);
+  const [showGeneratorClearedAlert, setShowGeneratorClearedAlert] = useState(false);
+  const generatorAlertTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearedPinIdsRef = useRef<Set<string>>(new Set());
+  const isInitialClearedCheckRef = useRef(true);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
   const clearEditingMarkers = () => {
     Object.values(editingMarkersRef.current).forEach((marker) => marker.remove());
@@ -140,6 +144,21 @@ export default function MapView({
       kodouSoundRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (generatorAlertTimeoutRef.current) {
+        clearTimeout(generatorAlertTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentUserRole === 'oni') {
+      isInitialClearedCheckRef.current = true;
+      clearedPinIdsRef.current = new Set<string>((pins || []).filter((p) => p.cleared).map((p) => p.id));
+    }
+  }, [currentUserRole]);
 
   const isOniWithinDetectionRadius = useMemo(() => {
     if (currentUserRole !== 'runner' || !currentLocation) return false;
@@ -582,6 +601,43 @@ export default function MapView({
     }
     setNearbyPin(found);
   }, [currentLocation, pins, currentUserRole, captureRadiusM]);
+
+  useEffect(() => {
+    if (!pins) {
+      clearedPinIdsRef.current = new Set();
+      return;
+    }
+
+    const currentCleared = new Set<string>(pins.filter((p) => p.cleared).map((p) => p.id));
+    let hasNewCleared = false;
+    currentCleared.forEach((id) => {
+      if (!clearedPinIdsRef.current.has(id)) {
+        hasNewCleared = true;
+      }
+    });
+
+    if (currentUserRole === 'oni') {
+      const isInitialCheck = isInitialClearedCheckRef.current;
+      if (hasNewCleared && !isInitialCheck) {
+        setShowGeneratorClearedAlert(true);
+        if (generatorAlertTimeoutRef.current) {
+          clearTimeout(generatorAlertTimeoutRef.current);
+        }
+        generatorAlertTimeoutRef.current = setTimeout(() => {
+          setShowGeneratorClearedAlert(false);
+        }, 3000);
+      }
+    } else {
+      setShowGeneratorClearedAlert(false);
+      if (generatorAlertTimeoutRef.current) {
+        clearTimeout(generatorAlertTimeoutRef.current);
+        generatorAlertTimeoutRef.current = null;
+      }
+    }
+
+    isInitialClearedCheckRef.current = false;
+    clearedPinIdsRef.current = currentCleared;
+  }, [pins, currentUserRole]);
 
   const handleClearNearbyPin = async () => {
     if (!gameId || !nearbyPin) return;
@@ -1423,6 +1479,15 @@ export default function MapView({
           <div className="rounded-2xl bg-[rgba(3,22,27,0.92)] border border-cyber-green/40 px-6 py-4 shadow-[0_16px_40px_rgba(3,22,27,0.55)] text-center">
             <div className="text-3xl mb-2">⚡️</div>
             <p className="text-sm font-semibold tracking-[0.2em] text-primary uppercase">解除しました</p>
+          </div>
+        </div>
+      )}
+
+      {showGeneratorClearedAlert && currentUserRole === 'oni' && (
+        <div className="absolute top-20 right-4 z-50">
+          <div className="bg-black/80 text-white px-4 py-3 rounded-lg shadow-lg border border-cyber-green/50">
+            <div className="text-lg font-semibold">⚡️ 発電機が解除されました！</div>
+            <div className="text-xs text-gray-200 mt-1">逃走者が発電所を1つ解除しました。</div>
           </div>
         </div>
       )}

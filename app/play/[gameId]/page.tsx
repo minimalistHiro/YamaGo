@@ -564,12 +564,6 @@ export default function PlayPage() {
                   >
                     閉じる
                   </button>
-                  <button
-                    className="bg-emerald-400 hover:bg-emerald-500 text-black font-medium py-2 px-4 rounded"
-                    onClick={handleGameExit}
-                  >
-                    ロビーに戻る
-                  </button>
                 </div>
               </div>
             </div>
