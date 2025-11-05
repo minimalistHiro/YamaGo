@@ -1508,6 +1508,18 @@ export default function MapView({
         </div>
       )}
 
+      {isClearing && clearCountdown !== null && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/40">
+          <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-green/50 px-10 py-8 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
+            <p className="text-sm uppercase tracking-[0.25em] text-muted">発電機解除中</p>
+            <div className="mt-4 text-6xl font-mono font-bold text-cyber-green drop-shadow-[0_0_18px_rgba(34,181,155,0.6)]">
+              {clearCountdown}
+            </div>
+            <p className="mt-3 text-xs text-muted">捕獲範囲内に留まってください</p>
+          </div>
+        </div>
+      )}
+
       {showGeneratorCleared && (
         <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/40">
           <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-green/50 px-8 py-6 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
