@@ -81,7 +81,7 @@ export default function MapView({
   onLocationUpdate,
   players = [],
   pins = [],
-  currentUserRole,
+  currentUserRole: initialCurrentUserRole,
   currentUserId,
   gameStatus,
   isOwner = false,
@@ -101,6 +101,12 @@ export default function MapView({
   onPinDragEnd,
   killerSeeGeneratorRadiusM = 3000,
 }: MapViewProps) {
+  const currentUserRole = useMemo(() => {
+    if (!currentUserId) return initialCurrentUserRole;
+    const live = players.find((p) => p.uid === currentUserId)?.role;
+    return live ?? initialCurrentUserRole;
+  }, [players, currentUserId, initialCurrentUserRole]);
+
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const currentLocationMarker = useRef<maplibregl.Marker | null>(null);
