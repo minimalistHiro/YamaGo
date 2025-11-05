@@ -6,7 +6,7 @@ const db = admin.firestore();
 
 // DbD Mode Constants
 const DEFAULT_CAPTURE_RADIUS_M = 50;
-const RUNNER_SEE_KILLER_RADIUS_M = 200;
+const RUNNER_SEE_KILLER_RADIUS_M = 3000;
 const KILLER_DETECT_RUNNER_RADIUS_M = 500;
 const RESCUE_RADIUS_M = 50;
 const MAX_DOWNS = 3;

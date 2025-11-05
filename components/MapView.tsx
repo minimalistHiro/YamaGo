@@ -80,7 +80,7 @@ export default function MapView({
   gameStartAt,
   captureRadiusM = 100,
   gameId,
-  runnerSeeKillerRadiusM = 200,
+  runnerSeeKillerRadiusM = 3000,
   killerDetectRunnerRadiusM = 500,
   pinTargetCount = 10,
   gameDurationSec,
@@ -464,9 +464,19 @@ export default function MapView({
       });
     }
 
+    const filteredPins = (() => {
+      if (currentUserRole === 'runner' && currentLocation && typeof runnerSeeKillerRadiusM === 'number') {
+        return pins.filter((p) => {
+          const distance = haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng);
+          return distance <= runnerSeeKillerRadiusM;
+        });
+      }
+      return pins;
+    })();
+
     const featureCollection = {
       type: 'FeatureCollection',
-      features: pins.map((p) => ({
+      features: filteredPins.map((p) => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
         properties: { id: p.id, cleared: !!p.cleared },
@@ -477,7 +487,7 @@ export default function MapView({
     if (src) {
       (src as any).setData(featureCollection as any);
     }
-  }, [pins, isMapLoaded, pinEditingMode]);
+  }, [pins, isMapLoaded, pinEditingMode, currentUserRole, currentLocation, runnerSeeKillerRadiusM]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {

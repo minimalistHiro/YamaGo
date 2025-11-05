@@ -18,7 +18,7 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
   
   // Settings state
   const [captureRadiusM, setCaptureRadiusM] = useState<number>(100);
-  const [runnerSeeKillerRadiusM, setRunnerSeeKillerRadiusM] = useState<number>(200);
+  const [runnerSeeKillerRadiusM, setRunnerSeeKillerRadiusM] = useState<number>(3000);
   const [killerDetectRunnerRadiusM, setKillerDetectRunnerRadiusM] = useState<number>(500);
   const [pinCount, setPinCount] = useState<number>(10);
   const [countdownMinutes, setCountdownMinutes] = useState<number>(0);
@@ -44,7 +44,8 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
       if (gameData) {
         setGame(gameData);
         setCaptureRadiusM(gameData.captureRadiusM || 100);
-        setRunnerSeeKillerRadiusM(gameData.runnerSeeKillerRadiusM || 200);
+        const runnerVisibilityRadius = Math.max(100, Math.min(10000, gameData.runnerSeeKillerRadiusM ?? 3000));
+        setRunnerSeeKillerRadiusM(runnerVisibilityRadius);
         setKillerDetectRunnerRadiusM(gameData.killerDetectRunnerRadiusM || 500);
         const savedPinCount = Math.max(1, Math.min(20, gameData.pinCount ?? 10));
         setPinCount(savedPinCount);
@@ -73,11 +74,12 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
       // Convert minutes and seconds to total seconds
       const totalCountdownSeconds = countdownMinutes * 60 + countdownSeconds;
       const clampedPinCount = Math.max(1, Math.min(20, pinCount));
+      const clampedRunnerSeeKillerRadiusM = Math.max(100, Math.min(10000, runnerSeeKillerRadiusM));
       const clampedGameDurationMinutes = Math.max(10, Math.min(480, gameDurationMinutes));
       
       await updateGame(gameId, {
         captureRadiusM,
-        runnerSeeKillerRadiusM,
+        runnerSeeKillerRadiusM: clampedRunnerSeeKillerRadiusM,
         killerDetectRunnerRadiusM,
         pinCount: clampedPinCount,
         countdownDurationSec: totalCountdownSeconds,
@@ -136,6 +138,14 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
     }
 
     return parts.join(' ');
+  };
+
+  const formatDistanceLabel = (meters: number) => {
+    if (meters >= 1000) {
+      const km = meters / 1000;
+      return km % 1 === 0 ? `${km}km` : `${km.toFixed(1)}km`;
+    }
+    return `${meters}m`;
   };
 
   return (
@@ -286,31 +296,35 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
 
           {/* Runner visibility radius for killers */}
           <div className="bg-[rgba(3,22,27,0.92)] border border-cyber-green/30 rounded-2xl p-5 shadow-[0_0_30px_rgba(34,181,155,0.18)]">
-            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">逃走者が鬼を視認できる距離</h3>
+            <h3 className="text-sm font-semibold text-primary mb-4 uppercase tracking-[0.3em]">逃走者が発電所を視認できる距離</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted uppercase tracking-[0.25em]">半径: {runnerSeeKillerRadiusM}m</span>
-                <span className="text-xs text-cyber-glow font-mono tracking-[0.3em]">{runnerSeeKillerRadiusM}m</span>
+                <span className="text-xs text-muted uppercase tracking-[0.25em]">
+                  半径: {formatDistanceLabel(runnerSeeKillerRadiusM)}
+                </span>
+                <span className="text-xs text-cyber-glow font-mono tracking-[0.3em]">
+                  {formatDistanceLabel(runnerSeeKillerRadiusM)}
+                </span>
               </div>
               <input
                 type="range"
-                min="50"
-                max="1000"
-                step="10"
+                min="100"
+                max="10000"
+                step="50"
                 value={runnerSeeKillerRadiusM}
                 onChange={(e) => setRunnerSeeKillerRadiusM(Number(e.target.value))}
                 className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green disabled:cursor-not-allowed"
                 disabled={isBusy}
                 style={{
-                  background: `linear-gradient(to right, rgba(34,181,155,0.9) 0%, rgba(34,181,155,0.9) ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) 100%)`
+                  background: `linear-gradient(to right, rgba(34,181,155,0.9) 0%, rgba(34,181,155,0.9) ${((runnerSeeKillerRadiusM - 100) / 9900) * 100}%, rgba(5,28,34,0.8) ${((runnerSeeKillerRadiusM - 100) / 9900) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
               />
               <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em]">
-                <span>50m</span>
-                <span>1000m</span>
+                <span>100m</span>
+                <span>10km</span>
               </div>
               <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
-                逃走者から見える鬼の最大距離を設定します（初期値: 200m）。
+                逃走者から見える発電所の最大距離を設定します（初期値: 3km）。
               </p>
             </div>
           </div>
