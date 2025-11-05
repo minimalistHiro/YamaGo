@@ -1369,16 +1369,6 @@ export default function MapView({
         </div>
       )}
 
-      {/* Countdown Display - Runner: bottom-right, no gray-out */}
-      {!pinEditingMode && isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'runner' && (
-        <div className="absolute bottom-20 right-4 z-50">
-          <div className="bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-3 border border-gray-200 flex items-center space-x-3">
-            <span className="text-sm text-gray-600">鬼が出発するまで</span>
-            <span className="font-mono text-2xl font-bold text-gray-900">{formatDuration(countdownTimeLeft)}</span>
-          </div>
-        </div>
-      )}
-
       {/* Gray overlay for oni during countdown */}
       {/* Clear Pin Button for Runner when within capture radius */}
       {!pinEditingMode && gameStatus === 'running' && currentUserRole === 'runner' && nearbyPin && (
@@ -1468,6 +1458,16 @@ export default function MapView({
             >
               OK
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Countdown Display - Runner: bottom-right, no gray-out */}
+      {!pinEditingMode && isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'runner' && (
+        <div className="absolute bottom-20 right-4 z-50">
+          <div className="bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-3 border border-gray-200 flex items-center space-x-3">
+            <span className="text-sm text-gray-600">鬼が出発するまで</span>
+            <span className="font-mono text-2xl font-bold text-black">{formatDuration(countdownTimeLeft)}</span>
           </div>
         </div>
       )}
