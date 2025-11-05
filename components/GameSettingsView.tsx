@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getGame, updateGame, Game } from '@/lib/game';
+import { getGame, updateGame, Game, reconcilePinsWithTargetCount } from '@/lib/game';
 import PinLocationEditor from './PinLocationEditor';
 
 interface GameSettingsViewProps {
@@ -73,6 +73,7 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
     try {
       setIsSaving(true);
       setError('');
+      const previousPinCount = game?.pinCount ?? pinCount;
       
       // Convert minutes and seconds to total seconds
       const totalCountdownSeconds = countdownMinutes * 60 + countdownSeconds;
@@ -90,6 +91,25 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
         countdownDurationSec: totalCountdownSeconds,
         gameDurationSec: clampedGameDurationMinutes * 60
       });
+
+      if (previousPinCount !== clampedPinCount) {
+        await reconcilePinsWithTargetCount(gameId, clampedPinCount);
+      }
+
+      setGame((prev) =>
+        prev
+          ? {
+              ...prev,
+              pinCount: clampedPinCount,
+              captureRadiusM,
+              runnerSeeKillerRadiusM: clampedRunnerSeeKillerRadiusM,
+              killerSeeGeneratorRadiusM: clampedKillerSeeGeneratorRadiusM,
+              killerDetectRunnerRadiusM,
+              countdownDurationSec: totalCountdownSeconds,
+              gameDurationSec: clampedGameDurationMinutes * 60,
+            }
+          : prev
+      );
       
       // Show success message then automatically return
       alert('ゲーム設定を保存しました');

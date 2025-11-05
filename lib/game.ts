@@ -17,6 +17,7 @@ import {
   deleteField,
   writeBatch
 } from 'firebase/firestore';
+import { getYamanoteBounds, getYamanoteCenter } from './geo';
 import { getFirebaseServices } from './firebase/client';
 
 // Types
@@ -270,6 +271,106 @@ export async function setGamePins(
 ): Promise<void> {
   await clearPins(gameId);
   await addPins(gameId, pins);
+}
+
+const PIN_DUPLICATE_PRECISION = 6;
+
+const formatPinKey = (lat: number, lng: number): string =>
+  `${lat.toFixed(PIN_DUPLICATE_PRECISION)}:${lng.toFixed(PIN_DUPLICATE_PRECISION)}`;
+
+const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
+
+function generateCandidatePoint(): { lat: number; lng: number } {
+  const [sw, ne] = getYamanoteBounds();
+  const minLng = sw[0];
+  const minLat = sw[1];
+  const maxLng = ne[0];
+  const maxLat = ne[1];
+  const center = getYamanoteCenter();
+
+  const jitterLat = (Math.random() - 0.5) * 0.02; // ~±1km
+  const jitterLng = (Math.random() - 0.5) * 0.02;
+
+  const lat = clamp(center.lat + jitterLat, minLat, maxLat);
+  const lng = clamp(center.lng + jitterLng, minLng, maxLng);
+
+  return { lat, lng };
+}
+
+export async function reconcilePinsWithTargetCount(gameId: string, targetCount: number): Promise<void> {
+  const db = getDb();
+
+  if (targetCount <= 0) {
+    await clearPins(gameId);
+    return;
+  }
+
+  const pinsRef = collection(db, 'games', gameId, 'pins');
+  const snapshot = await getDocs(pinsRef);
+
+  const sortedDocs = snapshot.docs
+    .slice()
+    .sort((a, b) => {
+      const aData = a.data();
+      const bData = b.data();
+      const aCreated = (aData.createdAt as Timestamp | undefined)?.toMillis() ?? 0;
+      const bCreated = (bData.createdAt as Timestamp | undefined)?.toMillis() ?? 0;
+      if (aCreated === bCreated) {
+        return a.id.localeCompare(b.id);
+      }
+      return aCreated - bCreated;
+    });
+
+  let keptDocs = sortedDocs;
+  if (sortedDocs.length > targetCount) {
+    keptDocs = sortedDocs.slice(0, targetCount);
+    const toDelete = sortedDocs.slice(targetCount);
+    if (toDelete.length > 0) {
+      const batch = writeBatch(db);
+      toDelete.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+      await batch.commit();
+    }
+  }
+
+  const existingKeys = new Set<string>();
+  keptDocs.forEach((docSnap) => {
+    const data = docSnap.data();
+    if (typeof data.lat === 'number' && typeof data.lng === 'number') {
+      existingKeys.add(formatPinKey(data.lat, data.lng));
+    }
+  });
+
+  const missingCount = targetCount - keptDocs.length;
+  if (missingCount <= 0) {
+    return;
+  }
+
+  for (let i = 0; i < missingCount; i += 1) {
+    let candidate = generateCandidatePoint();
+    let attempts = 0;
+
+    while (existingKeys.has(formatPinKey(candidate.lat, candidate.lng)) && attempts < 50) {
+      candidate = generateCandidatePoint();
+      attempts += 1;
+    }
+
+    if (attempts >= 50) {
+      const center = getYamanoteCenter();
+      candidate = center;
+    }
+
+    existingKeys.add(formatPinKey(candidate.lat, candidate.lng));
+
+    await addDoc(pinsRef, {
+      lat: candidate.lat,
+      lng: candidate.lng,
+      type: 'yellow',
+      cleared: false,
+      createdAt: serverTimestamp(),
+    });
+  }
 }
 
 // Subscribe to pins
