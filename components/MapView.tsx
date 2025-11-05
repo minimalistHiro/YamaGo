@@ -159,7 +159,7 @@ export default function MapView({
   useEffect(() => {
     const audio = kodouSoundRef.current;
     if (!audio) return;
-    if (isOniWithinDetectionRadius) {
+    if (gameStatus === 'running' && isOniWithinDetectionRadius) {
       if (audio.paused) {
         audio.currentTime = 0;
         audio.play().catch(() => {
@@ -170,7 +170,7 @@ export default function MapView({
       audio.pause();
       audio.currentTime = 0;
     }
-  }, [isOniWithinDetectionRadius]);
+  }, [isOniWithinDetectionRadius, gameStatus]);
 
   // derive current user's state from players list to avoid extra props and keep Firestore-driven
   const currentState: 'active' | 'downed' | 'eliminated' | undefined =
