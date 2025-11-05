@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getGame, updateGame, Game } from '@/lib/game';
+import PinLocationEditor from './PinLocationEditor';
 
 interface GameSettingsViewProps {
   gameId: string;
@@ -23,6 +24,7 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
   const [countdownSeconds, setCountdownSeconds] = useState<number>(20);
   const [gameDurationMinutes, setGameDurationMinutes] = useState<number>(120);
   const isBusy = isSaving;
+  const [isEditingPins, setIsEditingPins] = useState(false);
 
   useEffect(() => {
     loadGameSettings();
@@ -95,6 +97,10 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
         </div>
       </div>
     );
+  }
+
+  if (isEditingPins) {
+    return <PinLocationEditor gameId={gameId} onBack={() => setIsEditingPins(false)} />;
   }
 
   const formatGameDurationLabel = (minutes: number) => {
@@ -178,6 +184,19 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
               <p className="text-[10px] text-muted mt-2 leading-relaxed tracking-[0.2em] uppercase">
                 ゲーム開始時にマップへ配置される発電所（黄色ピン）の数です。1〜20個の範囲で設定できます（初期値: 10個）。
               </p>
+              <div className="pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPins(true)}
+                  className="btn-surface w-full rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] transition-colors hover:border-cyber-green/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isBusy}
+                >
+                  発電所の場所を変更
+                </button>
+                <p className="mt-2 text-[10px] text-muted leading-relaxed tracking-[0.2em]">
+                  現在配置されている発電所のピンのみを表示し、ドラッグ&ドロップで位置を調整できます。
+                </p>
+              </div>
             </div>
           </div>
 
