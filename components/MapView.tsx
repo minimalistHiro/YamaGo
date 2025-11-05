@@ -95,6 +95,7 @@ export default function MapView({
   const captureRadiusCircle = useRef<{ id: string; center: [number, number]; radius: number } | null>(null);
   const randomPinsRef = useRef<maplibregl.Marker[]>([]);
   const randomPinsPlacedRef = useRef<boolean>(false);
+  const prevGameStatusRef = useRef<typeof gameStatus>(gameStatus);
   const kodouSoundRef = useRef<HTMLAudioElement | null>(null);
   const editingMarkersRef = useRef<Record<string, maplibregl.Marker>>({});
   const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -388,7 +389,6 @@ export default function MapView({
   };
 
   const placeRandomYellowPins = (count: number = pinTargetCount) => {
-    if (!map.current) return;
     const bounds = getYamanoteBounds();
     const [minLng, minLat] = bounds[0];
     const [maxLng, maxLat] = bounds[1];
@@ -1141,9 +1141,6 @@ export default function MapView({
         setLocalCountdownStartAt(null);
         // Game should start automatically when countdown reaches 0
         // Notify parent component to update database
-        if (!randomPinsPlacedRef.current && isMapLoaded && map.current) {
-          placeRandomYellowPins();
-        }
         if (onCountdownEnd) {
           onCountdownEnd();
         }
@@ -1177,6 +1174,14 @@ export default function MapView({
       }
     }
   }, [countdownStartAt, localCountdownStartAt]);
+
+  useEffect(() => {
+    const previous = prevGameStatusRef.current;
+    if (gameStatus === 'ended' && previous !== 'ended') {
+      placeRandomYellowPins(pinTargetCount);
+    }
+    prevGameStatusRef.current = gameStatus;
+  }, [gameStatus, pinTargetCount]);
 
   // Calculate remaining time until game ends
   useEffect(() => {
