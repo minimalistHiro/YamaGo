@@ -120,6 +120,7 @@ export default function MapView({
   const [gameTimeRemaining, setGameTimeRemaining] = useState<number | null>(null);
   const [nearbyPin, setNearbyPin] = useState<PinPoint | null>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [showGeneratorCleared, setShowGeneratorCleared] = useState(false);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
   const clearEditingMarkers = () => {
     Object.values(editingMarkersRef.current).forEach((marker) => marker.remove());
@@ -587,6 +588,8 @@ export default function MapView({
     setIsClearing(true);
     try {
       await updatePinCleared(gameId, nearbyPin.id, true);
+      setShowGeneratorCleared(true);
+      setTimeout(() => setShowGeneratorCleared(false), 2000);
       // If all pins are cleared, end the game (runners win)
       try {
         const allCleared = (pins || []).every((p) => (p.id === nearbyPin.id ? true : !!p.cleared));
@@ -1411,6 +1414,15 @@ export default function MapView({
             <div className="text-xs text-gray-600 mt-1">
               改善されたリトライ機能付き
             </div>
+          </div>
+        </div>
+      )}
+
+      {showGeneratorCleared && (
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-50">
+          <div className="rounded-2xl bg-[rgba(3,22,27,0.92)] border border-cyber-green/40 px-6 py-4 shadow-[0_16px_40px_rgba(3,22,27,0.55)] text-center">
+            <div className="text-3xl mb-2">⚡️</div>
+            <p className="text-sm font-semibold tracking-[0.2em] text-primary uppercase">解除しました</p>
           </div>
         </div>
       )}
