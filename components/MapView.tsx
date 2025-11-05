@@ -466,6 +466,7 @@ export default function MapView({
     }
 
     const filteredPins = (() => {
+      if (gameStatus !== 'running') return [] as typeof pins;
       if (currentLocation) {
         if (currentUserRole === 'runner' && typeof runnerSeeKillerRadiusM === 'number') {
           return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= runnerSeeKillerRadiusM);
