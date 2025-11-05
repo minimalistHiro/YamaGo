@@ -23,6 +23,7 @@ interface SettingsViewProps {
 
 export default function SettingsView({ gameId, currentUser, onGameExit, onPinEditModeChange }: SettingsViewProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isExitProcessing, setIsExitProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [uidCopied, setUidCopied] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -61,6 +62,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
   const confirmExitGame = async () => {
     setShowExitConfirm(false);
     setIsLoading(true);
+    setIsExitProcessing(true);
     try {
       console.log('Starting game exit process...');
       
@@ -98,6 +100,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
       alert('ゲームからの退出に失敗しました。もう一度お試しください。');
     } finally {
       setIsLoading(false);
+      setIsExitProcessing(false);
     }
   };
 
@@ -521,6 +524,18 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isExitProcessing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center space-y-4 bg-white/90 px-8 py-6 rounded-2xl shadow-2xl border border-red-200">
+            <div className="h-10 w-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-semibold tracking-[0.3em] text-red-600 uppercase">退出処理中...</p>
+            <p className="text-xs text-gray-600 text-center leading-relaxed">
+              データを削除しています。ブラウザを閉じずにお待ちください。
+            </p>
           </div>
         </div>
       )}
