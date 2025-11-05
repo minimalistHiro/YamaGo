@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
@@ -46,6 +46,8 @@ export default function PlayPage() {
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [showGameEndPopup, setShowGameEndPopup] = useState(false);
+  const [showGameSummaryPopup, setShowGameSummaryPopup] = useState(false);
+  const [gameEndedAt, setGameEndedAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isEditingPins, setIsEditingPins] = useState(false);
   const allPinsCleared = pins.length > 0 && pins.every(p => p.cleared);
@@ -56,6 +58,27 @@ export default function PlayPage() {
 
   // Derived list used in multiple places
   const players = Object.values(playersById);
+
+  const gameDurationElapsedSec = useMemo(() => {
+    if (!game?.startAt || !gameEndedAt) return null;
+    const startDate = game.startAt.toDate();
+    return Math.max(0, Math.floor((gameEndedAt.getTime() - startDate.getTime()) / 1000));
+  }, [game?.startAt?.seconds, game?.startAt?.nanoseconds, gameEndedAt]);
+
+  const formatDuration = (totalSeconds: number | null) => {
+    if (totalSeconds === null || totalSeconds === undefined) return '---';
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}時間${minutes}分${seconds}秒`;
+    }
+    if (minutes > 0) {
+      return `${minutes}分${seconds}秒`;
+    }
+    return `${seconds}秒`;
+  };
 
   useEffect(() => {
     preloadSounds(['start_sound']);
@@ -149,6 +172,11 @@ export default function PlayPage() {
   useEffect(() => {
     if (game?.status === 'ended') {
       setShowGameEndPopup(true);
+      setGameEndedAt((prev) => prev ?? new Date());
+    } else {
+      setShowGameEndPopup(false);
+      setShowGameSummaryPopup(false);
+      setGameEndedAt(null);
     }
   }, [game?.status]);
 
@@ -409,6 +437,10 @@ export default function PlayPage() {
   const runnerCount = players.filter(p => p.role === 'runner' && p.active).length;
   const runnerCapturedCount = players.filter(p => p.role === 'runner' && p.active && p.state && p.state !== 'active').length;
   const generatorsClearedCount = pins.filter(p => p.cleared).length;
+  const capturedPlayersCount = players.filter(p => p.role === 'runner' && (p.stats?.capturedTimes ?? 0) > 0).length;
+  const formattedGameDuration = formatDuration(
+    gameDurationElapsedSec ?? (typeof game.gameDurationSec === 'number' ? game.gameDurationSec : null)
+  );
 
   const handleGameExit = () => {
     router.push('/join');
@@ -495,9 +527,48 @@ export default function PlayPage() {
                 <div className="flex gap-2 justify-center">
                   <button
                     className="bg-gray-800 hover:bg-black text-white font-medium py-2 px-4 rounded"
-                    onClick={() => setShowGameEndPopup(false)}
+                    onClick={() => {
+                      setShowGameEndPopup(false);
+                      setShowGameSummaryPopup(true);
+                    }}
                   >
-                    OK
+                    次へ
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {showGameSummaryPopup && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[110]">
+              <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full mx-4">
+                <h3 className="text-xl font-bold mb-4 text-center">ゲーム内容</h3>
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span>捕獲者数</span>
+                    <span className="font-semibold text-gray-900">{capturedPlayersCount}人</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>発電機解除数</span>
+                    <span className="font-semibold text-gray-900">{generatorsClearedCount}箇所</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>ゲーム時間</span>
+                    <span className="font-semibold text-gray-900">{formattedGameDuration}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-center mt-6">
+                  <button
+                    className="bg-gray-800 hover:bg-black text-white font-medium py-2 px-4 rounded"
+                    onClick={() => setShowGameSummaryPopup(false)}
+                  >
+                    閉じる
+                  </button>
+                  <button
+                    className="bg-emerald-400 hover:bg-emerald-500 text-black font-medium py-2 px-4 rounded"
+                    onClick={handleGameExit}
+                  >
+                    ロビーに戻る
                   </button>
                 </div>
               </div>
