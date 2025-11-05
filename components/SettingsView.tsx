@@ -443,28 +443,34 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
               </div>
             </div>
 
-            {isOwner && (
-              <div className="pt-2">
-                <button
-                  onClick={handleEndGame}
-                  disabled={isLoading || game?.status !== 'running'}
-                  className="w-full bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
-                >
-                  {isLoading ? '処理中...' : 'ゲームを終了'}
-                </button>
-                {game?.status !== 'running' && (
-                  <p className="mt-2 text-xs text-gray-500">
-                    ゲーム開始後に終了できます。
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
         {/* Game Actions */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
           <h3 className="text-md font-medium text-gray-800 mb-3">ゲーム操作</h3>
+          {isOwner && (
+            <div className="mb-3">
+              <button
+                onClick={handleEndGame}
+                disabled={
+                  isLoading ||
+                  !(
+                    game?.status === 'running' ||
+                    game?.status === 'countdown'
+                  )
+                }
+                className="w-full bg-gray-800 hover:bg-black disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-full transition-colors"
+              >
+                {isLoading ? '処理中...' : 'ゲームを終了'}
+              </button>
+              {!(game?.status === 'running' || game?.status === 'countdown') && (
+                <p className="mt-2 text-xs text-gray-500">
+                  カウントダウン開始後に終了できます。
+                </p>
+              )}
+            </div>
+          )}
           {!isOwner && (
             <div className="mb-3">
               <button

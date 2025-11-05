@@ -88,7 +88,8 @@ export default function PlayPage() {
   useEffect(() => {
     const fetchCurrentPlayer = async () => {
       if (!user || !gameId) return;
-      
+      if (playersById[user.uid]) return;
+
       try {
         const playerData = await getPlayer(gameId, user.uid);
         if (playerData) {
@@ -98,12 +99,11 @@ export default function PlayPage() {
         console.error('Error fetching current player:', error);
       }
     };
-    
-    // Fetch when switching to map or settings tabs
-    if (activeTab === 'map' || activeTab === 'settings') {
+
+    if ((activeTab === 'map' || activeTab === 'settings') && !currentPlayer) {
       fetchCurrentPlayer();
     }
-  }, [user, gameId, activeTab]);
+  }, [user, gameId, activeTab, playersById, currentPlayer]);
 
   useEffect(() => {
     // Get Firebase services (client-side only)
@@ -152,6 +152,29 @@ export default function PlayPage() {
       stop();
     };
   }, [user, gameId, setIdentity, start, stop]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    const livePlayer = playersById[user.uid];
+    if (!livePlayer) return;
+
+    setCurrentPlayer((prev) => {
+      if (
+        prev &&
+        prev.uid === livePlayer.uid &&
+        prev.role === livePlayer.role &&
+        prev.nickname === livePlayer.nickname &&
+        prev.avatarUrl === livePlayer.avatarUrl &&
+        prev.state === livePlayer.state &&
+        prev.active === livePlayer.active &&
+        (prev.stats?.captures ?? 0) === (livePlayer.stats?.captures ?? 0) &&
+        (prev.stats?.capturedTimes ?? 0) === (livePlayer.stats?.capturedTimes ?? 0)
+      ) {
+        return prev;
+      }
+      return livePlayer;
+    });
+  }, [playersById, user?.uid]);
 
   // Show popup when this user (oni) captures a runner
   useEffect(() => {

@@ -141,6 +141,20 @@ export async function createGame(ownerUid: string, gameData: Partial<Game> = {})
     console.log('Setting game document:', game);
     await setDoc(gameRef, game);
     console.log('Game document set successfully, ID:', gameRef.id);
+
+    const initialPinCount =
+      typeof game.pinCount === 'number' && game.pinCount > 0 ? game.pinCount : 10;
+
+    try {
+      if (initialPinCount > 0) {
+        console.log('Seeding initial generator pins:', initialPinCount);
+        await reseedPinsWithRandomLocations(gameRef.id, initialPinCount);
+        console.log('Initial generator pins seeded successfully');
+      }
+    } catch (pinError) {
+      console.error('Failed to seed initial generator pins:', pinError);
+    }
+
     return gameRef.id;
   } catch (error) {
     console.error('Error creating game:', error);
