@@ -22,6 +22,7 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
   const [countdownMinutes, setCountdownMinutes] = useState<number>(0);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(20);
   const [gameDurationMinutes, setGameDurationMinutes] = useState<number>(120);
+  const isBusy = isSaving;
 
   useEffect(() => {
     loadGameSettings();
@@ -117,13 +118,20 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
   };
 
   return (
-    <div className="h-full bg-app flex flex-col">
+    <div className="h-full bg-app flex flex-col relative">
+      {isBusy && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[rgba(1,10,14,0.75)] backdrop-blur-sm">
+          <div className="h-12 w-12 rounded-full border-2 border-cyber-green border-t-transparent animate-spin" aria-hidden />
+          <p className="mt-4 text-xs text-cyber-green tracking-[0.3em] uppercase">保存中...</p>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-[rgba(3,22,27,0.96)] border-b border-cyber-green/35 p-5 flex-shrink-0 flex items-center justify-between shadow-[0_6px_24px_rgba(4,12,24,0.4)]">
         <button
           onClick={onBack}
-          className="btn-surface inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs tracking-[0.2em]"
+          className="btn-surface inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs tracking-[0.2em] disabled:opacity-60 disabled:cursor-not-allowed"
           aria-label="戻る"
+          disabled={isBusy}
         >
           <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 19l-7-7 7-7" />
@@ -157,7 +165,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step="1"
                 value={pinCount}
                 onChange={(e) => setPinCount(Number(e.target.value))}
-                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green disabled:cursor-not-allowed"
+                disabled={isBusy}
                 style={{
                   background: `linear-gradient(to right, rgba(34,181,155,0.9) 0%, rgba(34,181,155,0.9) ${((pinCount - 1) / 19) * 100}%, rgba(5,28,34,0.8) ${((pinCount - 1) / 19) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
@@ -191,7 +200,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step={5}
                 value={gameDurationMinutes}
                 onChange={(e) => setGameDurationMinutes(Number(e.target.value))}
-                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green disabled:cursor-not-allowed"
+                disabled={isBusy}
                 style={{
                   background: `linear-gradient(to right, rgba(34,181,155,0.9) 0%, rgba(34,181,155,0.9) ${((gameDurationMinutes - 10) / 470) * 100}%, rgba(5,28,34,0.8) ${((gameDurationMinutes - 10) / 470) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
@@ -221,7 +231,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step="10"
                 value={captureRadiusM}
                 onChange={(e) => setCaptureRadiusM(Number(e.target.value))}
-                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-pink"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-pink disabled:cursor-not-allowed"
+                disabled={isBusy}
                 style={{
                   background: `linear-gradient(to right, rgba(255,71,194,0.9) 0%, rgba(255,71,194,0.9) ${((captureRadiusM - 10) / 190) * 100}%, rgba(5,28,34,0.8) ${((captureRadiusM - 10) / 190) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
@@ -251,7 +262,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step="10"
                 value={runnerSeeKillerRadiusM}
                 onChange={(e) => setRunnerSeeKillerRadiusM(Number(e.target.value))}
-                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-green disabled:cursor-not-allowed"
+                disabled={isBusy}
                 style={{
                   background: `linear-gradient(to right, rgba(34,181,155,0.9) 0%, rgba(34,181,155,0.9) ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) ${((runnerSeeKillerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
@@ -281,7 +293,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                 step="10"
                 value={killerDetectRunnerRadiusM}
                 onChange={(e) => setKillerDetectRunnerRadiusM(Number(e.target.value))}
-                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-pink"
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-cyber-pink disabled:cursor-not-allowed"
+                disabled={isBusy}
                 style={{
                   background: `linear-gradient(to right, rgba(255,71,194,0.9) 0%, rgba(255,71,194,0.9) ${((killerDetectRunnerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) ${((killerDetectRunnerRadiusM - 50) / 950) * 100}%, rgba(5,28,34,0.8) 100%)`
                 }}
@@ -306,7 +319,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                   <select
                     value={countdownMinutes}
                     onChange={(e) => setCountdownMinutes(Number(e.target.value))}
-                    className="px-3 py-2 border border-cyber-green/35 bg-[rgba(3,22,27,0.85)] text-app rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-cyber-green/60"
+                    className="px-3 py-2 border border-cyber-green/35 bg-[rgba(3,22,27,0.85)] text-app rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-cyber-green/60 disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={isBusy}
                   >
                     {Array.from({ length: 60 }, (_, i) => (
                       <option key={`m-${i}`} value={i}>{i}</option>
@@ -316,7 +330,8 @@ export default function GameSettingsView({ gameId, onBack }: GameSettingsViewPro
                   <select
                     value={countdownSeconds}
                     onChange={(e) => setCountdownSeconds(Number(e.target.value))}
-                    className="px-3 py-2 border border-cyber-green/35 bg-[rgba(3,22,27,0.85)] text-app rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-cyber-green/60"
+                    className="px-3 py-2 border border-cyber-green/35 bg-[rgba(3,22,27,0.85)] text-app rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-cyber-green/60 disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={isBusy}
                   >
                     {Array.from({ length: 60 }, (_, i) => (
                       <option key={`s-${i}`} value={i}>{i}</option>

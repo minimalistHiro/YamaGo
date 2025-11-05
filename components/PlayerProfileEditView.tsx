@@ -29,8 +29,10 @@ export default function PlayerProfileEditView({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const isBusy = isSaving;
 
   const handleSelectImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (isBusy) return;
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -55,6 +57,7 @@ export default function PlayerProfileEditView({
   };
 
   const handleClearImage = () => {
+    if (isBusy) return;
     setSelectedImage(null);
     setImagePreview(null);
     setError('');
@@ -112,12 +115,19 @@ export default function PlayerProfileEditView({
   };
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col">
+    <div className="h-full bg-gray-50 flex flex-col relative">
+      {isBusy && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm">
+          <div className="h-10 w-10 rounded-full border-2 border-cyber-green border-t-transparent animate-spin" aria-hidden />
+          <p className="mt-3 text-xs text-gray-700 tracking-[0.25em] uppercase">保存中...</p>
+        </div>
+      )}
       <header className="bg-white border-b border-gray-200 p-4 flex items-center gap-3">
         <button
           onClick={onBack}
           type="button"
-          className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 bg-white hover:bg-gray-100 transition-colors"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 bg-white hover:bg-gray-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={isBusy}
         >
           <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -181,7 +191,8 @@ export default function PlayerProfileEditView({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      disabled={isBusy}
                     >
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -192,7 +203,8 @@ export default function PlayerProfileEditView({
                       <button
                         type="button"
                         onClick={handleClearImage}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        disabled={isBusy}
                       >
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -213,7 +225,8 @@ export default function PlayerProfileEditView({
             <button
               type="button"
               onClick={onBack}
-              className="flex-1 px-4 py-3 rounded-full border border-gray-300 text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+              className="flex-1 px-4 py-3 rounded-full border border-gray-300 text-gray-600 font-medium hover:bg-gray-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isBusy}
             >
               キャンセル
             </button>
