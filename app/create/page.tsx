@@ -25,9 +25,11 @@ export default function CreatePage() {
   const [gameCreated, setGameCreated] = useState(false);
   const [gameId, setGameId] = useState('');
   const [copied, setCopied] = useState(false);
+  const isBusy = isLoading;
 
   const handleCreateGame = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBusy) return;
     if (!nickname.trim()) {
       setError('ニックネームを入力してください');
       return;
@@ -93,6 +95,7 @@ export default function CreatePage() {
   };
 
   const handleBackToHome = () => {
+    if (isBusy) return;
     router.push('/');
   };
 
@@ -186,13 +189,20 @@ export default function CreatePage() {
         <div className="w-[20rem] h-[20rem] brand-gradient rounded-full absolute -bottom-20 -right-24 mix-blend-screen" />
       </div>
       <div className="max-w-2xl w-full cyber-card rounded-3xl border border-cyber-green/30 shadow-[0_0_50px_rgba(34,181,155,0.18)] p-8 relative">
+        {isBusy && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-3xl bg-[rgba(1,10,14,0.75)] backdrop-blur-sm">
+            <div className="h-12 w-12 rounded-full border-2 border-cyber-green border-t-transparent animate-spin" aria-hidden />
+            <p className="mt-4 text-xs text-cyber-green tracking-[0.3em] uppercase">作成中...</p>
+          </div>
+        )}
         <div className="absolute inset-x-8 -top-1 h-1 bg-gradient-to-r from-cyber-green via-cyber-glow to-cyber-pink rounded-full shadow-[0_0_18px_rgba(95,251,241,0.5)]" />
         {/* Back to Home Button */}
         <div className="mb-8 flex items-center justify-between">
           <button
             onClick={handleBackToHome}
-            className="btn-surface inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm tracking-[0.2em]"
+            className="btn-surface inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm tracking-[0.2em] disabled:opacity-60 disabled:cursor-not-allowed"
             type="button"
+            disabled={isBusy}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -234,7 +244,7 @@ export default function CreatePage() {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isBusy}
             className="w-full btn-primary disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-full uppercase tracking-[0.25em]"
           >
             {isLoading ? '作成中...' : 'ゲームを作成'}

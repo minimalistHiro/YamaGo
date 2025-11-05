@@ -28,8 +28,10 @@ export default function JoinPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const isBusy = isLoading || isCreating;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isBusy) return;
     const file = e.target.files?.[0];
     if (file) {
       // ファイルサイズチェック (5MB以下)
@@ -121,10 +123,12 @@ export default function JoinPage() {
   };
 
   const handleBackToHome = () => {
+    if (isBusy) return;
     router.push('/');
   };
 
   const handleCreateGame = async () => {
+    if (isBusy) return;
     // ニックネームが入力されていない場合はエラーを表示
     if (!nickname.trim()) {
       setError('ニックネームを入力してください');
@@ -181,13 +185,20 @@ export default function JoinPage() {
         <div className="w-80 h-80 brand-gradient rounded-full absolute -bottom-16 -right-20 mix-blend-screen" />
       </div>
       <div className="max-w-2xl w-full cyber-card rounded-3xl border border-cyber-green/30 shadow-[0_0_50px_rgba(34,181,155,0.15)] p-8 relative">
+        {isBusy && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-3xl bg-[rgba(1,10,14,0.75)] backdrop-blur-sm">
+            <div className="h-12 w-12 rounded-full border-2 border-cyber-green border-t-transparent animate-spin" aria-hidden />
+            <p className="mt-4 text-xs text-cyber-green tracking-[0.3em] uppercase">処理中...</p>
+          </div>
+        )}
         <div className="absolute inset-x-8 -top-1 h-1 bg-gradient-to-r from-cyber-green via-cyber-glow to-cyber-pink rounded-full shadow-[0_0_20px_rgba(95,251,241,0.55)]" />
         {/* Back to Home Button */}
         <div className="mb-8 flex items-center justify-between">
           <button
             onClick={handleBackToHome}
-            className="btn-surface inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm tracking-[0.2em]"
+            className="btn-surface inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm tracking-[0.2em] disabled:opacity-60 disabled:cursor-not-allowed"
             type="button"
+            disabled={isBusy}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -237,7 +248,8 @@ export default function JoinPage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="btn-surface px-4 py-2 rounded-lg text-sm"
+                  className="btn-surface px-4 py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isBusy}
                 >
                   画像を選択
                 </button>
@@ -245,13 +257,15 @@ export default function JoinPage() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (isBusy) return;
                       setSelectedImage(null);
                       setImagePreview(null);
                       if (fileInputRef.current) {
                         fileInputRef.current.value = '';
                       }
                     }}
-                    className="btn-accent ml-3 px-3 py-1 text-xs rounded-lg text-white opacity-80 hover:opacity-100"
+                    className="btn-accent ml-3 px-3 py-1 text-xs rounded-lg text-white opacity-80 hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isBusy}
                   >
                     削除
                   </button>
@@ -302,7 +316,7 @@ export default function JoinPage() {
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isBusy}
             className="w-full btn-accent disabled:opacity-60 disabled:cursor-not-allowed font-semibold py-3 px-4 rounded-full transition-transform"
           >
             {isLoading ? '参加中...' : 'ゲームに参加'}
