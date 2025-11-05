@@ -645,7 +645,6 @@ export default function MapView({
     try {
       await updatePinCleared(gameId, nearbyPin.id, true);
       setShowGeneratorCleared(true);
-      setTimeout(() => setShowGeneratorCleared(false), 2000);
       // If all pins are cleared, end the game (runners win)
       try {
         const allCleared = (pins || []).every((p) => (p.id === nearbyPin.id ? true : !!p.cleared));
@@ -1399,7 +1398,7 @@ export default function MapView({
 
       {/* Gray overlay for oni during countdown */}
       {/* Clear Pin Button for Runner when within capture radius */}
-      {!pinEditingMode && gameStatus !== 'ended' && currentUserRole === 'runner' && nearbyPin && (
+      {!pinEditingMode && gameStatus === 'running' && currentUserRole === 'runner' && nearbyPin && (
         <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
           <button
             onClick={handleClearNearbyPin}
@@ -1475,10 +1474,17 @@ export default function MapView({
       )}
 
       {showGeneratorCleared && (
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 z-50">
-          <div className="rounded-2xl bg-[rgba(3,22,27,0.92)] border border-cyber-green/40 px-6 py-4 shadow-[0_16px_40px_rgba(3,22,27,0.55)] text-center">
-            <div className="text-3xl mb-2">⚡️</div>
-            <p className="text-sm font-semibold tracking-[0.2em] text-primary uppercase">解除しました</p>
+        <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/40">
+          <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-green/50 px-8 py-6 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
+            <div className="text-4xl mb-3">⚡️</div>
+            <p className="text-lg font-semibold text-primary">発電機を解除しました！</p>
+            <p className="text-xs text-muted mt-2">次の発電所へ進んでください。</p>
+            <button
+              className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
+              onClick={() => setShowGeneratorCleared(false)}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

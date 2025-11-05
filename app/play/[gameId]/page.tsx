@@ -582,7 +582,7 @@ export default function PlayPage() {
           )}
 
           {/* Capture Button for Oni */}
-          {capturableRunner && currentPlayer.role === 'oni' && (
+          {capturableRunner && currentPlayer.role === 'oni' && game.status === 'running' && (
             <div className="absolute bottom-48 left-1/2 transform -translate-x-1/2 z-50">
               <button
                 onClick={handleCapture}
