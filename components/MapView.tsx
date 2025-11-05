@@ -1270,6 +1270,16 @@ export default function MapView({
 
   return (
     <div className="relative w-full h-full min-h-[400px]">
+      {!pinEditingMode && (
+        <div className="absolute top-4 left-4 z-40 flex items-center gap-2 rounded-xl bg-[rgba(3,22,27,0.9)] border border-cyber-green/40 px-3 py-2 shadow-[0_10px_24px_rgba(3,22,27,0.45)]">
+          <span className="text-xl">
+            {currentUserRole === 'oni' ? '👹' : '🏃'}
+          </span>
+          <span className="text-xs font-semibold tracking-[0.25em] text-primary uppercase">
+            {currentUserRole === 'oni' ? '鬼' : '逃走者'}
+          </span>
+        </div>
+      )}
       <div ref={mapContainer} className="w-full h-full min-h-[400px]" />
       
       {!isMapLoaded && (
