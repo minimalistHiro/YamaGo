@@ -70,6 +70,32 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
     }
   };
 
+  const handleEditPinsClick = async () => {
+    if (isBusy) return;
+    try {
+      setError('');
+      setIsPreparingPins(true);
+      const clampedPinCount = Math.max(1, Math.min(20, pinCount));
+      await updateGame(gameId, { pinCount: clampedPinCount });
+      await reseedPinsWithRandomLocations(gameId, clampedPinCount);
+      setGame((prev) =>
+        prev
+          ? {
+              ...prev,
+              pinCount: clampedPinCount,
+            }
+          : prev
+      );
+      setIsEditingPins(true);
+      onPinEditModeChange?.(true);
+    } catch (err) {
+      console.error('Failed to prepare pin editor', err);
+      setError('発電所の再配置に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsPreparingPins(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
@@ -476,28 +502,3 @@ export default function GameSettingsView({ gameId, onBack, onPinEditModeChange }
     </div>
   );
 }
-  const handleEditPinsClick = async () => {
-    if (isBusy) return;
-    try {
-      setError('');
-      setIsPreparingPins(true);
-      const clampedPinCount = Math.max(1, Math.min(20, pinCount));
-      await updateGame(gameId, { pinCount: clampedPinCount });
-      await reseedPinsWithRandomLocations(gameId, clampedPinCount);
-      setGame((prev) =>
-        prev
-          ? {
-              ...prev,
-              pinCount: clampedPinCount,
-            }
-          : prev
-      );
-      setIsEditingPins(true);
-      onPinEditModeChange?.(true);
-    } catch (err) {
-      console.error('Failed to prepare pin editor', err);
-      setError('発電所の再配置に失敗しました。もう一度お試しください。');
-    } finally {
-      setIsPreparingPins(false);
-    }
-  };
