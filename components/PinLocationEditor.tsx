@@ -5,6 +5,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getYamanoteBounds, getYamanoteCenter } from '@/lib/geo';
 import { PinPoint, subscribeToPins, updatePinPosition } from '@/lib/game';
+import { createBaseMapStyle } from '@/lib/mapStyle';
 
 interface PinLocationEditorProps {
   gameId: string;
@@ -42,25 +43,7 @@ export default function PinLocationEditor({ gameId, onBack }: PinLocationEditorP
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: {
-        version: 8,
-        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors',
-          },
-        },
-        layers: [
-          {
-            id: 'osm',
-            type: 'raster',
-            source: 'osm',
-          },
-        ],
-      },
+      style: createBaseMapStyle(),
       center: [center.lng, center.lat],
       zoom: 13,
       maxBounds: bounds,
@@ -70,6 +53,7 @@ export default function PinLocationEditor({ gameId, onBack }: PinLocationEditorP
 
     map.on('load', () => {
       setIsMapLoaded(true);
+      map.resize();
 
       // Add boundary overlay for guidance
       map.addSource('yamanote-boundary', {
@@ -141,6 +125,18 @@ export default function PinLocationEditor({ gameId, onBack }: PinLocationEditorP
     hasFitInitialBoundsRef.current = true;
   }, [pins, isMapLoaded]);
 
+  useEffect(() => {
+    if (!isMapLoaded || !mapRef.current) return;
+    const handleResize = () => {
+      mapRef.current?.resize();
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [isMapLoaded]);
+
   // Render draggable markers
   useEffect(() => {
     if (!mapRef.current || !isMapLoaded) return;
@@ -202,7 +198,7 @@ export default function PinLocationEditor({ gameId, onBack }: PinLocationEditorP
   }, [pins, isMapLoaded, gameId]);
 
   return (
-    <div className="h-full bg-app flex flex-col">
+    <div className="flex h-full min-h-0 flex-col bg-app">
       <div className="bg-[rgba(3,22,27,0.96)] border-b border-cyber-green/35 p-5 flex-shrink-0 flex items-center justify-between shadow-[0_6px_24px_rgba(4,12,24,0.4)]">
         <button
           onClick={onBack}
@@ -219,7 +215,7 @@ export default function PinLocationEditor({ gameId, onBack }: PinLocationEditorP
         </h2>
       </div>
 
-      <div className="relative flex-1">
+      <div className="relative flex-1 min-h-[360px]">
         <div ref={mapContainerRef} className="absolute inset-0" />
         {pins.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -256,4 +252,3 @@ export default function PinLocationEditor({ gameId, onBack }: PinLocationEditorP
     </div>
   );
 }
-

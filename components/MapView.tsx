@@ -10,6 +10,7 @@ import {
 } from '@/lib/constants';
 import { setGamePins, type PinPoint, updatePinCleared, updateGame } from '@/lib/game';
 import { preloadSounds } from '@/lib/sounds';
+import { createBaseMapStyle } from '@/lib/mapStyle';
 
 interface MapViewProps {
   onLocationUpdate?: (lat: number, lng: number, accuracy: number) => void;
@@ -514,25 +515,7 @@ export default function MapView({
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: {
-        version: 8,
-        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-        sources: {
-          'osm': {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors'
-          }
-        },
-        layers: [
-          {
-            id: 'osm',
-            type: 'raster',
-            source: 'osm'
-          }
-        ]
-      },
+      style: createBaseMapStyle(),
       center: [center.lng, center.lat],
       zoom: 13,
       maxBounds: bounds
