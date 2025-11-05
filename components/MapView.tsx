@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getYamanoteCenter, getYamanoteBounds } from '@/lib/geo';
@@ -75,6 +75,7 @@ const GENERATOR_PIN_STYLE_CLEARED = {
   border: '#6b7280',
   icon: '⚡️',
 };
+const GENERATOR_CLEAR_COUNTDOWN_SEC = 10;
 
 export default function MapView({
   onLocationUpdate,
@@ -122,6 +123,9 @@ export default function MapView({
   const [isClearing, setIsClearing] = useState(false);
   const [showGeneratorCleared, setShowGeneratorCleared] = useState(false);
   const [showGeneratorClearedAlert, setShowGeneratorClearedAlert] = useState(false);
+  const [clearCountdown, setClearCountdown] = useState<number | null>(null);
+  const [clearingPinId, setClearingPinId] = useState<string | null>(null);
+  const [showGeneratorClearFailed, setShowGeneratorClearFailed] = useState(false);
   const clearedPinIdsRef = useRef<Set<string>>(new Set());
   const isInitialClearedCheckRef = useRef(true);
   const getPinColor = (role: 'oni' | 'runner') => ROLE_COLORS[role];
@@ -622,15 +626,24 @@ export default function MapView({
     clearedPinIdsRef.current = currentCleared;
   }, [pins, currentUserRole]);
 
-  const handleClearNearbyPin = async () => {
-    if (!gameId || !nearbyPin) return;
-    setIsClearing(true);
+  const finalizeGeneratorClear = useCallback(async (pinId: string) => {
+    if (!gameId) {
+      console.error('Game ID is not available for clearing pin');
+      setIsClearing(false);
+      setClearCountdown(null);
+      setClearingPinId(null);
+      return;
+    }
+
+    setClearCountdown(null);
+    setClearingPinId(null);
+
     try {
-      await updatePinCleared(gameId, nearbyPin.id, true);
+      await updatePinCleared(gameId, pinId, true);
       setShowGeneratorCleared(true);
       // If all pins are cleared, end the game (runners win)
       try {
-        const allCleared = (pins || []).every((p) => (p.id === nearbyPin.id ? true : !!p.cleared));
+        const allCleared = (pins || []).every((p) => (p.id === pinId ? true : !!p.cleared));
         if ((pins || []).length > 0 && allCleared) {
           await updateGame(gameId, { status: 'ended' });
         }
@@ -642,7 +655,52 @@ export default function MapView({
     } finally {
       setIsClearing(false);
     }
+  }, [gameId, pins]);
+
+  const handleClearNearbyPin = () => {
+    if (!nearbyPin || isClearing || !gameId) return;
+    setShowGeneratorClearFailed(false);
+    setClearingPinId(nearbyPin.id);
+    setClearCountdown(GENERATOR_CLEAR_COUNTDOWN_SEC);
+    setIsClearing(true);
   };
+
+  useEffect(() => {
+    if (!isClearing || clearCountdown === null) return;
+    if (clearCountdown <= 0) {
+      if (clearingPinId) {
+        void finalizeGeneratorClear(clearingPinId);
+      }
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setClearCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : prev));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [isClearing, clearCountdown, clearingPinId, finalizeGeneratorClear]);
+
+  useEffect(() => {
+    if (!isClearing || clearCountdown === null || !clearingPinId) return;
+    if (!currentLocation) return;
+    const targetPin = pins?.find((p) => p.id === clearingPinId);
+    if (!targetPin) return;
+
+    const distance = haversine(
+      currentLocation.lat,
+      currentLocation.lng,
+      targetPin.lat,
+      targetPin.lng
+    );
+
+    if (distance > captureRadiusM) {
+      setIsClearing(false);
+      setClearCountdown(null);
+      setClearingPinId(null);
+      setShowGeneratorClearFailed(true);
+    }
+  }, [isClearing, clearCountdown, clearingPinId, currentLocation, pins, captureRadiusM]);
 
 
   useEffect(() => {
@@ -1378,7 +1436,11 @@ export default function MapView({
             disabled={isClearing}
             className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isClearing ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {isClearing ? '解除中…' : '解除する'}
+            {isClearing
+              ? clearCountdown !== null
+                ? `解除中… (残り${clearCountdown}秒)`
+                : '解除処理中…'
+              : '解除する'}
           </button>
         </div>
       )}
@@ -1455,6 +1517,22 @@ export default function MapView({
             <button
               className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
               onClick={() => setShowGeneratorCleared(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showGeneratorClearFailed && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/40">
+          <div className="rounded-2xl bg-[rgba(27,6,6,0.95)] border border-cyber-pink/50 px-8 py-6 shadow-[0_20px_48px_rgba(24,6,12,0.6)] text-center max-w-xs w-full mx-4">
+            <div className="text-4xl mb-3">⚠️</div>
+            <p className="text-lg font-semibold text-primary">解除に失敗しました</p>
+            <p className="text-xs text-muted mt-2">発電機から離れました。捕獲範囲内に戻って再挑戦してください。</p>
+            <button
+              className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
+              onClick={() => setShowGeneratorClearFailed(false)}
             >
               OK
             </button>
