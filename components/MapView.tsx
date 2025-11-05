@@ -1212,7 +1212,7 @@ export default function MapView({
         <div className="absolute bottom-20 right-4 z-50">
           <div className="bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-3 border border-gray-200 flex items-center space-x-3">
             <span className="text-sm text-gray-600">鬼が出発するまで</span>
-            <span className="font-mono text-2xl font-bold text-gray-800">{formatDuration(countdownTimeLeft)}</span>
+            <span className="font-mono text-2xl font-bold text-gray-900">{formatDuration(countdownTimeLeft)}</span>
           </div>
         </div>
       )}
