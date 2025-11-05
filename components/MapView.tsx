@@ -1183,27 +1183,6 @@ export default function MapView({
         </div>
       )}
       
-      {/* Game status and remaining time - always visible when game is running */}
-      {gameStatus === 'running' && (
-        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 space-y-2" style={{ zIndex: 60 }}>
-          <div className="flex items-center space-x-2">
-          <div className={`w-3 h-3 rounded-full ${currentUserRole === 'oni' ? 'bg-red-500' : (currentState && currentState !== 'active' ? 'bg-gray-400' : 'bg-green-500')}`}></div>
-            <span className="text-sm font-medium">
-              {currentUserRole === 'oni' ? '鬼' : (currentState && currentState !== 'active' ? '逃走者（捕獲済み）' : '逃走者')}
-            </span>
-          </div>
-          {/* Remaining time display */}
-          {gameStartAt && gameTimeRemaining !== null && (
-            <div className="flex items-center space-x-2 pt-1 border-t border-gray-200">
-              <span className="text-xs text-gray-500">残り時間</span>
-              <span className="text-lg font-mono font-bold text-gray-800">
-                {formatDuration(gameTimeRemaining)}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Owner Start Game Button - Show when game is pending or ended; if ended, ignore countdown flags */}
       {isOwner && 
        (gameStatus === 'pending' || gameStatus === 'ended') &&
