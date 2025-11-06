@@ -126,7 +126,7 @@ export async function createGame(ownerUid: string, gameData: Partial<Game> = {})
       status: 'pending',
       startAt: null,
       captureRadiusM: 100,
-      runnerSeeKillerRadiusM: 3000,
+      runnerSeeKillerRadiusM: 500,
       killerDetectRunnerRadiusM: 500,
       killerSeeGeneratorRadiusM: 3000,
       pinCount: 10,

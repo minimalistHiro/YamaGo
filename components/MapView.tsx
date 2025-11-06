@@ -92,7 +92,7 @@ export default function MapView({
   gameStartAt,
   captureRadiusM = 100,
   gameId,
-  runnerSeeKillerRadiusM = 3000,
+  runnerSeeKillerRadiusM = 500,
   killerDetectRunnerRadiusM = 500,
   pinTargetCount = 10,
   gameDurationSec,
@@ -874,7 +874,7 @@ export default function MapView({
 
       if (currentUserRole === 'oni') {
         if (player.role === 'oni') {
-          return true; // Show all oni including self
+          return !isSelf; // Show other oni, hide self
         }
         if (!currentUserLocation) return false;
         if (player.role === 'runner' && player.state !== 'eliminated') {

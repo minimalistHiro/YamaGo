@@ -1,6 +1,6 @@
 // DbD Mode Constants
 export const CAPTURE_RADIUS_M = 50;
-export const RUNNER_SEE_KILLER_RADIUS_M = 3000;
+export const RUNNER_SEE_KILLER_RADIUS_M = 500;
 export const KILLER_DETECT_RUNNER_RADIUS_M = 500;
 export const RESCUE_RADIUS_M = 50;
 export const MAX_DOWNS = 3;
