@@ -194,6 +194,8 @@ export default function MapView({
 
   const currentState: 'active' | 'downed' | 'eliminated' | undefined =
     (players || []).find(p => p.uid === currentUserId)?.state;
+  const isRunnerCaptured =
+    currentUserRole === 'runner' && currentState !== undefined && currentState !== 'active';
 
   const isOniWithinDetectionRadius = useMemo(() => {
     if (currentUserRole !== 'runner' || !currentLocation) return false;
@@ -648,7 +650,7 @@ export default function MapView({
 
   // Detect nearby pending pin for runner within capture radius
   useEffect(() => {
-    if (gameStatus !== 'running' || !currentLocation || !pins || pins.length === 0) {
+    if (gameStatus !== 'running' || !currentLocation || !pins || pins.length === 0 || isRunnerCaptured) {
       setNearbyPin(null);
       return;
     }
@@ -671,7 +673,7 @@ export default function MapView({
       }
     }
     setNearbyPin(found);
-  }, [gameStatus, currentLocation, pins, currentUserRole, captureRadiusM]);
+  }, [gameStatus, currentLocation, pins, currentUserRole, captureRadiusM, isRunnerCaptured]);
 
   useEffect(() => {
     if (!pins) {
@@ -737,6 +739,18 @@ export default function MapView({
     }
   }, [pins, currentUserRole, showGeneratorClearingAlert, clearingAlertPinId, dismissedClearingAlertPinId]);
 
+  useEffect(() => {
+    if (!isRunnerCaptured) return;
+    if (!isClearing) return;
+
+    setIsClearing(false);
+    setClearCountdown(null);
+    if (clearingPinId && gameId) {
+      void updatePinStatus(gameId, clearingPinId, 'pending');
+    }
+    setClearingPinId(null);
+  }, [isRunnerCaptured, isClearing, clearingPinId, gameId]);
+
   const finalizeGeneratorClear = useCallback(async (pinId: string) => {
     if (!gameId) {
       console.error('Game ID is not available for clearing pin');
@@ -774,7 +788,7 @@ export default function MapView({
   }, [gameId, pins]);
 
   const handleClearNearbyPin = () => {
-    if (!nearbyPin || isClearing || !gameId) return;
+    if (!nearbyPin || isClearing || !gameId || isRunnerCaptured) return;
     if (getPinStatus(nearbyPin) !== 'pending') return;
 
     setShowGeneratorClearFailed(false);
@@ -1588,8 +1602,11 @@ export default function MapView({
         <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
           <button
             onClick={handleClearNearbyPin}
-            disabled={isClearing}
-            className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isClearing ? 'opacity-70 cursor-not-allowed' : ''}`}
+            disabled={isClearing || isRunnerCaptured}
+            className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${
+              isClearing || isRunnerCaptured ? 'opacity-60 cursor-not-allowed hover:bg-yellow-500' : ''
+            }`}
+            title={isRunnerCaptured ? '捕獲中は発電機を解除できません' : undefined}
           >
             {isClearing
               ? clearCountdown !== null
