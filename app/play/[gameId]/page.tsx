@@ -22,7 +22,7 @@ import ChatView from '@/components/ChatView';
 import SettingsView from '@/components/SettingsView';
 import BackgroundLocationProvider from '@/components/BackgroundLocationProvider';
 import { useGameStore } from '@/lib/store/gameStore';
-import type { Player } from '@/lib/game';
+import type { Player, Game } from '@/lib/game';
 import { playSound, preloadSounds } from '@/lib/sounds';
 
 export default function PlayPage() {
@@ -31,11 +31,13 @@ export default function PlayPage() {
   const gameId = params.gameId as string;
   
   const [user, setUser] = useState<User | null>(null);
-  const game = useGameStore((s) => s.game);
+  const liveGame = useGameStore((s) => s.game);
   const playersById = useGameStore((s) => s.playersById);
   const locations = useGameStore((s) => s.locationsById);
   const pins = useGameStore((s) => s.pins);
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [currentPlayerState, setCurrentPlayer] = useState<Player | null>(null);
+  const [stableGame, setStableGame] = useState<Game | null>(liveGame ?? null);
+  const [stablePlayer, setStablePlayer] = useState<Player | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('map');
@@ -55,6 +57,19 @@ export default function PlayPage() {
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
   const updateLocationThrottled = useGameStore((s) => s.updateLocationThrottled);
+
+  useEffect(() => {
+    if (!liveGame) return;
+    setStableGame(liveGame);
+  }, [liveGame]);
+
+  useEffect(() => {
+    if (!currentPlayerState) return;
+    setStablePlayer(currentPlayerState);
+  }, [currentPlayerState]);
+
+  let game = liveGame ?? stableGame ?? null;
+  let currentPlayer = currentPlayerState ?? stablePlayer ?? null;
 
   // Derived list used in multiple places
   const players = Object.values(playersById);
@@ -146,7 +161,9 @@ export default function PlayPage() {
     // current player bootstrap
     (async () => {
       const playerData = await getPlayer(gameId, user.uid);
-      setCurrentPlayer(playerData);
+      if (playerData) {
+        setCurrentPlayer(playerData);
+      }
     })();
     return () => {
       stop();
@@ -193,15 +210,30 @@ export default function PlayPage() {
   // Alerts are handled centrally in the store; UI surfacing can be added later
   // Show popup when game ends (e.g., Cloud Function ended the game)
   useEffect(() => {
-    if (game?.status === 'ended') {
-      setShowGameEndPopup(true);
-      setGameEndedAt((prev) => prev ?? new Date());
-    } else {
+    if (!game) return;
+
+    if (game.status !== 'ended') {
       setShowGameEndPopup(false);
       setShowGameSummaryPopup(false);
       setGameEndedAt(null);
+      return;
     }
-  }, [game?.status]);
+
+    setShowGameEndPopup(true);
+    setGameEndedAt((prev) => prev ?? new Date());
+
+    if (
+      currentPlayer &&
+      currentPlayer.role === 'runner' &&
+      currentPlayer.state === 'downed' &&
+      user?.uid === currentPlayer.uid
+    ) {
+      void updatePlayer(gameId, currentPlayer.uid, {
+        state: 'active',
+        lastRescuedAt: new Date(),
+      } as Partial<Player>);
+    }
+  }, [game?.status, currentPlayer?.state, currentPlayer?.role, currentPlayer?.uid, user?.uid, gameId]);
 
   // Track remaining time for HUD countdown
   useEffect(() => {
