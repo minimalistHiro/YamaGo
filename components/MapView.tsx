@@ -537,7 +537,7 @@ export default function MapView({
     }
 
     const filteredPins = (() => {
-      if (gameStatus !== 'running') return pins;
+      if (gameStatus !== 'running') return [] as typeof pins;
       if (!currentLocation) return pins;
 
       if (currentUserRole === 'runner' && typeof runnerSeeGeneratorRadiusM === 'number') {
@@ -570,7 +570,7 @@ export default function MapView({
     if (src) {
       (src as any).setData(featureCollection as any);
     }
-  }, [pins, isMapLoaded, pinEditingMode, currentUserRole, currentLocation, runnerSeeGeneratorRadiusM, killerSeeGeneratorRadiusM]);
+  }, [pins, isMapLoaded, pinEditingMode, currentUserRole, currentLocation, runnerSeeGeneratorRadiusM, killerSeeGeneratorRadiusM, gameStatus]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {
@@ -636,7 +636,7 @@ export default function MapView({
 
   // Detect nearby pending pin for runner within capture radius
   useEffect(() => {
-    if (!currentLocation || !pins || pins.length === 0) {
+    if (gameStatus !== 'running' || !currentLocation || !pins || pins.length === 0) {
       setNearbyPin(null);
       return;
     }
@@ -659,7 +659,7 @@ export default function MapView({
       }
     }
     setNearbyPin(found);
-  }, [currentLocation, pins, currentUserRole, captureRadiusM]);
+  }, [gameStatus, currentLocation, pins, currentUserRole, captureRadiusM]);
 
   useEffect(() => {
     if (!pins) {
