@@ -162,9 +162,13 @@ export default function MapView({
     }
   }, [currentUserRole]);
 
+  const currentState: 'active' | 'downed' | 'eliminated' | undefined =
+    (players || []).find(p => p.uid === currentUserId)?.state;
+
   const isOniWithinDetectionRadius = useMemo(() => {
     if (currentUserRole !== 'runner' || !currentLocation) return false;
     if (!killerDetectRunnerRadiusM || killerDetectRunnerRadiusM <= 0) return false;
+    if (currentState && currentState !== 'active') return false;
     return players.some((player) => {
       if (player.role !== 'oni') return false;
       if (player.state === 'eliminated') return false;
@@ -176,7 +180,7 @@ export default function MapView({
       );
       return distance <= killerDetectRunnerRadiusM;
     });
-  }, [players, currentLocation, currentUserRole, killerDetectRunnerRadiusM]);
+  }, [players, currentLocation, currentUserRole, killerDetectRunnerRadiusM, currentState]);
 
   useEffect(() => {
     const audio = kodouSoundRef.current;
@@ -195,9 +199,6 @@ export default function MapView({
   }, [isOniWithinDetectionRadius, gameStatus]);
 
   // derive current user's state from players list to avoid extra props and keep Firestore-driven
-  const currentState: 'active' | 'downed' | 'eliminated' | undefined =
-    (players || []).find(p => p.uid === currentUserId)?.state;
-
   const getCurrentUserDisplayColor = (): string => {
     if (currentUserRole === 'oni') return ROLE_COLORS.oni;
     // runner
@@ -869,7 +870,29 @@ export default function MapView({
 
     const currentUserLocation = currentLocation;
     const visiblePlayers = players.filter((player) => {
-      if (player.uid === currentUserId) return false;
+      const isSelf = player.uid === currentUserId;
+
+      if (currentUserRole === 'oni') {
+        if (player.role === 'oni') {
+          return true; // Show all oni including self
+        }
+        if (!currentUserLocation) return false;
+        if (player.role === 'runner' && player.state !== 'eliminated') {
+          if (typeof killerDetectRunnerRadiusM !== 'number' || killerDetectRunnerRadiusM <= 0) {
+            return false;
+          }
+          const distance = haversine(
+            currentUserLocation.lat,
+            currentUserLocation.lng,
+            player.lat,
+            player.lng
+          );
+          return distance <= killerDetectRunnerRadiusM;
+        }
+        return false;
+      }
+
+      if (isSelf) return false;
       if (!currentUserLocation) return false;
 
       const distance = haversine(
@@ -879,14 +902,7 @@ export default function MapView({
         player.lng
       );
 
-      if (currentUserRole === 'oni') {
-        if (player.role === 'runner' && player.state !== 'eliminated') {
-          return distance <= killerDetectRunnerRadiusM;
-        }
-        if (player.role === 'oni') {
-          return true;
-        }
-      } else if (currentUserRole === 'runner') {
+      if (currentUserRole === 'runner') {
         if (player.role === 'runner') return true;
         if (player.role === 'oni') return distance <= runnerSeeKillerRadiusM;
       }
