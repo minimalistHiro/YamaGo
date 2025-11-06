@@ -14,7 +14,7 @@ import {
   updateLocation,
   updatePlayer
 } from '@/lib/game';
-import { MAX_DOWNS, REVEAL_DURATION_SEC, RESCUE_COOLDOWN_SEC } from '@/lib/constants';
+import { MAX_DOWNS, REVEAL_DURATION_SEC, RESCUE_COOLDOWN_SEC, RESCUE_RADIUS_M } from '@/lib/constants';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
 import HUD from '@/components/HUD';
@@ -240,15 +240,23 @@ export default function PlayPage() {
   useEffect(() => {
     if (!currentPlayer || !game || game.status !== 'running') return;
     if (currentPlayer.role !== 'runner') return;
+    if (currentPlayer.state && currentPlayer.state !== 'active') return;
     if (!user) return;
 
     const currentLocation = locations[user.uid];
     if (!currentLocation) return;
 
+    const rescueRadius =
+      typeof game.captureRadiusM === 'number' && game.captureRadiusM > 0
+        ? game.captureRadiusM
+        : RESCUE_RADIUS_M;
+
     const rescueable = players.find(player => {
       if (player.uid === user.uid) return false;
+      if (!player.active) return false;
+      if (player.role !== 'runner') return false;
       if (player.state !== 'downed') return false;
-      
+
       const otherLocation = locations[player.uid];
       if (!otherLocation) return false;
 
@@ -257,7 +265,7 @@ export default function PlayPage() {
         otherLocation.lat, otherLocation.lng
       );
 
-      return distance <= 50; // RESCUE_RADIUS_M
+      return distance <= rescueRadius;
     });
 
     setRescuablePlayer(rescueable || null);
@@ -272,6 +280,7 @@ export default function PlayPage() {
       
       await rescueFunction({ gameId, victimUid: rescuablePlayer.uid });
       console.log('Rescue successful');
+      setRescuablePlayer(null);
     } catch (error) {
       console.error('Rescue failed:', error);
       alert('救助に失敗しました');
@@ -540,6 +549,9 @@ export default function PlayPage() {
             pinTargetCount={game.pinCount ?? 10}
             captures={currentPlayer.stats.captures}
             capturedTimes={currentPlayer.stats.capturedTimes}
+            isRescueAvailable={Boolean(rescuablePlayer)}
+            rescueTargetName={rescuablePlayer?.nickname}
+            onRescue={rescuablePlayer ? handleRescue : undefined}
           />
 
           {showGameEndPopup && (
@@ -591,18 +603,6 @@ export default function PlayPage() {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Rescue Button */}
-          {rescuablePlayer && (
-            <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
-              <button
-                onClick={handleRescue}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
-              >
-                🚑 救助する
-              </button>
             </div>
           )}
 
