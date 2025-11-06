@@ -117,7 +117,6 @@ export default function MapView({
   const prevGameStatusRef = useRef<typeof gameStatus>(gameStatus);
   const kodouSoundRef = useRef<HTMLAudioElement | null>(null);
   const editingMarkersRef = useRef<Record<string, maplibregl.Marker>>({});
-  const onLocationUpdateRef = useRef(onLocationUpdate);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number, accuracy?: number} | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -140,10 +139,6 @@ export default function MapView({
     Object.values(editingMarkersRef.current).forEach((marker) => marker.remove());
     editingMarkersRef.current = {};
   };
-
-  useEffect(() => {
-    onLocationUpdateRef.current = onLocationUpdate;
-  }, [onLocationUpdate]);
 
   useEffect(() => {
     preloadSounds(['kodou_sound', 'start_sound']);
@@ -202,22 +197,6 @@ export default function MapView({
   // derive current user's state from players list to avoid extra props and keep Firestore-driven
   const currentState: 'active' | 'downed' | 'eliminated' | undefined =
     (players || []).find(p => p.uid === currentUserId)?.state;
-
-  const captureRadiusRef = useRef(captureRadiusM);
-  const currentRoleRef = useRef(currentUserRole);
-  const currentStateRef = useRef(currentState);
-
-  useEffect(() => {
-    captureRadiusRef.current = captureRadiusM;
-  }, [captureRadiusM]);
-
-  useEffect(() => {
-    currentRoleRef.current = currentUserRole;
-  }, [currentUserRole]);
-
-  useEffect(() => {
-    currentStateRef.current = currentState;
-  }, [currentState]);
 
   const getCurrentUserDisplayColor = (): string => {
     if (currentUserRole === 'oni') return ROLE_COLORS.oni;
@@ -313,72 +292,65 @@ export default function MapView({
   };
 
   // Update radius circle
-  const updateRadiusCircle = useCallback((lat: number, lng: number) => {
+  const updateRadiusCircle = (lat: number, lng: number) => {
     if (!map.current || !isMapLoaded) return;
-
-    const radius = captureRadiusRef.current ?? 0;
-    const role = currentRoleRef.current ?? 'runner';
-    const state = currentStateRef.current;
-    const circleCoords = createCirclePolygon(lat, lng, radius, 64);
-    const displayColor =
-      role === 'oni'
-        ? ROLE_COLORS.oni
-        : state && state !== 'active'
-          ? '#9ca3af'
-          : ROLE_COLORS.runner;
-
+    
+    const circleCoords = createCirclePolygon(lat, lng, captureRadiusM, 64);
+    
     const source = map.current.getSource('current-radius-circle');
     if (source) {
+      // Update existing source
       (source as any).setData({
         type: 'Feature',
         geometry: {
           type: 'Polygon',
-          coordinates: [circleCoords],
+          coordinates: [circleCoords]
         },
-        properties: {},
+        properties: {}
       });
+      const color = getCurrentUserDisplayColor();
       try {
-        map.current.setPaintProperty('current-radius-circle-fill', 'fill-color', displayColor);
-        map.current.setPaintProperty('current-radius-circle-stroke', 'line-color', displayColor);
-      } catch {
-        // ignore maplibre errors when layer not yet ready
-      }
-      return;
+        map.current.setPaintProperty('current-radius-circle-fill', 'fill-color', color);
+        map.current.setPaintProperty('current-radius-circle-stroke', 'line-color', color);
+      } catch {}
+    } else {
+      // Add new source and layers
+      const color = currentUserRole ? getCurrentUserDisplayColor() : '#22c55e';
+      
+      map.current.addSource('current-radius-circle', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [circleCoords]
+          },
+          properties: {}
+        }
+      });
+
+      map.current.addLayer({
+        id: 'current-radius-circle-fill',
+        type: 'fill',
+        source: 'current-radius-circle',
+        paint: {
+          'fill-color': color,
+          'fill-opacity': 0.15
+        }
+      });
+
+      map.current.addLayer({
+        id: 'current-radius-circle-stroke',
+        type: 'line',
+        source: 'current-radius-circle',
+        paint: {
+          'line-color': color,
+          'line-opacity': 0.4,
+          'line-width': 2
+        }
+      });
     }
-
-    map.current.addSource('current-radius-circle', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [circleCoords],
-        },
-        properties: {},
-      },
-    });
-
-    map.current.addLayer({
-      id: 'current-radius-circle-fill',
-      type: 'fill',
-      source: 'current-radius-circle',
-      paint: {
-        'fill-color': displayColor,
-        'fill-opacity': 0.15,
-      },
-    });
-
-    map.current.addLayer({
-      id: 'current-radius-circle-stroke',
-      type: 'line',
-      source: 'current-radius-circle',
-      paint: {
-        'line-color': displayColor,
-        'line-opacity': 0.4,
-        'line-width': 2,
-      },
-    });
-  }, [captureRadiusRef, currentRoleRef, currentStateRef, isMapLoaded]);
+  };
 
   // Check if current location is within Yamanote bounds
   const isWithinYamanoteBounds = (lat: number, lng: number): boolean => {
@@ -388,76 +360,60 @@ export default function MapView({
   };
 
   // Update capture radius circle around current user
-  const updateCaptureRadiusCircle = useCallback((lat: number, lng: number) => {
+  const updateCaptureRadiusCircle = (lat: number, lng: number) => {
     if (!map.current || !isMapLoaded) return;
 
-    const radius = captureRadiusRef.current ?? 0;
-    const role = currentRoleRef.current ?? 'runner';
-    const state = currentStateRef.current;
+    // Remove existing circle
+    if (captureRadiusCircle.current) {
+      map.current.removeLayer('capture-radius-circle-fill');
+      map.current.removeLayer('capture-radius-circle-stroke');
+      map.current.removeSource('capture-radius-circle');
+    }
 
-    const circlePolygon = createCirclePolygon(lat, lng, radius, 64);
-    const color =
-      role === 'oni'
-        ? '#dc2626'
-        : state && state !== 'active'
-          ? '#9ca3af'
-          : '#22c55e';
-
-    const source = map.current.getSource('capture-radius-circle');
-    if (source) {
-      (source as any).setData({
+    // Create circle polygon
+    const circlePolygon = createCirclePolygon(lat, lng, captureRadiusM, 64);
+    
+    // Add new source and layers
+    const color = currentUserRole === 'oni' ? '#dc2626' : (currentState && currentState !== 'active' ? '#9ca3af' : '#22c55e');
+    
+    map.current.addSource('capture-radius-circle', {
+      type: 'geojson',
+      data: {
         type: 'Feature',
         geometry: {
           type: 'Polygon',
-          coordinates: [circlePolygon],
-        },
-      });
-      try {
-        map.current.setPaintProperty('capture-radius-circle-fill', 'fill-color', color);
-        map.current.setPaintProperty('capture-radius-circle-stroke', 'line-color', color);
-      } catch {
-        // ignore maplibre timing errors
+          coordinates: [circlePolygon]
+        }
       }
-    } else {
-      map.current.addSource('capture-radius-circle', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'Polygon',
-            coordinates: [circlePolygon],
-          },
-        },
-      });
+    });
 
-      map.current.addLayer({
-        id: 'capture-radius-circle-fill',
-        type: 'fill',
-        source: 'capture-radius-circle',
-        paint: {
-          'fill-color': color,
-          'fill-opacity': 0.1,
-        },
-      });
+    map.current.addLayer({
+      id: 'capture-radius-circle-fill',
+      type: 'fill',
+      source: 'capture-radius-circle',
+      paint: {
+        'fill-color': color,
+        'fill-opacity': 0.1
+      }
+    });
 
-      map.current.addLayer({
-        id: 'capture-radius-circle-stroke',
-        type: 'line',
-        source: 'capture-radius-circle',
-        paint: {
-          'line-color': color,
-          'line-opacity': 0.6,
-          'line-width': 2,
-        },
-      });
-    }
+    map.current.addLayer({
+      id: 'capture-radius-circle-stroke',
+      type: 'line',
+      source: 'capture-radius-circle',
+      paint: {
+        'line-color': color,
+        'line-opacity': 0.6,
+        'line-width': 2
+      }
+    });
 
     captureRadiusCircle.current = {
       id: 'capture-radius-circle',
       center: [lng, lat],
-      radius,
+      radius: captureRadiusM
     };
-  }, [captureRadiusRef, currentRoleRef, currentStateRef, isMapLoaded]);
+  };
 
   const clearRandomPins = () => {
     if (randomPinsRef.current.length > 0) {
@@ -533,19 +489,13 @@ export default function MapView({
 
     const filteredPins = (() => {
       if (gameStatus !== 'running') return [] as typeof pins;
-      if (!currentLocation) return pins;
-
-      const includeWithinRadius = (radiusM: number | null | undefined, pin: PinPoint) => {
-        if (pin.cleared) return true;
-        if (typeof radiusM !== 'number' || radiusM <= 0) return true;
-        return haversine(currentLocation.lat, currentLocation.lng, pin.lat, pin.lng) <= radiusM;
-      };
-
-      if (currentUserRole === 'runner') {
-        return pins.filter((pin) => includeWithinRadius(runnerSeeKillerRadiusM, pin));
-      }
-      if (currentUserRole === 'oni') {
-        return pins.filter((pin) => includeWithinRadius(killerSeeGeneratorRadiusM, pin));
+      if (currentLocation) {
+        if (currentUserRole === 'runner' && typeof runnerSeeKillerRadiusM === 'number') {
+          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= runnerSeeKillerRadiusM);
+        }
+        if (currentUserRole === 'oni' && typeof killerSeeGeneratorRadiusM === 'number') {
+          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= killerSeeGeneratorRadiusM);
+        }
       }
       return pins;
     })();
@@ -1100,7 +1050,9 @@ export default function MapView({
             }
 
             // Update location if callback provided
-            onLocationUpdateRef.current?.(latitude, longitude, accuracy);
+            if (onLocationUpdate) {
+              onLocationUpdate(latitude, longitude, accuracy);
+            }
             
             setIsLocating(false);
           },
@@ -1179,7 +1131,7 @@ export default function MapView({
 
   // Location tracking for game
   useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    if (!onLocationUpdate) return;
 
     let watchId: number | null = null;
     let running = false;
@@ -1204,7 +1156,7 @@ export default function MapView({
           }
 
           updateRadiusCircle(latitude, longitude);
-          onLocationUpdateRef.current?.(latitude, longitude, accuracy);
+          onLocationUpdate(latitude, longitude, accuracy);
         },
         (error) => {
           console.error('Geolocation error:', error);
@@ -1242,7 +1194,7 @@ export default function MapView({
 
     start();
     return () => stop();
-  }, [updateCaptureRadiusCircle, updateRadiusCircle]);
+  }, [onLocationUpdate]);
 
   // Handle tab visibility change - recheck location when tab becomes visible
   useEffect(() => {
