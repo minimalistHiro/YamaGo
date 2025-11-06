@@ -7,6 +7,7 @@ interface HUDProps {
   timeRemaining?: number;
   onStartGame?: () => void;
   onEndGame?: () => void;
+  onRescue?: () => void;
   playerCount?: number;
   oniCount?: number;
   runnerCount?: number;
@@ -15,6 +16,9 @@ interface HUDProps {
   runnerCapturedCount?: number;
   generatorsClearedCount?: number;
   pinTargetCount?: number;
+  rescueTargetName?: string;
+  rescueAvailable?: boolean;
+  isRescuing?: boolean;
 }
 
 export default function HUD({
@@ -22,6 +26,7 @@ export default function HUD({
   timeRemaining,
   onStartGame,
   onEndGame,
+  onRescue,
   playerCount = 0,
   oniCount = 0,
   runnerCount = 0,
@@ -30,6 +35,9 @@ export default function HUD({
   runnerCapturedCount = 0,
   generatorsClearedCount = 0,
   pinTargetCount,
+  rescueTargetName,
+  rescueAvailable = false,
+  isRescuing = false,
 }: HUDProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(timeRemaining ?? null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -162,6 +170,21 @@ export default function HUD({
 
             {/* Action Buttons */}
             <div className="space-y-2">
+              {gameStatus === 'running' && rescueAvailable && onRescue && (
+                <button
+                  onClick={onRescue}
+                  disabled={isRescuing}
+                  className={`w-full font-semibold py-2 px-4 rounded-lg uppercase tracking-[0.2em] transition ${
+                    isRescuing
+                      ? 'bg-cyber-green/40 text-muted cursor-not-allowed'
+                      : 'bg-cyber-green/20 hover:bg-cyber-green/30 text-cyber-green'
+                  }`}
+                >
+                  {isRescuing ? '救出中…' : '救出する'}
+                  {rescueTargetName ? ` (${rescueTargetName})` : ''}
+                </button>
+              )}
+
               {(gameStatus === 'pending' || gameStatus === 'ended') && onStartGame && (
                 <button
                   onClick={onStartGame}

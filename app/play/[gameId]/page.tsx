@@ -13,7 +13,7 @@ import {
   updateLocation,
   updatePlayer
 } from '@/lib/game';
-import { CAPTURE_RADIUS_M, MAX_DOWNS, REVEAL_DURATION_SEC, RESCUE_COOLDOWN_SEC } from '@/lib/constants';
+import { MAX_DOWNS, REVEAL_DURATION_SEC, RESCUE_COOLDOWN_SEC, RESCUE_RADIUS_M } from '@/lib/constants';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
 import HUD from '@/components/HUD';
@@ -73,6 +73,14 @@ export default function PlayPage() {
 
   // Derived list used in multiple places
   const players = Object.values(playersById);
+
+  const rescueTargetLabel = useMemo(() => {
+    if (!rescuablePlayers.length) return undefined;
+    const [first, ...rest] = rescuablePlayers;
+    const baseName = first.nickname || '逃走者';
+    if (rest.length === 0) return baseName;
+    return `${baseName}ほか${rest.length}人`;
+  }, [rescuablePlayers]);
 
   const gameDurationElapsedSec = useMemo(() => {
     if (!game?.startAt || !gameEndedAt) return null;
@@ -283,7 +291,7 @@ export default function PlayPage() {
 
     const rescueRadius = typeof game.captureRadiusM === 'number' && game.captureRadiusM > 0
       ? game.captureRadiusM
-      : CAPTURE_RADIUS_M;
+      : RESCUE_RADIUS_M;
 
     const targets = players.filter(player => {
       if (player.uid === user.uid) return false;
@@ -307,7 +315,7 @@ export default function PlayPage() {
   }, [currentPlayer, game, players, locations, user]);
 
   const handleRescue = async () => {
-    if (!rescuablePlayers.length || !user) return;
+    if (!rescuablePlayers.length || !user || isRescuing) return;
     setIsRescuing(true);
     try {
       const rescueTime = new Date();
@@ -592,6 +600,10 @@ export default function PlayPage() {
             pinTargetCount={game.pinCount ?? 10}
             captures={currentPlayer.stats.captures}
             capturedTimes={currentPlayer.stats.capturedTimes}
+            onRescue={currentPlayer.role === 'runner' ? handleRescue : undefined}
+            rescueTargetName={currentPlayer.role === 'runner' ? rescueTargetLabel : undefined}
+            rescueAvailable={currentPlayer.role === 'runner' && rescuablePlayers.length > 0}
+            isRescuing={isRescuing}
           />
 
           {showGameEndPopup && (
@@ -643,19 +655,6 @@ export default function PlayPage() {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Rescue Button */}
-          {rescuablePlayers.length > 0 && (
-            <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
-              <button
-                onClick={handleRescue}
-                disabled={isRescuing}
-                className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isRescuing ? 'opacity-70 cursor-not-allowed' : 'animate-pulse'}`}
-              >
-                {isRescuing ? '🚑 救出中…' : `🚑 救出する（${rescuablePlayers.length}人）`}
-              </button>
             </div>
           )}
 
