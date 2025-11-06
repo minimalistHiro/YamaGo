@@ -551,6 +551,8 @@ export default function PlayPage() {
   const formattedGameDuration = formatDuration(
     gameDurationElapsedSec ?? (typeof game.gameDurationSec === 'number' ? game.gameDurationSec : null)
   );
+  const personalCaptures = game.status === 'running' ? (currentPlayer.stats.captures ?? 0) : 0;
+  const personalCapturedTimes = game.status === 'running' ? (currentPlayer.stats.capturedTimes ?? 0) : 0;
 
   const handleGameExit = () => {
     router.push('/join');
@@ -660,8 +662,9 @@ export default function PlayPage() {
             runnerCapturedCount={runnerCapturedCount}
             generatorsClearedCount={generatorsClearedCount}
             pinTargetCount={game.pinCount ?? 10}
-            captures={currentPlayer.stats.captures}
-            capturedTimes={currentPlayer.stats.capturedTimes}
+            captures={personalCaptures}
+            capturedTimes={personalCapturedTimes}
+            currentUserRole={currentPlayer.role}
           />
 
           {showGameEndPopup && (

@@ -15,6 +15,7 @@ interface HUDProps {
   runnerCapturedCount?: number;
   generatorsClearedCount?: number;
   pinTargetCount?: number;
+  currentUserRole?: 'oni' | 'runner';
 }
 
 export default function HUD({
@@ -30,6 +31,7 @@ export default function HUD({
   runnerCapturedCount = 0,
   generatorsClearedCount = 0,
   pinTargetCount,
+  currentUserRole,
 }: HUDProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(timeRemaining ?? null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -143,20 +145,24 @@ export default function HUD({
             </div>
 
             {/* Personal Stats */}
-            {(captures > 0 || capturedTimes > 0) && (
+            {(currentUserRole === 'oni' || currentUserRole === 'runner') && (
               <div className="cyber-divider" />
             )}
 
-            {(captures > 0 || capturedTimes > 0) && (
+            {(currentUserRole === 'oni' || currentUserRole === 'runner') && (
               <div className="pt-2 space-y-2">
-                <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
-                  <span className="text-muted">捕獲数</span>
-                  <span className="font-semibold text-cyber-pink">{captures}</span>
-                </div>
-                <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
-                  <span className="text-muted">捕獲された回数</span>
-                  <span className="font-semibold text-cyber-gold">{capturedTimes}</span>
-                </div>
+                {currentUserRole === 'oni' && (
+                  <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
+                    <span className="text-muted">捕獲数</span>
+                    <span className="font-semibold text-cyber-pink">{captures}</span>
+                  </div>
+                )}
+                {currentUserRole === 'runner' && (
+                  <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
+                    <span className="text-muted">捕獲された回数</span>
+                    <span className="font-semibold text-cyber-gold">{capturedTimes}</span>
+                  </div>
+                )}
               </div>
             )}
 
