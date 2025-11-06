@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { httpsCallable } from 'firebase/functions';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { 
   getPlayer,
@@ -14,7 +13,7 @@ import {
   updateLocation,
   updatePlayer
 } from '@/lib/game';
-import { MAX_DOWNS, REVEAL_DURATION_SEC, RESCUE_COOLDOWN_SEC } from '@/lib/constants';
+import { CAPTURE_RADIUS_M, MAX_DOWNS, REVEAL_DURATION_SEC, RESCUE_COOLDOWN_SEC } from '@/lib/constants';
 import { haversine, isWithinYamanoteLine } from '@/lib/geo';
 import MapView from '@/components/MapView';
 import HUD from '@/components/HUD';
@@ -40,11 +39,12 @@ export default function PlayPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('map');
-  const [rescuablePlayer, setRescuablePlayer] = useState<Player | null>(null);
+  const [rescuablePlayers, setRescuablePlayers] = useState<Player[]>([]);
   const [capturableRunner, setCapturableRunner] = useState<Player | null>(null);
   const [showCapturePopup, setShowCapturePopup] = useState(false);
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isRescuing, setIsRescuing] = useState(false);
   const [showGameEndPopup, setShowGameEndPopup] = useState(false);
   const [showGameSummaryPopup, setShowGameSummaryPopup] = useState(false);
   const [gameEndedAt, setGameEndedAt] = useState<Date | null>(null);
@@ -238,17 +238,26 @@ export default function PlayPage() {
 
   // Check for rescuable players (downed runners within rescue radius)
   useEffect(() => {
-    if (!currentPlayer || !game || game.status !== 'running') return;
-    if (currentPlayer.role !== 'runner') return;
-    if (!user) return;
+    if (!currentPlayer || !game || game.status !== 'running' || currentPlayer.role !== 'runner' || !user) {
+      setRescuablePlayers([]);
+      return;
+    }
 
     const currentLocation = locations[user.uid];
-    if (!currentLocation) return;
+    if (!currentLocation) {
+      setRescuablePlayers([]);
+      return;
+    }
 
-    const rescueable = players.find(player => {
+    const rescueRadius = typeof game.captureRadiusM === 'number' && game.captureRadiusM > 0
+      ? game.captureRadiusM
+      : CAPTURE_RADIUS_M;
+
+    const targets = players.filter(player => {
       if (player.uid === user.uid) return false;
+      if (player.role !== 'runner') return false;
       if (player.state !== 'downed') return false;
-      
+
       const otherLocation = locations[player.uid];
       if (!otherLocation) return false;
 
@@ -257,24 +266,32 @@ export default function PlayPage() {
         otherLocation.lat, otherLocation.lng
       );
 
-      return distance <= 50; // RESCUE_RADIUS_M
+      return distance <= rescueRadius;
     });
 
-    setRescuablePlayer(rescueable || null);
+    setRescuablePlayers(targets);
   }, [currentPlayer, game, players, locations, user]);
 
   const handleRescue = async () => {
-    if (!rescuablePlayer || !user) return;
-
+    if (!rescuablePlayers.length || !user) return;
+    setIsRescuing(true);
     try {
-      const { functions } = getFirebaseServices();
-      const rescueFunction = httpsCallable(functions, 'rescue');
-      
-      await rescueFunction({ gameId, victimUid: rescuablePlayer.uid });
-      console.log('Rescue successful');
+      const rescueTime = new Date();
+      await Promise.all(
+        rescuablePlayers.map((player) =>
+          updatePlayer(gameId, player.uid, {
+            state: 'active',
+            lastRescuedAt: rescueTime,
+          } as Partial<Player>)
+        )
+      );
+      console.log(`Rescued ${rescuablePlayers.length} runners directly`);
     } catch (error) {
       console.error('Rescue failed:', error);
       alert('救助に失敗しました');
+    } finally {
+      setIsRescuing(false);
+      setRescuablePlayers([]);
     }
   };
 
@@ -595,13 +612,14 @@ export default function PlayPage() {
           )}
 
           {/* Rescue Button */}
-          {rescuablePlayer && (
+          {rescuablePlayers.length > 0 && (
             <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50">
               <button
                 onClick={handleRescue}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg animate-pulse"
+                disabled={isRescuing}
+                className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isRescuing ? 'opacity-70 cursor-not-allowed' : 'animate-pulse'}`}
               >
-                🚑 救助する
+                {isRescuing ? '🚑 救助中…' : `🚑 救助する（${rescuablePlayers.length}人）`}
               </button>
             </div>
           )}
