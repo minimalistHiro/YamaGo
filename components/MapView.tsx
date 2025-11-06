@@ -489,13 +489,19 @@ export default function MapView({
 
     const filteredPins = (() => {
       if (gameStatus !== 'running') return [] as typeof pins;
-      if (currentLocation) {
-        if (currentUserRole === 'runner' && typeof runnerSeeKillerRadiusM === 'number') {
-          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= runnerSeeKillerRadiusM);
-        }
-        if (currentUserRole === 'oni' && typeof killerSeeGeneratorRadiusM === 'number') {
-          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= killerSeeGeneratorRadiusM);
-        }
+      if (!currentLocation) return pins;
+
+      const includeWithinRadius = (radiusM: number | null | undefined, pin: PinPoint) => {
+        if (pin.cleared) return true;
+        if (typeof radiusM !== 'number' || radiusM <= 0) return true;
+        return haversine(currentLocation.lat, currentLocation.lng, pin.lat, pin.lng) <= radiusM;
+      };
+
+      if (currentUserRole === 'runner') {
+        return pins.filter((pin) => includeWithinRadius(runnerSeeKillerRadiusM, pin));
+      }
+      if (currentUserRole === 'oni') {
+        return pins.filter((pin) => includeWithinRadius(killerSeeGeneratorRadiusM, pin));
       }
       return pins;
     })();
