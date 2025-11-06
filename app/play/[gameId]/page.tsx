@@ -43,6 +43,7 @@ export default function PlayPage() {
   const [capturableRunner, setCapturableRunner] = useState<Player | null>(null);
   const [showCapturePopup, setShowCapturePopup] = useState(false);
   const [capturedTargetName, setCapturedTargetName] = useState<string>('');
+  const [showCapturedPopup, setShowCapturedPopup] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showGameEndPopup, setShowGameEndPopup] = useState(false);
   const [showGameSummaryPopup, setShowGameSummaryPopup] = useState(false);
@@ -56,10 +57,11 @@ export default function PlayPage() {
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
   const updateLocationThrottled = useGameStore((s) => s.updateLocationThrottled);
-  const lastRescueInfoRef = useRef<{ initialized: boolean; state: Player['state'] | null; lastRescuedAt: number | null }>({
+  const lastRescueInfoRef = useRef<{ initialized: boolean; state: Player['state'] | null; lastRescuedAt: number | null; lastDownAt: number | null }>({
     initialized: false,
     state: null,
     lastRescuedAt: null,
+    lastDownAt: null,
   });
 
   // Derived list used in multiple places
@@ -185,7 +187,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (!currentPlayer || !user?.uid || currentPlayer.uid !== user.uid) return;
 
-    const toMillis = (value: Player['lastRescuedAt']): number | null => {
+    const toMillis = (value: Player['lastRescuedAt'] | Player['lastDownAt']): number | null => {
       if (!value) return null;
       if (value instanceof Date) return value.getTime();
       if (typeof (value as any).toMillis === 'function') return (value as any).toMillis();
@@ -207,6 +209,7 @@ export default function PlayPage() {
     const prev = lastRescueInfoRef.current;
     const currentState = normalizeState(currentPlayer.state);
     const currentRescuedAt = toMillis(currentPlayer.lastRescuedAt);
+    const currentDownAt = toMillis(currentPlayer.lastDownAt);
 
     if (prev.initialized) {
       const prevState = normalizeState(prev.state || undefined);
@@ -215,6 +218,14 @@ export default function PlayPage() {
       const hasNewRescue =
         currentRescuedAt !== null &&
         (prev.lastRescuedAt === null || currentRescuedAt > prev.lastRescuedAt);
+      const justCaptured =
+        (currentState === 'downed' || currentState === 'eliminated') &&
+        currentDownAt !== null &&
+        (prev.lastDownAt === null || currentDownAt > prev.lastDownAt);
+
+      if (justCaptured) {
+        setShowCapturedPopup(true);
+      }
 
       if (wasDowned && nowActive && hasNewRescue) {
         setShowRescuedPopup(true);
@@ -225,6 +236,7 @@ export default function PlayPage() {
       initialized: true,
       state: currentState,
       lastRescuedAt: currentRescuedAt,
+      lastDownAt: currentDownAt,
     };
   }, [currentPlayer, user?.uid]);
 
@@ -232,6 +244,9 @@ export default function PlayPage() {
     if (!currentPlayer || !user?.uid || currentPlayer.uid !== user.uid) return;
     if (currentPlayer.state && currentPlayer.state !== 'active') {
       setShowRescuedPopup(false);
+    }
+    if (!currentPlayer.state || currentPlayer.state === 'active') {
+      setShowCapturedPopup(false);
     }
   }, [currentPlayer, user?.uid]);
 
@@ -597,6 +612,23 @@ export default function PlayPage() {
                 <button
                   className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
                   onClick={() => setShowCapturePopup(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Captured Popup for runners */}
+          {showCapturedPopup && currentPlayer.role === 'runner' && (
+            <div className="absolute inset-0 flex items-center justify-center z-[120] bg-black/40">
+              <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-pink/50 px-8 py-6 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
+                <div className="text-4xl mb-3">🚨</div>
+                <p className="text-lg font-semibold text-primary">捕獲されました…</p>
+                <p className="text-xs text-muted mt-2">仲間に救助してもらうか、安全を確保しましょう。</p>
+                <button
+                  className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
+                  onClick={() => setShowCapturedPopup(false)}
                 >
                   OK
                 </button>
