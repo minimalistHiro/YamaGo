@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { getFirebaseServices } from '@/lib/firebase/client';
@@ -47,6 +47,7 @@ export default function PlayPage() {
   const [showGameEndPopup, setShowGameEndPopup] = useState(false);
   const [showGameSummaryPopup, setShowGameSummaryPopup] = useState(false);
   const [isRescuing, setIsRescuing] = useState(false);
+  const [showRescuedPopup, setShowRescuedPopup] = useState(false);
   const [gameEndedAt, setGameEndedAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isEditingPins, setIsEditingPins] = useState(false);
@@ -55,6 +56,11 @@ export default function PlayPage() {
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
   const updateLocationThrottled = useGameStore((s) => s.updateLocationThrottled);
+  const lastRescueInfoRef = useRef<{ initialized: boolean; state: Player['state'] | null; lastRescuedAt: number | null }>({
+    initialized: false,
+    state: null,
+    lastRescuedAt: null,
+  });
 
   // Derived list used in multiple places
   const players = Object.values(playersById);
@@ -175,6 +181,59 @@ export default function PlayPage() {
       return livePlayer;
     });
   }, [playersById, user?.uid]);
+
+  useEffect(() => {
+    if (!currentPlayer || !user?.uid || currentPlayer.uid !== user.uid) return;
+
+    const toMillis = (value: Player['lastRescuedAt']): number | null => {
+      if (!value) return null;
+      if (value instanceof Date) return value.getTime();
+      if (typeof (value as any).toMillis === 'function') return (value as any).toMillis();
+      if (typeof (value as any).toDate === 'function') {
+        const date = (value as any).toDate();
+        return date instanceof Date ? date.getTime() : null;
+      }
+      if (typeof (value as any).seconds === 'number') {
+        const seconds = (value as any).seconds;
+        const nanoseconds = typeof (value as any).nanoseconds === 'number' ? (value as any).nanoseconds : 0;
+        return seconds * 1000 + Math.floor(nanoseconds / 1e6);
+      }
+      return null;
+    };
+
+    const normalizeState = (state: Player['state'] | undefined): Player['state'] | 'active' =>
+      state ? state : 'active';
+
+    const prev = lastRescueInfoRef.current;
+    const currentState = normalizeState(currentPlayer.state);
+    const currentRescuedAt = toMillis(currentPlayer.lastRescuedAt);
+
+    if (prev.initialized) {
+      const prevState = normalizeState(prev.state || undefined);
+      const wasDowned = prevState === 'downed' || prevState === 'eliminated';
+      const nowActive = currentState === 'active';
+      const hasNewRescue =
+        currentRescuedAt !== null &&
+        (prev.lastRescuedAt === null || currentRescuedAt > prev.lastRescuedAt);
+
+      if (wasDowned && nowActive && hasNewRescue) {
+        setShowRescuedPopup(true);
+      }
+    }
+
+    lastRescueInfoRef.current = {
+      initialized: true,
+      state: currentState,
+      lastRescuedAt: currentRescuedAt,
+    };
+  }, [currentPlayer, user?.uid]);
+
+  useEffect(() => {
+    if (!currentPlayer || !user?.uid || currentPlayer.uid !== user.uid) return;
+    if (currentPlayer.state && currentPlayer.state !== 'active') {
+      setShowRescuedPopup(false);
+    }
+  }, [currentPlayer, user?.uid]);
 
   // Show popup when this user (oni) captures a runner
   useEffect(() => {
@@ -544,6 +603,23 @@ export default function PlayPage() {
             </div>
           )}
 
+          {/* Rescue Popup for rescued runner */}
+          {showRescuedPopup && currentPlayer.role === 'runner' && (
+            <div className="absolute inset-0 flex items-center justify-center z-[120] bg-black/40">
+              <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-green/50 px-8 py-6 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
+                <div className="text-4xl mb-3">🏃</div>
+                <p className="text-lg font-semibold text-primary">救助されました！</p>
+                <p className="text-xs text-muted mt-2">仲間に感謝して、安全な場所へ移動しましょう。</p>
+                <button
+                  className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
+                  onClick={() => setShowRescuedPopup(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* HUD Overlay */}
           <HUD
             gameStatus={game.status}
@@ -616,7 +692,7 @@ export default function PlayPage() {
               <button
                 onClick={handleRescue}
                 disabled={isRescuing}
-                className={`bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isRescuing ? 'opacity-70 cursor-not-allowed' : 'animate-pulse'}`}
+                className={`bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isRescuing ? 'opacity-70 cursor-not-allowed' : 'animate-pulse'}`}
               >
                 {isRescuing
                   ? '🚑 救助中…'
