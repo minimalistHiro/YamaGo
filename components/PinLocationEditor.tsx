@@ -97,6 +97,7 @@ export default function PinLocationEditor({ gameId, onBack }: PinLocationEditorP
           gameStatus="pending"
           isOwner={false}
           runnerSeeKillerRadiusM={0}
+          runnerSeeRunnerRadiusM={0}
           runnerSeeGeneratorRadiusM={0}
           killerDetectRunnerRadiusM={0}
           captureRadiusM={0}

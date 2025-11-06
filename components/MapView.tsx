@@ -45,6 +45,7 @@ interface MapViewProps {
   onPinDragEnd?: (pinId: string, lat: number, lng: number) => void;
   runnerSeeGeneratorRadiusM?: number;
   killerSeeGeneratorRadiusM?: number;
+  runnerSeeRunnerRadiusM?: number;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -94,6 +95,7 @@ export default function MapView({
   captureRadiusM = 100,
   gameId,
   runnerSeeKillerRadiusM = 500,
+  runnerSeeRunnerRadiusM = 1000,
   killerDetectRunnerRadiusM = 500,
   pinTargetCount = 10,
   gameDurationSec,
@@ -114,6 +116,7 @@ export default function MapView({
   const currentLocationMarker = useRef<maplibregl.Marker | null>(null);
   const currentRadiusCircleRef = useRef<maplibregl.Popup | null>(null);
   const captureRadiusCircle = useRef<{ id: string; center: [number, number]; radius: number } | null>(null);
+  const runnerVisibilityCircle = useRef<{ id: string; center: [number, number]; radius: number } | null>(null);
   const randomPinsRef = useRef<maplibregl.Marker[]>([]);
   const randomPinsPlacedRef = useRef<boolean>(false);
   const prevGameStatusRef = useRef<typeof gameStatus>(gameStatus);
@@ -294,15 +297,37 @@ export default function MapView({
     return coordinates;
   };
 
-  // Update radius circle
+  const removeRunnerVisibilityCircle = () => {
+    if (!map.current) return;
+    if (map.current.getLayer('current-radius-circle-fill')) {
+      map.current.removeLayer('current-radius-circle-fill');
+    }
+    if (map.current.getLayer('current-radius-circle-stroke')) {
+      map.current.removeLayer('current-radius-circle-stroke');
+    }
+    if (map.current.getSource('current-radius-circle')) {
+      map.current.removeSource('current-radius-circle');
+    }
+    runnerVisibilityCircle.current = null;
+  };
+
+  // Update runner mutual visibility radius circle
   const updateRadiusCircle = (lat: number, lng: number) => {
     if (!map.current || !isMapLoaded) return;
-    
-    const circleCoords = createCirclePolygon(lat, lng, captureRadiusM, 64);
-    
+
+    const isRunner = currentUserRole === 'runner';
+    const radius =
+      isRunner && typeof runnerSeeRunnerRadiusM === 'number' ? runnerSeeRunnerRadiusM : null;
+
+    if (!isRunner || !radius || radius <= 0) {
+      removeRunnerVisibilityCircle();
+      return;
+    }
+
+    const circleCoords = createCirclePolygon(lat, lng, radius, 64);
+
     const source = map.current.getSource('current-radius-circle');
     if (source) {
-      // Update existing source
       (source as any).setData({
         type: 'Feature',
         geometry: {
@@ -315,11 +340,13 @@ export default function MapView({
       try {
         map.current.setPaintProperty('current-radius-circle-fill', 'fill-color', color);
         map.current.setPaintProperty('current-radius-circle-stroke', 'line-color', color);
+        map.current.setPaintProperty('current-radius-circle-fill', 'fill-opacity', 0.08);
+        map.current.setPaintProperty('current-radius-circle-stroke', 'line-opacity', 0.35);
+        map.current.setPaintProperty('current-radius-circle-stroke', 'line-width', 2);
       } catch {}
     } else {
-      // Add new source and layers
       const color = currentUserRole ? getCurrentUserDisplayColor() : '#22c55e';
-      
+
       map.current.addSource('current-radius-circle', {
         type: 'geojson',
         data: {
@@ -338,7 +365,7 @@ export default function MapView({
         source: 'current-radius-circle',
         paint: {
           'fill-color': color,
-          'fill-opacity': 0.15
+          'fill-opacity': 0.08
         }
       });
 
@@ -348,11 +375,17 @@ export default function MapView({
         source: 'current-radius-circle',
         paint: {
           'line-color': color,
-          'line-opacity': 0.4,
+          'line-opacity': 0.35,
           'line-width': 2
         }
       });
     }
+
+    runnerVisibilityCircle.current = {
+      id: 'current-radius-circle',
+      center: [lng, lat],
+      radius,
+    };
   };
 
   // Check if current location is within Yamanote bounds
@@ -905,7 +938,12 @@ export default function MapView({
       );
 
       if (currentUserRole === 'runner') {
-        if (player.role === 'runner') return true;
+        if (player.role === 'runner') {
+          if (typeof runnerSeeRunnerRadiusM !== 'number' || runnerSeeRunnerRadiusM <= 0) {
+            return true;
+          }
+          return distance <= runnerSeeRunnerRadiusM;
+        }
         if (player.role === 'oni') return distance <= runnerSeeKillerRadiusM;
       }
       return false;
@@ -930,7 +968,7 @@ export default function MapView({
     if (src) {
       (src as any).setData(featureCollection as any);
     }
-  }, [players, isMapLoaded, currentUserId, currentUserRole, currentLocation, runnerSeeKillerRadiusM, killerDetectRunnerRadiusM]);
+  }, [players, isMapLoaded, currentUserId, currentUserRole, currentLocation, runnerSeeKillerRadiusM, runnerSeeRunnerRadiusM, killerDetectRunnerRadiusM]);
 
   // Get current location function with improved error handling and retry mechanism
   const getCurrentLocation = () => {
@@ -1390,8 +1428,10 @@ export default function MapView({
   useEffect(() => {
     if (currentLocation && isMapLoaded) {
       updateRadiusCircle(currentLocation.lat, currentLocation.lng);
+    } else if (isMapLoaded) {
+      removeRunnerVisibilityCircle();
     }
-  }, [currentUserRole, players, currentUserId, isMapLoaded]);
+  }, [currentUserRole, runnerSeeRunnerRadiusM, currentLocation, isMapLoaded]);
 
   // Format duration as hh:mm:ss or mm:ss
   const formatDuration = (seconds: number): string => {

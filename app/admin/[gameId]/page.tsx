@@ -215,6 +215,7 @@ export default function AdminPage() {
           countdownDurationSec={game.countdownDurationSec}
           gameStartAt={game.startAt ? game.startAt.toDate() : null}
           gameDurationSec={game.gameDurationSec ?? undefined}
+          runnerSeeRunnerRadiusM={game.runnerSeeRunnerRadiusM ?? 1000}
           pinTargetCount={game.pinCount ?? 10}
         />
         
