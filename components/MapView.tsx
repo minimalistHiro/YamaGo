@@ -147,6 +147,9 @@ export default function MapView({
   const [isClearing, setIsClearing] = useState(false);
   const [showGeneratorCleared, setShowGeneratorCleared] = useState(false);
   const [showGeneratorClearedAlert, setShowGeneratorClearedAlert] = useState(false);
+  const [showGeneratorClearingAlert, setShowGeneratorClearingAlert] = useState(false);
+  const [clearingAlertPinId, setClearingAlertPinId] = useState<string | null>(null);
+  const [dismissedClearingAlertPinId, setDismissedClearingAlertPinId] = useState<string | null>(null);
   const [clearCountdown, setClearCountdown] = useState<number | null>(null);
   const [clearingPinId, setClearingPinId] = useState<string | null>(null);
   const [showGeneratorClearFailed, setShowGeneratorClearFailed] = useState(false);
@@ -177,7 +180,16 @@ export default function MapView({
       isInitialClearedCheckRef.current = true;
       clearedPinIdsRef.current = new Set<string>((pins || []).filter((p) => isPinCleared(p)).map((p) => p.id));
       setShowGeneratorClearedAlert(false);
+      setShowGeneratorClearingAlert(false);
+      setClearingAlertPinId(null);
+      setDismissedClearingAlertPinId(null);
+    } else {
+      setShowGeneratorClearedAlert(false);
+      setShowGeneratorClearingAlert(false);
+      setClearingAlertPinId(null);
+      setDismissedClearingAlertPinId(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserRole]);
 
   const currentState: 'active' | 'downed' | 'eliminated' | undefined =
@@ -688,6 +700,42 @@ export default function MapView({
     isInitialClearedCheckRef.current = false;
     clearedPinIdsRef.current = currentCleared;
   }, [pins, currentUserRole]);
+
+  useEffect(() => {
+    if (currentUserRole !== 'oni' || !pins) {
+      if (showGeneratorClearingAlert) {
+        setShowGeneratorClearingAlert(false);
+      }
+      if (clearingAlertPinId !== null) {
+        setClearingAlertPinId(null);
+      }
+      if (dismissedClearingAlertPinId !== null) {
+        setDismissedClearingAlertPinId(null);
+      }
+      return;
+    }
+
+    const clearingPins = pins.filter((p) => getPinStatus(p) === 'clearing');
+    if (clearingPins.length === 0) {
+      if (showGeneratorClearingAlert) {
+        setShowGeneratorClearingAlert(false);
+      }
+      if (clearingAlertPinId !== null) {
+        setClearingAlertPinId(null);
+      }
+      if (dismissedClearingAlertPinId !== null) {
+        setDismissedClearingAlertPinId(null);
+      }
+      return;
+    }
+
+    const candidate = clearingPins[0].id;
+    setClearingAlertPinId((prev) => (prev === candidate ? prev : candidate));
+
+    if (dismissedClearingAlertPinId !== candidate && !showGeneratorClearingAlert) {
+      setShowGeneratorClearingAlert(true);
+    }
+  }, [pins, currentUserRole, showGeneratorClearingAlert, clearingAlertPinId, dismissedClearingAlertPinId]);
 
   const finalizeGeneratorClear = useCallback(async (pinId: string) => {
     if (!gameId) {
@@ -1669,7 +1717,28 @@ export default function MapView({
         </div>
       )}
 
-      {showGeneratorClearedAlert && currentUserRole === 'oni' && (
+      {currentUserRole === 'oni' && showGeneratorClearingAlert && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/40">
+          <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-green/50 px-8 py-6 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
+            <div className="text-4xl mb-3">⚡️</div>
+            <p className="text-lg font-semibold text-primary">現在発電所を解除中です</p>
+            <p className="text-xs text-muted mt-2">発電所を巡回して阻止しましょう。</p>
+            <button
+              className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
+              onClick={() => {
+                setShowGeneratorClearingAlert(false);
+                if (clearingAlertPinId) {
+                  setDismissedClearingAlertPinId(clearingAlertPinId);
+                }
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {currentUserRole === 'oni' && !showGeneratorClearingAlert && showGeneratorClearedAlert && (
         <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/40">
           <div className="rounded-2xl bg-[rgba(3,22,27,0.95)] border border-cyber-green/50 px-8 py-6 shadow-[0_20px_48px_rgba(3,22,27,0.55)] text-center max-w-xs w-full mx-4">
             <div className="text-4xl mb-3">⚡️</div>
@@ -1677,7 +1746,9 @@ export default function MapView({
             <p className="text-xs text-muted mt-2">状況を確認して対応しましょう。</p>
             <button
               className="mt-5 w-full btn-primary font-semibold py-2 rounded-lg tracking-[0.2em]"
-              onClick={() => setShowGeneratorClearedAlert(false)}
+              onClick={() => {
+                setShowGeneratorClearedAlert(false);
+              }}
             >
               OK
             </button>
