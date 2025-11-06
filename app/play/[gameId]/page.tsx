@@ -268,7 +268,7 @@ export default function PlayPage() {
     await updateLocationThrottled(lat, lng, accuracy);
   }, [user, gameId, updateLocationThrottled]);
 
-  // Check for rescuable players (downed runners within rescue radius)
+  // Check for rescuable players (captured runners within rescue radius)
   useEffect(() => {
     if (!currentPlayer || !game || game.status !== 'running' || currentPlayer.role !== 'runner' || !user) {
       setRescuablePlayers([]);
@@ -287,8 +287,10 @@ export default function PlayPage() {
 
     const targets = players.filter(player => {
       if (player.uid === user.uid) return false;
+      if (!player.active) return false;
       if (player.role !== 'runner') return false;
-      if (player.state !== 'downed') return false;
+      const state = player.state ?? 'active';
+      if (state === 'active' || state === 'eliminated') return false;
 
       const otherLocation = locations[player.uid];
       if (!otherLocation) return false;
@@ -314,13 +316,14 @@ export default function PlayPage() {
           updatePlayer(gameId, player.uid, {
             state: 'active',
             lastRescuedAt: rescueTime,
+            cooldownUntil: new Date(rescueTime.getTime() + RESCUE_COOLDOWN_SEC * 1000),
           } as Partial<Player>)
         )
       );
       console.log(`Rescued ${rescuablePlayers.length} runners directly`);
     } catch (error) {
       console.error('Rescue failed:', error);
-      alert('救助に失敗しました');
+      alert('救出に失敗しました');
     } finally {
       setIsRescuing(false);
       setRescuablePlayers([]);
@@ -651,7 +654,7 @@ export default function PlayPage() {
                 disabled={isRescuing}
                 className={`bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isRescuing ? 'opacity-70 cursor-not-allowed' : 'animate-pulse'}`}
               >
-                {isRescuing ? '🚑 救助中…' : `🚑 救助する（${rescuablePlayers.length}人）`}
+                {isRescuing ? '🚑 救出中…' : `🚑 救出する（${rescuablePlayers.length}人）`}
               </button>
             </div>
           )}
