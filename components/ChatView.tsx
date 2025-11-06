@@ -98,12 +98,17 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   useEffect(() => {
     if (!gameId) return;
 
-    const unsubscribe = subscribeToPlayers(gameId, (players) => {
-      const mapped = players.reduce<Record<string, Player>>((acc, player) => {
-        acc[player.uid] = player;
-        return acc;
-      }, {});
-      setPlayersByUid(mapped);
+    const unsubscribe = subscribeToPlayers(gameId, (players, metadata) => {
+      setPlayersByUid((prev) => {
+        if (metadata.fromCache && players.length === 0 && Object.keys(prev).length > 0) {
+          return prev;
+        }
+        const mapped = players.reduce<Record<string, Player>>((acc, player) => {
+          acc[player.uid] = player;
+          return acc;
+        }, {});
+        return mapped;
+      });
     });
 
     return () => {

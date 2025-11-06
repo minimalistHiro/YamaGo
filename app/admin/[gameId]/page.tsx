@@ -52,25 +52,40 @@ export default function AdminPage() {
     if (!user || !gameId) return;
 
     // Subscribe to game data
-    const unsubscribeGame = subscribeToGame(gameId, (gameData) => {
-      setGame(gameData);
-      if (!gameData) {
-        setError('ゲームが見つかりません');
-        return;
-      }
-      
-      // Check if user is owner
-      setIsOwner(user ? gameData.ownerUid === user.uid : false);
+    const unsubscribeGame = subscribeToGame(gameId, (gameData, metadata) => {
+      setGame((prev) => {
+        if (!gameData) {
+          if (metadata.fromCache) {
+            return prev;
+          }
+          setError('ゲームが見つかりません');
+          return null;
+        }
+
+        setError('');
+        setIsOwner(user ? gameData.ownerUid === user.uid : false);
+        return gameData;
+      });
     });
 
     // Subscribe to players
-    const unsubscribePlayers = subscribeToPlayers(gameId, (playersData) => {
-      setPlayers(playersData);
+    const unsubscribePlayers = subscribeToPlayers(gameId, (playersData, metadata) => {
+      setPlayers((prev) => {
+        if (metadata.fromCache && playersData.length === 0 && prev.length > 0) {
+          return prev;
+        }
+        return playersData;
+      });
     });
 
     // Subscribe to locations
-    const unsubscribeLocations = subscribeToLocations(gameId, (locationsData) => {
-      setLocations(locationsData);
+    const unsubscribeLocations = subscribeToLocations(gameId, (locationsData, metadata) => {
+      setLocations((prev) => {
+        if (metadata.fromCache && Object.keys(locationsData).length === 0 && Object.keys(prev).length > 0) {
+          return prev;
+        }
+        return locationsData;
+      });
     });
 
     return () => {

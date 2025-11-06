@@ -16,8 +16,13 @@ export default function PinLocationEditor({ gameId, onBack }: PinLocationEditorP
   const [pinTargetCount, setPinTargetCount] = useState<number | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToPins(gameId, (nextPins) => {
-      setPins(nextPins);
+    const unsubscribe = subscribeToPins(gameId, (nextPins, metadata) => {
+      setPins((prev) => {
+        if (metadata.fromCache && nextPins.length === 0 && prev.length > 0) {
+          return prev;
+        }
+        return nextPins;
+      });
     });
     return () => {
       unsubscribe();

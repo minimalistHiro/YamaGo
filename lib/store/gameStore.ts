@@ -101,30 +101,61 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const newSubs: Subscriptions = { ..._subs };
 
     // Game
-    newSubs.game = subscribeToGame(gameId, (game) => {
-      set((s) => (s.game === game ? s : { ...s, game }));
+    newSubs.game = subscribeToGame(gameId, (game, metadata) => {
+      set((s) => {
+        if (game) {
+          return isEqual(s.game, game) ? s : { ...s, game };
+        }
+        if (metadata.fromCache) {
+          return s;
+        }
+        if (s.game === null) {
+          return s;
+        }
+        return { ...s, game: null };
+      });
     });
 
     // Players
-    newSubs.players = subscribeToPlayers(gameId, (players) => {
+    newSubs.players = subscribeToPlayers(gameId, (players, metadata) => {
       const byId: Record<string, Player> = {};
       players.forEach((p) => (byId[p.uid] = p));
-      set((s) => (isEqual(s.playersById, byId) ? s : { ...s, playersById: byId }));
+      set((s) => {
+        if (metadata.fromCache && players.length === 0 && Object.keys(s.playersById).length > 0) {
+          return s;
+        }
+        return isEqual(s.playersById, byId) ? s : { ...s, playersById: byId };
+      });
     });
 
     // Locations
-    newSubs.locations = subscribeToLocations(gameId, (locations) => {
-      set((s) => (isEqual(s.locationsById, locations) ? s : { ...s, locationsById: locations }));
+    newSubs.locations = subscribeToLocations(gameId, (locations, metadata) => {
+      set((s) => {
+        if (metadata.fromCache && Object.keys(locations).length === 0 && Object.keys(s.locationsById).length > 0) {
+          return s;
+        }
+        return isEqual(s.locationsById, locations) ? s : { ...s, locationsById: locations };
+      });
     });
 
     // Alerts (per-user)
-    newSubs.alerts = subscribeToAlerts(gameId, currentUid, (alerts) => {
-      set((s) => (isEqual(s.alerts, alerts) ? s : { ...s, alerts }));
+    newSubs.alerts = subscribeToAlerts(gameId, currentUid, (alerts, metadata) => {
+      set((s) => {
+        if (metadata.fromCache && alerts.length === 0 && s.alerts.length > 0) {
+          return s;
+        }
+        return isEqual(s.alerts, alerts) ? s : { ...s, alerts };
+      });
     });
 
     // Pins
-    newSubs.pins = subscribeToPins(gameId, (pins) => {
-      set((s) => (isEqual(s.pins, pins) ? s : { ...s, pins }));
+    newSubs.pins = subscribeToPins(gameId, (pins, metadata) => {
+      set((s) => {
+        if (metadata.fromCache && pins.length === 0 && s.pins.length > 0) {
+          return s;
+        }
+        return isEqual(s.pins, pins) ? s : { ...s, pins };
+      });
     });
 
     set({ _subs: newSubs, isSubscribing: true, isReady: true });
@@ -169,5 +200,4 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 }));
 
 export type { Game, Player, Location, Alert };
-
 

@@ -15,7 +15,8 @@ import {
   Timestamp,
   Firestore,
   deleteField,
-  writeBatch
+  writeBatch,
+  SnapshotMetadata
 } from 'firebase/firestore';
 import { getYamanoteBounds, getYamanoteCenter } from './geo';
 import { getFirebaseServices } from './firebase/client';
@@ -429,7 +430,10 @@ export async function reseedPinsWithRandomLocations(gameId: string, targetCount:
 }
 
 // Subscribe to pins
-export function subscribeToPins(gameId: string, callback: (pins: PinPoint[]) => void): () => void {
+export function subscribeToPins(
+  gameId: string,
+  callback: (pins: PinPoint[], metadata: SnapshotMetadata) => void
+): () => void {
   const db = getDb();
   const pinsRef = collection(db, 'games', gameId, 'pins');
   return onSnapshot(pinsRef, (snapshot) => {
@@ -437,7 +441,7 @@ export function subscribeToPins(gameId: string, callback: (pins: PinPoint[]) => 
       id: d.id,
       ...(d.data() as any),
     }));
-    callback(pins);
+    callback(pins, snapshot.metadata);
   });
 }
 
@@ -669,27 +673,36 @@ export async function recordCapture(gameId: string, attackerUid: string, victimU
 }
 
 // Real-time subscriptions
-export function subscribeToGame(gameId: string, callback: (game: Game | null) => void): () => void {
+export function subscribeToGame(
+  gameId: string,
+  callback: (game: Game | null, metadata: SnapshotMetadata) => void
+): () => void {
   const db = getDb();
   return onSnapshot(doc(db, 'games', gameId), (doc) => {
     if (doc.exists()) {
-      callback({ id: doc.id, ...doc.data() } as Game);
+      callback({ id: doc.id, ...doc.data() } as Game, doc.metadata);
     } else {
-      callback(null);
+      callback(null, doc.metadata);
     }
   });
 }
 
-export function subscribeToPlayers(gameId: string, callback: (players: Player[]) => void): () => void {
+export function subscribeToPlayers(
+  gameId: string,
+  callback: (players: Player[], metadata: SnapshotMetadata) => void
+): () => void {
   const db = getDb();
   const playersRef = collection(db, 'games', gameId, 'players');
   return onSnapshot(playersRef, (snapshot) => {
     const players = snapshot.docs.map(doc => doc.data() as Player);
-    callback(players);
+    callback(players, snapshot.metadata);
   });
 }
 
-export function subscribeToLocations(gameId: string, callback: (locations: { [uid: string]: Location }) => void): () => void {
+export function subscribeToLocations(
+  gameId: string,
+  callback: (locations: { [uid: string]: Location }, metadata: SnapshotMetadata) => void
+): () => void {
   const db = getDb();
   const locationsRef = collection(db, 'games', gameId, 'locations');
   return onSnapshot(locationsRef, (snapshot) => {
@@ -697,11 +710,15 @@ export function subscribeToLocations(gameId: string, callback: (locations: { [ui
     snapshot.docs.forEach(doc => {
       locations[doc.id] = doc.data() as Location;
     });
-    callback(locations);
+    callback(locations, snapshot.metadata);
   });
 }
 
-export function subscribeToAlerts(gameId: string, uid: string, callback: (alerts: Alert[]) => void): () => void {
+export function subscribeToAlerts(
+  gameId: string,
+  uid: string,
+  callback: (alerts: Alert[], metadata: SnapshotMetadata) => void
+): () => void {
   const db = getDb();
   const alertsRef = collection(db, 'games', gameId, 'alerts');
   return onSnapshot(
@@ -711,12 +728,15 @@ export function subscribeToAlerts(gameId: string, uid: string, callback: (alerts
         id: doc.id,
         ...doc.data()
       } as Alert));
-      callback(alerts);
+      callback(alerts, snapshot.metadata);
     }
   );
 }
 
-export function subscribeToEvents(gameId: string, callback: (events: GameEvent[]) => void): () => void {
+export function subscribeToEvents(
+  gameId: string,
+  callback: (events: GameEvent[], metadata: SnapshotMetadata) => void
+): () => void {
   const db = getDb();
   const eventsRef = collection(db, 'games', gameId, 'events');
   return onSnapshot(
@@ -726,7 +746,7 @@ export function subscribeToEvents(gameId: string, callback: (events: GameEvent[]
         id: doc.id,
         ...doc.data()
       } as GameEvent));
-      callback(events);
+      callback(events, snapshot.metadata);
     }
   );
 }

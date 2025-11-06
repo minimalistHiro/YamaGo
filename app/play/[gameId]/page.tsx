@@ -196,7 +196,7 @@ export default function PlayPage() {
   // Show popup when this user (oni) captures a runner
   useEffect(() => {
     if (!user || !gameId) return;
-    const unsubscribe = subscribeToEvents(gameId, (events) => {
+    const unsubscribe = subscribeToEvents(gameId, (events, _metadata) => {
       const latestCapture = events.find(ev => ev.type === 'capture' && ev.actorUid === user.uid);
       if (latestCapture) {
         const target = playersById[latestCapture.targetUid || ''];
