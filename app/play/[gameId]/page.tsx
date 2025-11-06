@@ -577,6 +577,7 @@ export default function PlayPage() {
               captureRadiusM={game.captureRadiusM}
               gameId={gameId}
               runnerSeeKillerRadiusM={game.runnerSeeKillerRadiusM ?? 500}
+              runnerSeeGeneratorRadiusM={game.runnerSeeGeneratorRadiusM ?? 3000}
               killerSeeGeneratorRadiusM={game.killerSeeGeneratorRadiusM ?? 3000}
               killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
               pinTargetCount={game.pinCount ?? 10}

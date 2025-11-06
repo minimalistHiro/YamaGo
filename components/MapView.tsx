@@ -43,6 +43,7 @@ interface MapViewProps {
   pinEditingMode?: boolean;
   onPinDragStart?: (pinId: string) => void;
   onPinDragEnd?: (pinId: string, lat: number, lng: number) => void;
+  runnerSeeGeneratorRadiusM?: number;
   killerSeeGeneratorRadiusM?: number;
 }
 
@@ -99,6 +100,7 @@ export default function MapView({
   pinEditingMode = false,
   onPinDragStart,
   onPinDragEnd,
+  runnerSeeGeneratorRadiusM = 3000,
   killerSeeGeneratorRadiusM = 3000,
 }: MapViewProps) {
   const currentUserRole = useMemo(() => {
@@ -491,8 +493,8 @@ export default function MapView({
     const filteredPins = (() => {
       if (gameStatus !== 'running') return [] as typeof pins;
       if (currentLocation) {
-        if (currentUserRole === 'runner' && typeof runnerSeeKillerRadiusM === 'number') {
-          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= runnerSeeKillerRadiusM);
+        if (currentUserRole === 'runner' && typeof runnerSeeGeneratorRadiusM === 'number') {
+          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= runnerSeeGeneratorRadiusM);
         }
         if (currentUserRole === 'oni' && typeof killerSeeGeneratorRadiusM === 'number') {
           return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= killerSeeGeneratorRadiusM);
@@ -514,7 +516,7 @@ export default function MapView({
     if (src) {
       (src as any).setData(featureCollection as any);
     }
-  }, [pins, isMapLoaded, pinEditingMode, currentUserRole, currentLocation, runnerSeeKillerRadiusM, killerSeeGeneratorRadiusM]);
+  }, [pins, isMapLoaded, pinEditingMode, currentUserRole, currentLocation, runnerSeeGeneratorRadiusM, killerSeeGeneratorRadiusM]);
 
   useEffect(() => {
     if (!map.current || !isMapLoaded) {
