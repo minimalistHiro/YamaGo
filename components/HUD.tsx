@@ -15,9 +15,6 @@ interface HUDProps {
   runnerCapturedCount?: number;
   generatorsClearedCount?: number;
   pinTargetCount?: number;
-  isRescueAvailable?: boolean;
-  rescueTargetName?: string;
-  onRescue?: () => void;
 }
 
 export default function HUD({
@@ -33,9 +30,6 @@ export default function HUD({
   runnerCapturedCount = 0,
   generatorsClearedCount = 0,
   pinTargetCount,
-  isRescueAvailable = false,
-  rescueTargetName,
-  onRescue,
 }: HUDProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(timeRemaining ?? null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -168,18 +162,6 @@ export default function HUD({
 
             {/* Action Buttons */}
             <div className="space-y-2">
-              {gameStatus === 'running' && isRescueAvailable && onRescue && (
-                <button
-                  onClick={onRescue}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg uppercase tracking-[0.2em] shadow-[0_0_12px_rgba(234,179,8,0.45)] flex items-center justify-center gap-2"
-                >
-                  <span className="text-lg">🚑</span>
-                  <span>
-                    救出する{rescueTargetName ? `（${rescueTargetName}）` : ''}
-                  </span>
-                </button>
-              )}
-
               {(gameStatus === 'pending' || gameStatus === 'ended') && onStartGame && (
                 <button
                   onClick={onStartGame}

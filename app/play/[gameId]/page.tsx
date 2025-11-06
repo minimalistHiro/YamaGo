@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { httpsCallable } from 'firebase/functions';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { 
   getPlayer,
@@ -47,6 +46,7 @@ export default function PlayPage() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [showGameEndPopup, setShowGameEndPopup] = useState(false);
   const [showGameSummaryPopup, setShowGameSummaryPopup] = useState(false);
+  const [isRescuing, setIsRescuing] = useState(false);
   const [gameEndedAt, setGameEndedAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isEditingPins, setIsEditingPins] = useState(false);
@@ -274,16 +274,23 @@ export default function PlayPage() {
   const handleRescue = async () => {
     if (!rescuablePlayer || !user) return;
 
+    setIsRescuing(true);
     try {
-      const { functions } = getFirebaseServices();
-      const rescueFunction = httpsCallable(functions, 'rescue');
-      
-      await rescueFunction({ gameId, victimUid: rescuablePlayer.uid });
+      const rescueTarget = rescuablePlayer;
+      const updates: Partial<Player> = {
+        state: 'active',
+        lastRescuedAt: new Date(),
+        cooldownUntil: new Date(Date.now() + RESCUE_COOLDOWN_SEC * 1000),
+      };
+
+      await updatePlayer(gameId, rescueTarget.uid, updates as any);
       console.log('Rescue successful');
       setRescuablePlayer(null);
     } catch (error) {
       console.error('Rescue failed:', error);
       alert('救助に失敗しました');
+    } finally {
+      setIsRescuing(false);
     }
   };
 
@@ -549,9 +556,6 @@ export default function PlayPage() {
             pinTargetCount={game.pinCount ?? 10}
             captures={currentPlayer.stats.captures}
             capturedTimes={currentPlayer.stats.capturedTimes}
-            isRescueAvailable={Boolean(rescuablePlayer)}
-            rescueTargetName={rescuablePlayer?.nickname}
-            onRescue={rescuablePlayer ? handleRescue : undefined}
           />
 
           {showGameEndPopup && (
@@ -603,6 +607,21 @@ export default function PlayPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Rescue Button */}
+          {rescuablePlayer && currentPlayer.role === 'runner' && game.status === 'running' && (
+            <div className="absolute bottom-48 left-1/2 transform -translate-x-1/2 z-50">
+              <button
+                onClick={handleRescue}
+                disabled={isRescuing}
+                className={`bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-lg shadow-lg text-lg ${isRescuing ? 'opacity-70 cursor-not-allowed' : 'animate-pulse'}`}
+              >
+                {isRescuing
+                  ? '🚑 救助中…'
+                  : `🚑 救助する${rescuablePlayer.nickname ? `（${rescuablePlayer.nickname}）` : ''}`}
+              </button>
             </div>
           )}
 
