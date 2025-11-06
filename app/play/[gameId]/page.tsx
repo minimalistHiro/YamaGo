@@ -245,9 +245,6 @@ export default function PlayPage() {
     if (currentPlayer.state && currentPlayer.state !== 'active') {
       setShowRescuedPopup(false);
     }
-    if (!currentPlayer.state || currentPlayer.state === 'active') {
-      setShowCapturedPopup(false);
-    }
   }, [currentPlayer, user?.uid]);
 
   // Show popup when this user (oni) captures a runner
