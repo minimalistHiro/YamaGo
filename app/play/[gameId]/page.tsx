@@ -22,8 +22,19 @@ import ChatView from '@/components/ChatView';
 import SettingsView from '@/components/SettingsView';
 import BackgroundLocationProvider from '@/components/BackgroundLocationProvider';
 import { useGameStore } from '@/lib/store/gameStore';
-import type { Player } from '@/lib/game';
+import type { Player, PinStatus } from '@/lib/game';
 import { playSound, preloadSounds } from '@/lib/sounds';
+
+type PinLike = { status?: PinStatus | string; cleared?: boolean };
+
+const resolvePinStatus = (pin: PinLike): PinStatus => {
+  if (pin.status === 'pending' || pin.status === 'clearing' || pin.status === 'cleared') {
+    return pin.status;
+  }
+  return pin.cleared ? 'cleared' : 'pending';
+};
+
+const isPinCleared = (pin: PinLike): boolean => resolvePinStatus(pin) === 'cleared';
 
 export default function PlayPage() {
   const params = useParams();
@@ -52,7 +63,7 @@ export default function PlayPage() {
   const [gameEndedAt, setGameEndedAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isEditingPins, setIsEditingPins] = useState(false);
-  const allPinsCleared = pins.length > 0 && pins.every(p => p.cleared);
+  const allPinsCleared = pins.length > 0 && pins.every((p) => isPinCleared(p));
   const setIdentity = useGameStore((s) => s.setIdentity);
   const start = useGameStore((s) => s.start);
   const stop = useGameStore((s) => s.stop);
@@ -546,7 +557,7 @@ export default function PlayPage() {
   const oniCount = players.filter(p => p.role === 'oni' && p.active).length;
   const runnerCount = players.filter(p => p.role === 'runner' && p.active).length;
   const runnerCapturedCount = players.filter(p => p.role === 'runner' && p.active && p.state && p.state !== 'active').length;
-  const generatorsClearedCount = pins.filter(p => p.cleared).length;
+  const generatorsClearedCount = pins.filter((p) => isPinCleared(p)).length;
   const capturedPlayersCount = players.filter(p => p.role === 'runner' && (p.stats?.capturedTimes ?? 0) > 0).length;
   const formattedGameDuration = formatDuration(
     gameDurationElapsedSec ?? (typeof game.gameDurationSec === 'number' ? game.gameDurationSec : null)

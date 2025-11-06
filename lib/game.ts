@@ -92,11 +92,14 @@ export interface GameEvent {
 }
 
 // Map pins placed on the game map
+export type PinStatus = 'pending' | 'clearing' | 'cleared';
+
 export interface PinPoint {
   id: string;
   lat: number;
   lng: number;
   type?: 'yellow';
+  status?: PinStatus;
   cleared?: boolean;
   createdAt: Timestamp;
 }
@@ -212,7 +215,7 @@ export async function clearPins(gameId: string): Promise<void> {
 
 export async function addPins(
   gameId: string,
-  pins: Array<{ lat: number; lng: number; type?: 'yellow'; cleared?: boolean }>
+  pins: Array<{ lat: number; lng: number; type?: 'yellow'; status?: PinStatus }>
 ): Promise<void> {
   const db = getDb();
   const pinsRef = collection(db, 'games', gameId, 'pins');
@@ -223,7 +226,8 @@ export async function addPins(
         lat: p.lat,
         lng: p.lng,
         type: p.type || 'yellow',
-        cleared: p.cleared ?? false,
+        status: p.status ?? 'pending',
+        cleared: (p.status ?? 'pending') === 'cleared',
         createdAt: serverTimestamp(),
       })
     );
@@ -231,14 +235,15 @@ export async function addPins(
   await Promise.all(writes);
 }
 
-export async function updatePinCleared(
+export async function updatePinStatus(
   gameId: string,
   pinId: string,
-  cleared: boolean = true
+  status: PinStatus
 ): Promise<void> {
   const db = getDb();
   await updateDoc(doc(db, 'games', gameId, 'pins', pinId), {
-    cleared
+    status,
+    cleared: status === 'cleared',
   });
 }
 
@@ -274,6 +279,7 @@ export async function resetRunnersAndGenerators(gameId: string): Promise<void> {
   const pinsSnapshot = await getDocs(collection(db, 'games', gameId, 'pins'));
   pinsSnapshot.forEach((pinDoc) => {
     batch.update(pinDoc.ref, {
+      status: 'pending',
       cleared: false,
     });
   });
@@ -285,7 +291,7 @@ export async function resetRunnersAndGenerators(gameId: string): Promise<void> {
 
 export async function setGamePins(
   gameId: string,
-  pins: Array<{ lat: number; lng: number; type?: 'yellow'; cleared?: boolean }>
+  pins: Array<{ lat: number; lng: number; type?: 'yellow'; status?: PinStatus }>
 ): Promise<void> {
   await clearPins(gameId);
   await addPins(gameId, pins);
@@ -379,6 +385,7 @@ export async function reconcilePinsWithTargetCount(gameId: string, targetCount: 
       lat: candidate.lat,
       lng: candidate.lng,
       type: 'yellow',
+      status: 'pending',
       cleared: false,
       createdAt: serverTimestamp(),
     });
@@ -392,7 +399,7 @@ export async function reseedPinsWithRandomLocations(gameId: string, targetCount:
   }
 
   const uniqueKeys = new Set<string>();
-  const pins: Array<{ lat: number; lng: number; type: 'yellow'; cleared: boolean }> = [];
+  const pins: Array<{ lat: number; lng: number; type: 'yellow'; status: PinStatus }> = [];
   let attempts = 0;
 
   const maxAttempts = targetCount * 200;
@@ -409,7 +416,7 @@ export async function reseedPinsWithRandomLocations(gameId: string, targetCount:
       lat: candidate.lat,
       lng: candidate.lng,
       type: 'yellow',
-      cleared: false,
+      status: 'pending',
     });
   }
 
@@ -422,7 +429,7 @@ export async function reseedPinsWithRandomLocations(gameId: string, targetCount:
         lat: center.lat,
         lng: center.lng + pins.length * 0.0001,
         type: 'yellow',
-        cleared: false,
+        status: 'pending',
       });
     } else {
       break;
@@ -439,7 +446,22 @@ export function subscribeToPins(gameId: string, callback: (pins: PinPoint[]) => 
   return onSnapshot(pinsRef, (snapshot) => {
     const pins: PinPoint[] = snapshot.docs.map((d) => ({
       id: d.id,
-      ...(d.data() as any),
+      ...(() => {
+        const raw = d.data() as any;
+        let status: PinStatus | undefined = raw.status;
+        if (!status) {
+          if (typeof raw.cleared === 'boolean') {
+            status = raw.cleared ? 'cleared' : 'pending';
+          } else {
+            status = 'pending';
+          }
+        }
+        return {
+          ...raw,
+          status,
+          cleared: raw.cleared ?? (status === 'cleared'),
+        };
+      })(),
     }));
     callback(pins);
   });

@@ -8,7 +8,7 @@ import { haversine } from '@/lib/geo';
 import { 
   RESCUE_RADIUS_M 
 } from '@/lib/constants';
-import { setGamePins, type PinPoint, updatePinCleared, updateGame, resetRunnersAndGenerators } from '@/lib/game';
+import { setGamePins, type PinPoint, type PinStatus, updatePinStatus, updateGame, resetRunnersAndGenerators } from '@/lib/game';
 import { preloadSounds } from '@/lib/sounds';
 import { createBaseMapStyle } from '@/lib/mapStyle';
 
@@ -78,6 +78,19 @@ const GENERATOR_PIN_STYLE_CLEARED = {
   icon: '⚡️',
 };
 const GENERATOR_CLEAR_COUNTDOWN_SEC = 10;
+
+const getPinStatus = (pin: PinPoint): PinStatus => {
+  if (pin.status === 'pending' || pin.status === 'clearing' || pin.status === 'cleared') {
+    return pin.status;
+  }
+  return pin.cleared ? 'cleared' : 'pending';
+};
+
+const isPinCleared = (pin: PinPoint): boolean => getPinStatus(pin) === 'cleared';
+const isPinVisibleToAll = (pin: PinPoint): boolean => {
+  const status = getPinStatus(pin);
+  return status === 'clearing' || status === 'cleared';
+};
 
 export default function MapView({
   onLocationUpdate,
@@ -162,7 +175,7 @@ export default function MapView({
   useEffect(() => {
     if (currentUserRole === 'oni') {
       isInitialClearedCheckRef.current = true;
-      clearedPinIdsRef.current = new Set<string>((pins || []).filter((p) => p.cleared).map((p) => p.id));
+      clearedPinIdsRef.current = new Set<string>((pins || []).filter((p) => isPinCleared(p)).map((p) => p.id));
       setShowGeneratorClearedAlert(false);
     }
   }, [currentUserRole]);
@@ -512,7 +525,7 @@ export default function MapView({
         layout: {
           'icon-image': [
             'case',
-            ['boolean', ['get', 'cleared'], false],
+            ['==', ['get', 'status'], 'cleared'],
             'pin-generator-cleared',
             'pin-generator'
           ],
@@ -524,15 +537,23 @@ export default function MapView({
     }
 
     const filteredPins = (() => {
-      if (gameStatus !== 'running') return [] as typeof pins;
-      if (currentLocation) {
-        if (currentUserRole === 'runner' && typeof runnerSeeGeneratorRadiusM === 'number') {
-          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= runnerSeeGeneratorRadiusM);
-        }
-        if (currentUserRole === 'oni' && typeof killerSeeGeneratorRadiusM === 'number') {
-          return pins.filter((p) => haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= killerSeeGeneratorRadiusM);
-        }
+      if (gameStatus !== 'running') return pins;
+      if (!currentLocation) return pins;
+
+      if (currentUserRole === 'runner' && typeof runnerSeeGeneratorRadiusM === 'number') {
+        return pins.filter((p) => {
+          if (isPinVisibleToAll(p)) return true;
+          return haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= runnerSeeGeneratorRadiusM;
+        });
       }
+
+      if (currentUserRole === 'oni' && typeof killerSeeGeneratorRadiusM === 'number') {
+        return pins.filter((p) => {
+          if (isPinVisibleToAll(p)) return true;
+          return haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng) <= killerSeeGeneratorRadiusM;
+        });
+      }
+
       return pins;
     })();
 
@@ -541,7 +562,7 @@ export default function MapView({
       features: filteredPins.map((p) => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-        properties: { id: p.id, cleared: !!p.cleared },
+        properties: { id: p.id, status: getPinStatus(p) },
       })),
     } as const;
 
@@ -613,7 +634,7 @@ export default function MapView({
     });
   }, [pinEditingMode, pins, isMapLoaded, onPinDragEnd, onPinDragStart]);
 
-  // Detect nearby uncleared pin for runner within capture radius
+  // Detect nearby pending pin for runner within capture radius
   useEffect(() => {
     if (!currentLocation || !pins || pins.length === 0) {
       setNearbyPin(null);
@@ -630,7 +651,7 @@ export default function MapView({
 
     let found: PinPoint | null = null;
     for (const p of pins) {
-      if (p.cleared) continue;
+      if (getPinStatus(p) !== 'pending') continue;
       const d = haversine(currentLocation.lat, currentLocation.lng, p.lat, p.lng);
       if (d <= captureRadiusM) {
         found = p;
@@ -647,7 +668,7 @@ export default function MapView({
       return;
     }
 
-    const currentCleared = new Set<string>(pins.filter((p) => p.cleared).map((p) => p.id));
+    const currentCleared = new Set<string>(pins.filter((p) => isPinCleared(p)).map((p) => p.id));
     let hasNewCleared = false;
     currentCleared.forEach((id) => {
       if (!clearedPinIdsRef.current.has(id)) {
@@ -681,11 +702,11 @@ export default function MapView({
     setClearingPinId(null);
 
     try {
-      await updatePinCleared(gameId, pinId, true);
+      await updatePinStatus(gameId, pinId, 'cleared');
       setShowGeneratorCleared(true);
       // If all pins are cleared, end the game (runners win)
       try {
-        const allCleared = (pins || []).every((p) => (p.id === pinId ? true : !!p.cleared));
+        const allCleared = (pins || []).every((p) => (p.id === pinId ? true : isPinCleared(p)));
         if ((pins || []).length > 0 && allCleared) {
           await updateGame(gameId, { status: 'ended' });
         }
@@ -694,6 +715,11 @@ export default function MapView({
       }
     } catch (e) {
       console.error('Failed to clear pin:', e);
+      try {
+        await updatePinStatus(gameId, pinId, 'pending');
+      } catch (resetError) {
+        console.error('Failed to reset pin status after failed clear attempt:', resetError);
+      }
     } finally {
       setIsClearing(false);
     }
@@ -701,10 +727,24 @@ export default function MapView({
 
   const handleClearNearbyPin = () => {
     if (!nearbyPin || isClearing || !gameId) return;
+    if (getPinStatus(nearbyPin) !== 'pending') return;
+
     setShowGeneratorClearFailed(false);
     setClearingPinId(nearbyPin.id);
     setClearCountdown(GENERATOR_CLEAR_COUNTDOWN_SEC);
     setIsClearing(true);
+
+    void (async () => {
+      try {
+        await updatePinStatus(gameId, nearbyPin.id, 'clearing');
+      } catch (e) {
+        console.error('Failed to mark pin as clearing', e);
+        setIsClearing(false);
+        setClearCountdown(null);
+        setClearingPinId(null);
+        setShowGeneratorClearFailed(true);
+      }
+    })();
   };
 
   useEffect(() => {
@@ -741,8 +781,11 @@ export default function MapView({
       setClearCountdown(null);
       setClearingPinId(null);
       setShowGeneratorClearFailed(true);
+      if (gameId) {
+        void updatePinStatus(gameId, targetPin.id, 'pending');
+      }
     }
-  }, [isClearing, clearCountdown, clearingPinId, currentLocation, pins, captureRadiusM]);
+  }, [isClearing, clearCountdown, clearingPinId, currentLocation, pins, captureRadiusM, gameId]);
 
 
   useEffect(() => {
