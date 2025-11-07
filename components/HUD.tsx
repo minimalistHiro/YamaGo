@@ -15,7 +15,6 @@ interface HUDProps {
   runnerCapturedCount?: number;
   generatorsClearedCount?: number;
   pinTargetCount?: number;
-  currentUserRole?: 'oni' | 'runner';
 }
 
 export default function HUD({
@@ -31,26 +30,20 @@ export default function HUD({
   runnerCapturedCount = 0,
   generatorsClearedCount = 0,
   pinTargetCount,
-  currentUserRole,
 }: HUDProps) {
-  const [timeLeft, setTimeLeft] = useState<number | null>(timeRemaining ?? null);
+  const [timeLeft, setTimeLeft] = useState(timeRemaining || 0);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     if (timeRemaining !== undefined) {
       setTimeLeft(timeRemaining);
-    } else {
-      setTimeLeft(null);
     }
   }, [timeRemaining]);
 
   useEffect(() => {
-    if (gameStatus === 'running' && timeLeft !== null && timeLeft > 0) {
+    if (gameStatus === 'running' && timeLeft > 0) {
       const timer = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev === null) return prev;
-          return Math.max(0, prev - 1);
-        });
+        setTimeLeft(prev => Math.max(0, prev - 1));
       }, 1000);
 
       return () => clearInterval(timer);
@@ -63,9 +56,9 @@ export default function HUD({
     const secs = seconds % 60;
     
     if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
-    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -100,7 +93,7 @@ export default function HUD({
         {!isCollapsed && (
           <>
             {/* Timer */}
-            {gameStatus === 'running' && timeLeft !== null && (
+            {gameStatus === 'running' && timeLeft > 0 && (
               <div className="text-center">
                 <div className="text-2xl font-mono font-bold text-cyber-green drop-shadow-[0_0_12px_rgba(34,181,155,0.45)]">
                   {formatTime(timeLeft)}
@@ -135,7 +128,7 @@ export default function HUD({
               <div className="flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.25em] text-app">
                 <span className="text-cyber-gold">発電所</span>
                 {pinTargetCount !== undefined && (
-                  <span className="text-[10px] text-app font-semibold">{pinTargetCount}箇所</span>
+                  <span className="font-semibold text-app">{pinTargetCount}箇所</span>
                 )}
               </div>
               <div className="flex justify-between text-[10px] text-muted uppercase tracking-[0.3em] pl-2">
@@ -145,24 +138,20 @@ export default function HUD({
             </div>
 
             {/* Personal Stats */}
-            {(currentUserRole === 'oni' || currentUserRole === 'runner') && (
+            {(captures > 0 || capturedTimes > 0) && (
               <div className="cyber-divider" />
             )}
 
-            {(currentUserRole === 'oni' || currentUserRole === 'runner') && (
+            {(captures > 0 || capturedTimes > 0) && (
               <div className="pt-2 space-y-2">
-                {currentUserRole === 'oni' && (
-                  <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
-                    <span className="text-muted">捕獲数</span>
-                    <span className="font-semibold text-cyber-pink">{captures}</span>
-                  </div>
-                )}
-                {currentUserRole === 'runner' && (
-                  <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
-                    <span className="text-muted">捕獲された回数</span>
-                    <span className="font-semibold text-cyber-gold">{capturedTimes}</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
+                  <span className="text-muted">捕獲数</span>
+                  <span className="font-semibold text-cyber-pink">{captures}</span>
+                </div>
+                <div className="flex justify-between text-[11px] uppercase tracking-[0.25em]">
+                  <span className="text-muted">捕獲された回数</span>
+                  <span className="font-semibold text-cyber-gold">{capturedTimes}</span>
+                </div>
               </div>
             )}
 
