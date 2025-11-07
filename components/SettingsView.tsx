@@ -324,6 +324,9 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
                   編集
                 </button>
               </div>
+              {isOwner && (
+                <p className="text-xs text-blue-600 font-semibold mt-1">オーナー</p>
+              )}
               <p className={`text-sm ${userProfile.role === 'oni' ? 'text-red-600' : 'text-green-600'}`}>
                 {userProfile.role === 'oni' ? '鬼' : '逃走者'}
               </p>
