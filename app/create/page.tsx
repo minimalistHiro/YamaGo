@@ -158,10 +158,10 @@ export default function CreatePage() {
               <h3 className="text-sm text-primary tracking-[0.3em] uppercase">ゲーム情報</h3>
               <div className="cyber-divider" />
               <div className="text-xs text-muted tracking-[0.25em] uppercase space-y-1">
-                <p>ゲームがFirebaseに正常に保存されました</p>
+                <p>ゲームが正常に保存されました</p>
                 <p>あなたは鬼として参加しています</p>
                 <p>他のプレイヤーにゲームIDを共有してください</p>
-                <p>ゲーム開始30分後に鬼が有効化されます</p>
+                <p>ゲーム開始するには「ゲーム開始」ボタンを押して下さい</p>
               </div>
             </div>
             
