@@ -55,6 +55,7 @@ export interface Player {
   stats: {
     captures: number;
     capturedTimes: number;
+    generatorsCleared?: number;
   };
 }
 
@@ -606,7 +607,8 @@ export async function joinGame(
           downs: existingPlayerData.downs || 0,
           stats: {
             captures: existingPlayerData.stats?.captures ?? 0,
-            capturedTimes: existingPlayerData.stats?.capturedTimes ?? 0
+            capturedTimes: existingPlayerData.stats?.capturedTimes ?? 0,
+            generatorsCleared: existingPlayerData.stats?.generatorsCleared ?? 0
           },
           ...(avatarUrl ? { avatarUrl } : {})
         }
@@ -620,7 +622,8 @@ export async function joinGame(
           ...(avatarUrl ? { avatarUrl } : {}),
           stats: {
             captures: 0,
-            capturedTimes: 0
+            capturedTimes: 0,
+            generatorsCleared: 0
           }
         };
 

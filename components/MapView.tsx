@@ -46,6 +46,7 @@ interface MapViewProps {
   runnerSeeGeneratorRadiusM?: number;
   killerSeeGeneratorRadiusM?: number;
   runnerSeeRunnerRadiusM?: number;
+  onGeneratorCleared?: () => void;
 }
 
 const ROLE_COLORS: Record<'oni' | 'runner', string> = {
@@ -117,6 +118,7 @@ export default function MapView({
   onPinDragEnd,
   runnerSeeGeneratorRadiusM = 3000,
   killerSeeGeneratorRadiusM = 3000,
+  onGeneratorCleared,
 }: MapViewProps) {
   const currentUserRole = useMemo(() => {
     if (!currentUserId) return initialCurrentUserRole;
@@ -766,6 +768,9 @@ export default function MapView({
     try {
       await updatePinStatus(gameId, pinId, 'cleared');
       setShowGeneratorCleared(true);
+      if (onGeneratorCleared) {
+        onGeneratorCleared();
+      }
       // If all pins are cleared, end the game (runners win)
       try {
         const allCleared = (pins || []).every((p) => (p.id === pinId ? true : isPinCleared(p)));
@@ -785,7 +790,7 @@ export default function MapView({
     } finally {
       setIsClearing(false);
     }
-  }, [gameId, pins]);
+  }, [gameId, pins, onGeneratorCleared]);
 
   const handleClearNearbyPin = () => {
     if (!nearbyPin || isClearing || !gameId || isRunnerCaptured) return;

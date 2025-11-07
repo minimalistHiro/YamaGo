@@ -427,8 +427,9 @@ export default function PlayPage() {
         await updatePlayer(gameId, user.uid, {
           stats: {
             captures: (currentPlayer.stats?.captures || 0) + 1,
-            capturedTimes: currentPlayer.stats?.capturedTimes || 0
-          }
+            capturedTimes: currentPlayer.stats?.capturedTimes || 0,
+            generatorsCleared: currentPlayer.stats?.generatorsCleared ?? 0,
+          },
         } as any);
       }
 
@@ -564,6 +565,25 @@ export default function PlayPage() {
   );
   const personalCaptures = game.status === 'running' ? (currentPlayer.stats.captures ?? 0) : 0;
   const personalCapturedTimes = game.status === 'running' ? (currentPlayer.stats.capturedTimes ?? 0) : 0;
+  const personalGeneratorsCleared = currentPlayer.stats.generatorsCleared ?? 0;
+
+  const handleGeneratorCleared = useCallback(async () => {
+    if (!currentPlayer || currentPlayer.role !== 'runner' || !user?.uid || !gameId) {
+      return;
+    }
+    const stats = currentPlayer.stats || { captures: 0, capturedTimes: 0, generatorsCleared: 0 };
+    try {
+      await updatePlayer(gameId, user.uid, {
+        stats: {
+          captures: stats.captures ?? 0,
+          capturedTimes: stats.capturedTimes ?? 0,
+          generatorsCleared: (stats.generatorsCleared ?? 0) + 1,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to update generator cleared stats:', error);
+    }
+  }, [currentPlayer, gameId, user?.uid]);
 
   const handleGameExit = () => {
     router.push('/join');
@@ -608,6 +628,7 @@ export default function PlayPage() {
               killerDetectRunnerRadiusM={game.killerDetectRunnerRadiusM || 500}
               pinTargetCount={game.pinCount ?? 10}
               gameDurationSec={game.gameDurationSec ?? undefined}
+              onGeneratorCleared={handleGeneratorCleared}
             />
           )}
 
@@ -718,6 +739,20 @@ export default function PlayPage() {
                     <span>ゲーム時間</span>
                     <span className="font-semibold text-gray-900">{formattedGameDuration}</span>
                   </div>
+                </div>
+                <div className="mt-6 border-t border-gray-200 pt-4">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3 text-center">個人の成績</h4>
+                  {currentPlayer.role === 'oni' ? (
+                    <div className="flex items-center justify-between text-sm text-gray-700">
+                      <span>捕獲数</span>
+                      <span className="font-semibold text-gray-900">{currentPlayer.stats.captures ?? 0}人</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-sm text-gray-700">
+                      <span>発電機解除数</span>
+                      <span className="font-semibold text-gray-900">{personalGeneratorsCleared}箇所</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2 justify-center mt-6">
                   <button

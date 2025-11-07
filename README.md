@@ -52,7 +52,7 @@
   - lastRescuedAt: timestamp | null (DbD mode)
   - lastRevealUntil: timestamp | null (DbD mode - mutual visibility)
   - cooldownUntil: timestamp | null (DbD mode)
-  - stats: { captures: number, capturedTimes: number }
+  - stats: { captures: number, capturedTimes: number, generatorsCleared?: number }
 
 /games/{gameId}/locations/{uid}
   - lat: number
