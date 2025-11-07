@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function Home() {
   const [gameId, setGameId] = useState<string | null>(null);
+  const buttonSoundRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // URLパラメータからゲームIDを取得
@@ -14,6 +15,24 @@ export default function Home() {
       setGameId(id);
     }
   }, []);
+  
+  useEffect(() => {
+    // 初期画面のボタンで使う効果音を準備
+    buttonSoundRef.current = new Audio('/sounds/button_sound.mp3');
+    return () => {
+      buttonSoundRef.current?.pause();
+      buttonSoundRef.current = null;
+    };
+  }, []);
+
+  const playButtonSound = () => {
+    const audio = buttonSoundRef.current;
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch((error) => {
+      console.warn('Failed to play button sound:', error);
+    });
+  };
 
   const copyGameId = () => {
     if (gameId) {
@@ -59,6 +78,7 @@ export default function Home() {
           <Link 
             href="/join"
             className="block w-full btn-accent py-3 px-6 rounded-full font-semibold"
+            onClick={playButtonSound}
           >
             ゲームに参加
           </Link>
@@ -66,6 +86,7 @@ export default function Home() {
           <Link 
             href="/create"
             className="block w-full btn-primary py-3 px-6 rounded-full font-semibold"
+            onClick={playButtonSound}
           >
             ゲームを作成
           </Link>
