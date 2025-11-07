@@ -565,7 +565,7 @@ export default function PlayPage() {
   );
   const personalCaptures = game.status === 'running' ? (currentPlayer.stats.captures ?? 0) : 0;
   const personalCapturedTimes = game.status === 'running' ? (currentPlayer.stats.capturedTimes ?? 0) : 0;
-  const personalGeneratorsCleared = currentPlayer.stats.generatorsCleared ?? 0;
+  const personalGeneratorsCleared = currentPlayer.stats?.generatorsCleared ?? 0;
 
   const handleGeneratorCleared = useCallback(async () => {
     if (!currentPlayer || currentPlayer.role !== 'runner' || !user?.uid || !gameId) {
