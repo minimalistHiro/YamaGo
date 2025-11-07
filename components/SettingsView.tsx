@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
-import { deletePlayer, deleteGame, getGame, Game, updateGame } from '@/lib/game';
+import { deletePlayer, deleteGame, getGame, Game, updateGame, getPlayers } from '@/lib/game';
 import RoleAssignmentView from './RoleAssignmentView';
 import GameSettingsView from './GameSettingsView';
 import PlayerProfileEditView from './PlayerProfileEditView';
@@ -60,6 +60,21 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
   };
 
   const confirmExitGame = async (deleteGameData: boolean = false) => {
+    if (deleteGameData && isOwner) {
+      try {
+        const players = await getPlayers(gameId);
+        const hasOtherPlayers = players.some((player) => player.uid !== currentUser.uid);
+        if (hasOtherPlayers) {
+          alert('他のユーザーがいる為退出できません。他のユーザーに退出してもらうか、「役職振り分け」画面で他のユーザーを削除して下さい');
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to verify players before exit:', error);
+        alert('プレイヤー情報の確認に失敗しました。時間を置いてから再度お試しください。');
+        return;
+      }
+    }
+
     setShowExitConfirm(false);
     setIsLoading(true);
     setIsExitProcessing(true);
