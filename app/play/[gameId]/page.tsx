@@ -22,6 +22,7 @@ import ChatView from '@/components/ChatView';
 import SettingsView from '@/components/SettingsView';
 import BackgroundLocationProvider from '@/components/BackgroundLocationProvider';
 import { useGameStore } from '@/lib/store/gameStore';
+import { usePersonalResult } from '@/lib/hooks/usePersonalResult';
 import type { Player, PinStatus } from '@/lib/game';
 import { playSound, preloadSounds } from '@/lib/sounds';
 
@@ -565,7 +566,13 @@ export default function PlayPage() {
   );
   const personalCaptures = game.status === 'running' ? (currentPlayer.stats.captures ?? 0) : 0;
   const personalCapturedTimes = game.status === 'running' ? (currentPlayer.stats.capturedTimes ?? 0) : 0;
-  const personalGeneratorsCleared = currentPlayer.stats?.generatorsCleared ?? 0;
+
+  const personalResult = usePersonalResult(
+    gameId,
+    user?.uid || null,
+    { displayName: currentPlayer?.nickname }
+  );
+  const isGameFinished = game.status === 'ended' || (game.status as string) === 'finished';
 
   const handleGeneratorCleared = useCallback(async () => {
     if (!currentPlayer || currentPlayer.role !== 'runner' || !user?.uid || !gameId) {
@@ -722,7 +729,7 @@ export default function PlayPage() {
             </div>
           )}
           
-          {showGameSummaryPopup && (
+          {showGameSummaryPopup && isGameFinished && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[110]">
               <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full mx-4">
                 <h3 className="text-xl font-bold mb-4 text-center">ゲーム内容</h3>
@@ -740,20 +747,36 @@ export default function PlayPage() {
                     <span className="font-semibold text-gray-900">{formattedGameDuration}</span>
                   </div>
                 </div>
-                <div className="mt-6 border-t border-gray-200 pt-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3 text-center">個人の成績</h4>
-                  {currentPlayer.role === 'oni' ? (
-                    <div className="flex items-center justify-between text-sm text-gray-700">
-                      <span>捕獲数</span>
-                      <span className="font-semibold text-gray-900">{currentPlayer.stats.captures ?? 0}人</span>
+                {personalResult.finalRole && (
+                  <div className="mt-6 border-t border-gray-200 pt-4">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-3 text-center">個人の成績</h4>
+                    <div className="text-xs text-gray-500 text-center mb-3 flex items-center justify-center gap-2">
+                      {personalResult.displayName && (
+                        <span className="font-semibold text-gray-700">{personalResult.displayName}</span>
+                      )}
+                      {personalResult.roleLabel && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200 text-[10px] tracking-[0.3em]">
+                          {personalResult.roleLabel}
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-between text-sm text-gray-700">
-                      <span>発電機解除数</span>
-                      <span className="font-semibold text-gray-900">{personalGeneratorsCleared}箇所</span>
-                    </div>
-                  )}
-                </div>
+                    {personalResult.loading ? (
+                      <div className="flex justify-center py-4">
+                        <div className="h-6 w-6 rounded-full border-2 border-cyber-green border-t-transparent animate-spin" />
+                      </div>
+                    ) : personalResult.metricLabel && personalResult.metricValue !== null ? (
+                      <div className="flex items-center justify-between text-sm text-gray-700">
+                        <span>{personalResult.metricLabel}</span>
+                        <span className="font-semibold text-gray-900">
+                          {personalResult.metricValue}
+                          {personalResult.metricUnit}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-center text-sm text-gray-500">ロール未確定</p>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-2 justify-center mt-6">
                   <button
                     className="bg-gray-800 hover:bg-black text-white font-medium py-2 px-4 rounded"
