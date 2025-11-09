@@ -564,8 +564,8 @@ export default function PlayPage() {
   const formattedGameDuration = formatDuration(
     gameDurationElapsedSec ?? (typeof game.gameDurationSec === 'number' ? game.gameDurationSec : null)
   );
-  const personalCaptures = game.status === 'running' ? (currentPlayer.stats.captures ?? 0) : 0;
-  const personalCapturedTimes = game.status === 'running' ? (currentPlayer.stats.capturedTimes ?? 0) : 0;
+  const personalCaptures = game.status === 'running' ? (currentPlayer.stats?.captures ?? 0) : 0;
+  const personalCapturedTimes = game.status === 'running' ? (currentPlayer.stats?.capturedTimes ?? 0) : 0;
 
   const personalResult = usePersonalResult(
     gameId,
