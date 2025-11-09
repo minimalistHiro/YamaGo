@@ -572,7 +572,9 @@ export default function PlayPage() {
     user?.uid || null,
     { displayName: currentPlayer?.nickname }
   );
-  const isGameFinished = game.status === 'ended' || (game.status as string) === 'finished';
+  const gameStatus = game?.status;
+  const statusString = gameStatus as string | undefined;
+  const isGameFinished = statusString === 'ended' || statusString === 'finished';
 
   const handleGeneratorCleared = useCallback(async () => {
     if (!currentPlayer || currentPlayer.role !== 'runner' || !user?.uid || !gameId) {
