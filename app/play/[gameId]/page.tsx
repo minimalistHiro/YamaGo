@@ -478,6 +478,15 @@ export default function PlayPage() {
     }
   };
 
+  const personalResult = usePersonalResult(
+    gameId,
+    user?.uid || null,
+    { displayName: currentPlayer?.nickname }
+  );
+  const gameStatus = game?.status;
+  const statusString = gameStatus as string | undefined;
+  const isGameFinished = statusString === 'ended' || statusString === 'finished';
+
   const handleGameStart = async () => {
     if (!game) return;
     
@@ -566,15 +575,6 @@ export default function PlayPage() {
   );
   const personalCaptures = game.status === 'running' ? (currentPlayer.stats?.captures ?? 0) : 0;
   const personalCapturedTimes = game.status === 'running' ? (currentPlayer.stats?.capturedTimes ?? 0) : 0;
-
-  const personalResult = usePersonalResult(
-    gameId,
-    user?.uid || null,
-    { displayName: currentPlayer?.nickname }
-  );
-  const gameStatus = game?.status;
-  const statusString = gameStatus as string | undefined;
-  const isGameFinished = statusString === 'ended' || statusString === 'finished';
 
   const handleGeneratorCleared = useCallback(async () => {
     if (!currentPlayer || currentPlayer.role !== 'runner' || !user?.uid || !gameId) {
