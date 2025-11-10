@@ -734,12 +734,20 @@ export function subscribeToAlerts(gameId: string, uid: string, callback: (alerts
   const db = getDb();
   const alertsRef = collection(db, 'games', gameId, 'alerts');
   return onSnapshot(
-    query(alertsRef, where('toUid', '==', uid), orderBy('at', 'desc')),
+    query(alertsRef, where('toUid', '==', uid)),
     (snapshot) => {
-      const alerts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Alert));
+      const alerts = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Alert))
+        .sort((a, b) => {
+          const atA = (a.at as Timestamp | Date | undefined) ?? null;
+          const atB = (b.at as Timestamp | Date | undefined) ?? null;
+          const timeA = atA instanceof Timestamp ? atA.toMillis() : atA instanceof Date ? atA.getTime() : 0;
+          const timeB = atB instanceof Timestamp ? atB.toMillis() : atB instanceof Date ? atB.getTime() : 0;
+          return timeB - timeA;
+        });
       callback(alerts);
     }
   );
