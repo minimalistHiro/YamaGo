@@ -46,9 +46,15 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>鬼ごっこ機能のため、アプリ使用中の位置情報を利用します。</string>
+	<string>鬼ごっこ機能のために、プレイ中のみ現在地を利用します。現在地は「マップ表示」「捕獲判定（半径50m以内）」「不正検知（位置矛盾）」に使用されます。位置履歴は駅単位のチェックイン情報としてのみ保存され、常時追跡やバックグラウンド取得は行いません。</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>チーム戦のため、アプリを閉じても位置情報を更新します。</string>
+	<string>鬼ごっこ機能のために、プレイ中のみ現在地を利用します。現在地は「マップ表示」「捕獲判定（半径50m以内）」「不正検知（位置矛盾）」に使用されます。位置履歴は駅単位のチェックイン情報としてのみ保存され、常時追跡やバックグラウンド取得は行いません。</string>
+	<key>NSCameraUsageDescription</key>
+	<string>プロフィール画像を撮影して設定するためにカメラを使用します。撮影データは端末内およびアプリ内にのみ保存されます。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>プロフィール画像を設定するためにフォトライブラリの写真を選択します。選択された画像はアプリ内プロフィールのみに利用されます。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>ゲーム中のスクリーンショットを端末に保存する際にフォトライブラリを使用します。</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
