@@ -75,6 +75,12 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
       }
     }
 
+    if (isOwner && game?.status === 'running') {
+      alert('ゲーム進行中は退出できません。先にゲームを終了してから再度お試しください。');
+      setShowExitConfirm(true);
+      return;
+    }
+
     setShowExitConfirm(false);
     setIsLoading(true);
     setIsExitProcessing(true);
