@@ -21,6 +21,7 @@ import { joinGame, createGame } from '@/lib/game';
 export default function JoinPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState('');
   const [gameId, setGameId] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -30,9 +31,7 @@ export default function JoinPage() {
   const [isCreating, setIsCreating] = useState(false);
   const isBusy = isLoading || isCreating;
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isBusy) return;
-    const file = e.target.files?.[0];
+  const processSelectedFile = (file: File | null) => {
     if (file) {
       // ファイルサイズチェック (5MB以下)
       if (file.size > 5 * 1024 * 1024) {
@@ -55,6 +54,20 @@ export default function JoinPage() {
         setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isBusy) return;
+    processSelectedFile(e.target.files?.[0] ?? null);
+  };
+
+  const handleTakePhoto = () => {
+    if (isBusy) return;
+    const input = cameraInputRef.current;
+    if (input) {
+      input.value = '';
+      input.click();
     }
   };
 
@@ -252,6 +265,22 @@ export default function JoinPage() {
                   disabled={isBusy}
                 >
                   画像を選択
+                </button>
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={handleTakePhoto}
+                  className="btn-surface px-4 py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed ml-3"
+                  disabled={isBusy}
+                >
+                  カメラで撮影
                 </button>
                 {selectedImage && (
                   <button

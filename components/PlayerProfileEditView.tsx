@@ -24,6 +24,7 @@ export default function PlayerProfileEditView({
   onProfileUpdated
 }: PlayerProfileEditViewProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState(user.nickname);
   const [imagePreview, setImagePreview] = useState<string | null>(user.avatarUrl || null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -32,9 +33,7 @@ export default function PlayerProfileEditView({
   const isBusy = isSaving;
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleSelectImage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (isBusy) return;
-    const file = event.target.files?.[0];
+  const handleFileSelection = (file: File | null) => {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
@@ -55,6 +54,20 @@ export default function PlayerProfileEditView({
       setImagePreview((e.target?.result as string) || null);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleSelectImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (isBusy) return;
+    handleFileSelection(event.target.files?.[0] ?? null);
+  };
+
+  const handleTakePhoto = () => {
+    if (isBusy) return;
+    const input = cameraInputRef.current;
+    if (input) {
+      input.value = '';
+      input.click();
+    }
   };
 
   const handleClearImage = () => {
@@ -197,6 +210,14 @@ export default function PlayerProfileEditView({
                     onChange={handleSelectImage}
                     className="hidden"
                   />
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleSelectImage}
+                    className="hidden"
+                  />
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
@@ -208,6 +229,18 @@ export default function PlayerProfileEditView({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
                       画像を選択
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTakePhoto}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      disabled={isBusy}
+                    >
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9h4l2-3h6l2 3h4v10H3z" />
+                        <circle cx="12" cy="13" r="3" />
+                      </svg>
+                      カメラで撮影
                     </button>
                     {(selectedImage || imagePreview) && (
                       <button
