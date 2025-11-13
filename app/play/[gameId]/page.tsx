@@ -22,6 +22,7 @@ import ChatView from '@/components/ChatView';
 import SettingsView from '@/components/SettingsView';
 import BackgroundLocationProvider from '@/components/BackgroundLocationProvider';
 import { useGameStore } from '@/lib/store/gameStore';
+import SafeArea from '@/components/SafeArea';
 import type { Player, PinStatus } from '@/lib/game';
 import { playSound, preloadSounds } from '@/lib/sounds';
 
@@ -503,18 +504,18 @@ export default function PlayPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
           <p className="text-gray-600">読み込み中...</p>
         </div>
-      </div>
+      </SafeArea>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-4">エラー</h2>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -525,18 +526,18 @@ export default function PlayPage() {
             戻る
           </button>
         </div>
-      </div>
+      </SafeArea>
     );
   }
 
   if (!game || !currentPlayer) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
           <p className="text-gray-600">ゲームデータを読み込み中...</p>
         </div>
-      </div>
+      </SafeArea>
     );
   }
 
@@ -572,7 +573,8 @@ export default function PlayPage() {
   // Keep MapView mounted to persist camera and location between tab switches
 
   return (
-    <div className="h-screen flex flex-col">
+    <SafeArea className="min-h-screen p-0">
+      <div className="h-screen flex flex-col">
       {/* Background Location Provider */}
       <BackgroundLocationProvider
         userId={user?.uid || ''}
@@ -818,6 +820,7 @@ export default function PlayPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-    </div>
+      </div>
+    </SafeArea>
   );
 }

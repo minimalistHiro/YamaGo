@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { signInAnonymously, User } from 'firebase/auth';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { createGame, joinGame, getGame } from '@/lib/game';
+import SafeArea from '@/components/SafeArea';
 
 // Note: For Vercel deployment, ensure the following environment variables are set in your Vercel project:
 // - NEXT_PUBLIC_FIREBASE_API_KEY
@@ -101,7 +102,7 @@ export default function CreatePage() {
 
   if (gameCreated) {
     return (
-      <div className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
+      <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
         <div className="absolute inset-0 opacity-35 blur-3xl pointer-events-none" aria-hidden>
           <div className="w-80 h-80 brand-gradient rounded-full absolute -top-24 -right-10 mix-blend-screen" />
           <div className="w-[22rem] h-[22rem] brand-gradient rounded-full absolute -bottom-32 -left-10 mix-blend-screen" />
@@ -178,12 +179,12 @@ export default function CreatePage() {
             </div>
           </div>
         </div>
-      </div>
+      </SafeArea>
     );
   }
 
   return (
-    <div className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
+    <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
       <div className="absolute inset-0 opacity-35 blur-3xl pointer-events-none" aria-hidden>
         <div className="w-[18rem] h-[18rem] brand-gradient rounded-full absolute -top-24 -left-14 mix-blend-screen" />
         <div className="w-[20rem] h-[20rem] brand-gradient rounded-full absolute -bottom-20 -right-24 mix-blend-screen" />
@@ -258,6 +259,6 @@ export default function CreatePage() {
           <p>ゲーム開始30分後に鬼が有効化されます</p>
         </div>
       </div>
-    </div>
+    </SafeArea>
   );
 }

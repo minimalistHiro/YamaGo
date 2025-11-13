@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
+import SafeArea from '@/components/SafeArea';
 
 export default function Home() {
   const [gameId, setGameId] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
+    <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
       <div className="absolute inset-0 opacity-30 blur-3xl pointer-events-none" aria-hidden>
         <div className="w-64 h-64 brand-gradient rounded-full absolute -top-16 -left-16 mix-blend-screen" />
         <div className="w-72 h-72 brand-gradient rounded-full absolute -bottom-24 -right-6 mix-blend-screen" />
@@ -97,6 +98,6 @@ export default function Home() {
           <p className="uppercase">山手線内でのみプレイ可能です</p>
         </div>
       </div>
-    </div>
+    </SafeArea>
   );
 }

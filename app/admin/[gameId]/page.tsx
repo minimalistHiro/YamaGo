@@ -18,6 +18,7 @@ import {
 import { getYamanoteCenter } from '@/lib/geo';
 import MapView from '@/components/MapView';
 import HUD from '@/components/HUD';
+import SafeArea from '@/components/SafeArea';
 
 export default function AdminPage() {
   const params = useParams();
@@ -128,18 +129,18 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
           <p className="text-gray-600">読み込み中...</p>
         </div>
-      </div>
+      </SafeArea>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-4">エラー</h2>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -150,24 +151,24 @@ export default function AdminPage() {
             戻る
           </button>
         </div>
-      </div>
+      </SafeArea>
     );
   }
 
   if (!game) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
           <p className="text-gray-600">ゲームデータを読み込み中...</p>
         </div>
-      </div>
+      </SafeArea>
     );
   }
 
   if (!isOwner) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-4">アクセス拒否</h2>
           <p className="text-gray-600 mb-4">このページはゲーム作成者のみアクセス可能です</p>
@@ -184,7 +185,7 @@ export default function AdminPage() {
             戻る
           </button>
         </div>
-      </div>
+      </SafeArea>
     );
   }
 
@@ -204,7 +205,8 @@ export default function AdminPage() {
   const runnerCapturedCount = players.filter(p => p.role === 'runner' && p.active && p.state && p.state !== 'active').length;
 
   return (
-    <div className="h-screen flex flex-col">
+    <SafeArea className="min-h-screen p-0">
+      <div className="h-screen flex flex-col">
       {/* Map View */}
       <div className="flex-1 relative">
         <MapView
@@ -298,6 +300,7 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </SafeArea>
   );
 }

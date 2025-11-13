@@ -8,6 +8,7 @@ import { signInAnonymously } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { joinGame, createGame } from '@/lib/game';
+import SafeArea from '@/components/SafeArea';
 
 // Note: For Vercel deployment, ensure the following environment variables are set in your Vercel project:
 // - NEXT_PUBLIC_FIREBASE_API_KEY
@@ -182,7 +183,7 @@ export default function JoinPage() {
   };
 
   return (
-    <div className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
+    <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
       <div className="absolute inset-0 opacity-40 blur-3xl pointer-events-none" aria-hidden>
         <div className="w-72 h-72 brand-gradient rounded-full absolute -top-24 -left-10 mix-blend-screen" />
         <div className="w-80 h-80 brand-gradient rounded-full absolute -bottom-16 -right-20 mix-blend-screen" />
@@ -333,6 +334,6 @@ export default function JoinPage() {
           <p>ゲーム開始30分後に鬼が有効化されます</p>
         </div>
       </div>
-    </div>
+    </SafeArea>
   );
 }
