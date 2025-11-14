@@ -1552,7 +1552,13 @@ export default function MapView({
   return (
     <div className="relative w-full h-full min-h-[400px] pt-safe-area pb-safe-area">
       {!pinEditingMode && (
-        <div className="absolute top-4 left-4 z-40 flex items-center gap-2 rounded-xl bg-[rgba(3,22,27,0.9)] border border-cyber-green/40 px-3 py-2 shadow-[0_10px_24px_rgba(3,22,27,0.45)]">
+        <div
+          className="absolute z-40 flex items-center gap-2 rounded-xl bg-[rgba(3,22,27,0.9)] border border-cyber-green/40 px-3 py-2 shadow-[0_10px_24px_rgba(3,22,27,0.45)]"
+          style={{
+            top: 'calc(var(--safe-area-top) + 1rem)',
+            left: 'calc(var(--safe-area-left) + 1rem)',
+          }}
+        >
           <span className="text-xl">
             {currentUserRole === 'oni' ? '👹' : '🏃'}
           </span>
@@ -1601,7 +1607,7 @@ export default function MapView({
       {!pinEditingMode && gameStatus === 'running' && currentUserRole === 'runner' && nearbyPin && (
         <div
           className="absolute left-1/2 transform -translate-x-1/2 z-50"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4rem)' }}
+          style={{ bottom: 'calc(var(--safe-area-bottom) + 4rem)' }}
         >
           <button
             onClick={handleClearNearbyPin}
@@ -1628,9 +1634,12 @@ export default function MapView({
         <button
           onClick={getCurrentLocation}
           disabled={isLocating}
-          className="absolute right-4 bg-white hover:bg-gray-50 disabled:bg-gray-200 text-gray-700 rounded-full shadow-lg p-3 transition-colors"
+          className="absolute bg-white hover:bg-gray-50 disabled:bg-gray-200 text-gray-700 rounded-full shadow-lg p-3 transition-colors"
           title="現在地を表示"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)' }}
+          style={{
+            right: 'calc(var(--safe-area-right) + 1rem)',
+            bottom: 'calc(var(--safe-area-bottom) + 5rem)',
+          }}
         >
           {isLocating ? (
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
@@ -1670,8 +1679,11 @@ export default function MapView({
       {/* Debug Info */}
       {!pinEditingMode && !currentLocation && (
         <div
-          className="absolute right-4 bg-yellow-100 border border-yellow-400 rounded-lg p-2 max-w-xs"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
+          className="absolute bg-yellow-100 border border-yellow-400 rounded-lg p-2 max-w-xs"
+          style={{
+            top: 'calc(var(--safe-area-top) + 1rem)',
+            right: 'calc(var(--safe-area-right) + 1rem)',
+          }}
         >
           <div className="text-xs text-yellow-800">
             <div className="font-medium">位置情報デバッグ</div>
@@ -1734,8 +1746,11 @@ export default function MapView({
       {/* Countdown Display - Runner: bottom-right, no gray-out */}
       {!pinEditingMode && isCountdownActive && countdownTimeLeft !== null && gameStatus !== 'ended' && currentUserRole === 'runner' && (
         <div
-          className="absolute right-4 z-50"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4rem)' }}
+          className="absolute z-50"
+          style={{
+            right: 'calc(var(--safe-area-right) + 1rem)',
+            bottom: 'calc(var(--safe-area-bottom) + 4rem)',
+          }}
         >
           <div className="bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-3 border border-gray-200 flex items-center space-x-3">
             <span className="text-sm text-gray-600">鬼が出発するまで</span>

@@ -185,7 +185,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       {/* Fixed Header */}
       <header
         className={`sticky z-20 px-4 py-4 border-b text-white uppercase tracking-[0.35em] ${headerTheme}`}
-        style={{ top: 'env(safe-area-inset-top, 0px)' }}
+        style={{ top: 'var(--safe-area-top)' }}
       >
         <h1 className="text-lg font-semibold">
           {playerRole === 'oni' ? '鬼チャット' : '逃走者チャット'}
@@ -274,7 +274,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
       {/* Fixed Message Input */}
       <footer
         className="sticky bottom-0 z-20 bg-[rgba(3,22,27,0.96)] backdrop-blur border-t border-cyber-green/30 px-3 pt-3"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+        style={{ paddingBottom: 'calc(var(--safe-area-bottom) + 0.75rem)' }}
       >
         <form onSubmit={handleSendMessage} className="flex space-x-2">
           <div className="flex-1 relative">

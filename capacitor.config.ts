@@ -8,7 +8,11 @@ const config: CapacitorConfig = {
     url: 'https://yama-go.vercel.app',
     cleartext: false
   },
-  android: { backgroundColor: '#000000' }
+  android: { backgroundColor: '#000000' },
+  ios: {
+    backgroundColor: '#000000',
+    contentInset: 'never'
+  }
 };
 
 export default config;

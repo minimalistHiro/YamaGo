@@ -64,7 +64,13 @@ export default function HUD({
   };
 
   return (
-    <div className="absolute top-4 right-4 bg-[rgba(3,22,27,0.92)] border border-cyber-green/40 rounded-2xl shadow-[0_18px_40px_rgba(4,12,24,0.65)] p-5 min-w-[220px] backdrop-blur">
+    <div
+      className="absolute bg-[rgba(3,22,27,0.92)] border border-cyber-green/40 rounded-2xl shadow-[0_18px_40px_rgba(4,12,24,0.65)] p-5 min-w-[220px] backdrop-blur"
+      style={{
+        top: 'calc(var(--safe-area-top) + 1rem)',
+        right: 'calc(var(--safe-area-right) + 1rem)',
+      }}
+    >
       <div className="space-y-4">
         {/* Header with toggle */}
         <div className="flex items-center justify-between">
