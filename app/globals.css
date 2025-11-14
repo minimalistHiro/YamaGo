@@ -18,6 +18,14 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+.pt-safe-area {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe-area {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 body {
   font-family: 'Rajdhani', 'Orbitron', 'Noto Sans JP', 'Segoe UI', 'Roboto',
     'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',

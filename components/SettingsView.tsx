@@ -284,7 +284,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
   }
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col">
+    <div className="h-full bg-gray-50 flex flex-col pt-safe-area pb-safe-area">
       {/* Header - 固定表示 */}
       <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <h2 className="text-lg font-semibold text-gray-800">設定</h2>
