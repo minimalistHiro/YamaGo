@@ -184,7 +184,8 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
     <main className="flex flex-col h-full min-h-0 overflow-hidden bg-[rgba(3,22,27,0.94)] text-app pt-safe-area pb-safe-area">
       {/* Fixed Header */}
       <header
-        className={`sticky top-0 z-20 px-4 py-4 border-b text-white uppercase tracking-[0.35em] ${headerTheme}`}
+        className={`sticky z-20 px-4 py-4 border-b text-white uppercase tracking-[0.35em] ${headerTheme}`}
+        style={{ top: 'env(safe-area-inset-top, 0px)' }}
       >
         <h1 className="text-lg font-semibold">
           {playerRole === 'oni' ? '鬼チャット' : '逃走者チャット'}
