@@ -11,7 +11,6 @@ import {
 import { setGamePins, type PinPoint, type PinStatus, updatePinStatus, updateGame, resetRunnersAndGenerators } from '@/lib/game';
 import { preloadSounds } from '@/lib/sounds';
 import { createBaseMapStyle } from '@/lib/mapStyle';
-import SafeArea from '@/components/SafeArea';
 
 interface MapViewProps {
   onLocationUpdate?: (lat: number, lng: number, accuracy: number) => void;
@@ -1551,7 +1550,7 @@ export default function MapView({
   };
 
   return (
-    <SafeArea className="relative w-full h-full min-h-[400px]">
+    <div className="relative w-full h-full min-h-[400px] pt-safe-area pb-safe-area">
       {!pinEditingMode && (
         <div
           className="absolute z-40 flex items-center gap-2 rounded-xl bg-[rgba(3,22,27,0.9)] border border-cyber-green/40 px-3 py-2 shadow-[0_10px_24px_rgba(3,22,27,0.45)]"
@@ -1798,6 +1797,6 @@ export default function MapView({
           </div>
         </div>
       )}
-    </SafeArea>
+    </div>
   );
 }

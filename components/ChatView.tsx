@@ -10,7 +10,6 @@ import {
   serverTimestamp,
   Timestamp 
 } from 'firebase/firestore';
-import SafeArea from '@/components/SafeArea';
 import { getFirebaseServices } from '../lib/firebase/client';
 import { getPlayer, subscribeToPlayers, type Player } from '../lib/game';
 
@@ -157,10 +156,10 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   // Show loading state while fetching player role
   if (playerRole === null) {
     return (
-      <SafeArea className="flex flex-col h-[100dvh] bg-app items-center justify-center">
+      <div className="flex flex-col h-[100dvh] bg-app items-center justify-center pt-safe-area pb-safe-area">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyber-green"></div>
         <p className="mt-4 text-muted uppercase tracking-[0.3em]">チャットを読み込み中...</p>
-      </SafeArea>
+      </div>
     );
   }
 
@@ -182,7 +181,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   const systemBubbleTheme = 'bg-[rgba(138,31,189,0.18)] border border-cyber-purple/35 text-cyber-glow shadow-[0_0_16px_rgba(138,31,189,0.35)]';
 
   return (
-    <SafeArea as="main" className="flex flex-col h-full min-h-0 overflow-hidden bg-[rgba(3,22,27,0.94)] text-app">
+    <main className="flex flex-col h-full min-h-0 overflow-hidden bg-[rgba(3,22,27,0.94)] text-app pt-safe-area pb-safe-area">
       {/* Fixed Header */}
       <header
         className={`sticky z-20 px-4 py-4 border-b text-white uppercase tracking-[0.35em] ${headerTheme}`}
@@ -308,6 +307,6 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
           </button>
         </form>
       </footer>
-    </SafeArea>
+    </main>
   );
 }
