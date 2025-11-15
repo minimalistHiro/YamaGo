@@ -12,6 +12,25 @@ type CleanupFn = () => void;
 
 let activePolyfillCount = 0;
 let detachPolyfill: CleanupFn | null = null;
+type SafeAreaValues = { top: string; right: string; bottom: string; left: string };
+let initialSafeAreaValues: SafeAreaValues | null = null;
+
+const getInitialSafeAreaValues = (): SafeAreaValues => {
+  if (initialSafeAreaValues) return initialSafeAreaValues;
+  if (typeof window === 'undefined') {
+    initialSafeAreaValues = { top: '0px', right: '0px', bottom: '0px', left: '0px' };
+    return initialSafeAreaValues;
+  }
+
+  const computed = window.getComputedStyle(document.documentElement);
+  initialSafeAreaValues = {
+    top: computed.getPropertyValue('--safe-area-top') || '0px',
+    right: computed.getPropertyValue('--safe-area-right') || '0px',
+    bottom: computed.getPropertyValue('--safe-area-bottom') || '0px',
+    left: computed.getPropertyValue('--safe-area-left') || '0px',
+  };
+  return initialSafeAreaValues;
+};
 
 const applySafeAreaPolyfill = (): CleanupFn => {
   if (typeof window === 'undefined') {
@@ -31,10 +50,16 @@ const applySafeAreaPolyfill = (): CleanupFn => {
     const bottom = Math.max(window.innerHeight - viewport.height - viewport.offsetTop, 0);
     const right = Math.max(window.innerWidth - viewport.width - viewport.offsetLeft, 0);
 
-    root.style.setProperty('--safe-area-top', `${top}px`);
-    root.style.setProperty('--safe-area-left', `${left}px`);
-    root.style.setProperty('--safe-area-bottom', `${bottom}px`);
-    root.style.setProperty('--safe-area-right', `${right}px`);
+    const baseValues = getInitialSafeAreaValues();
+    const resolveValue = (value: number, fallback: string) => {
+      if (value > 0) return `${value}px`;
+      return fallback.trim() || '0px';
+    };
+
+    root.style.setProperty('--safe-area-top', resolveValue(top, baseValues.top));
+    root.style.setProperty('--safe-area-left', resolveValue(left, baseValues.left));
+    root.style.setProperty('--safe-area-bottom', resolveValue(bottom, baseValues.bottom));
+    root.style.setProperty('--safe-area-right', resolveValue(right, baseValues.right));
   };
 
   updateVars();
