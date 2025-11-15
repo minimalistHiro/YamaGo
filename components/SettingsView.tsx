@@ -5,6 +5,7 @@ import { signOut, deleteUser } from 'firebase/auth';
 import { ref, deleteObject } from 'firebase/storage';
 import { getFirebaseServices } from '@/lib/firebase/client';
 import { deletePlayer, deleteGame, getGame, Game, updateGame, getPlayers } from '@/lib/game';
+import SafeArea from '@/components/SafeArea';
 import RoleAssignmentView from './RoleAssignmentView';
 import GameSettingsView from './GameSettingsView';
 import PlayerProfileEditView from './PlayerProfileEditView';
@@ -284,7 +285,7 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
   }
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col pt-safe-area pb-safe-area">
+    <SafeArea className="h-full bg-gray-50 flex flex-col">
       {/* Header - 固定表示 */}
       <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <h2 className="text-lg font-semibold text-gray-800">設定</h2>
@@ -675,6 +676,6 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
           background-color: #ef4444;
         }
       `}</style>
-    </div>
+    </SafeArea>
   );
 }
