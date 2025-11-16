@@ -6,6 +6,14 @@
 
 /* Safe area padding helpers */
 .safe-area {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--safe-area-top);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--safe-area-bottom);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-left: var(--safe-area-left);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-right: var(--safe-area-right);
   min-height: 100vh;
   min-height: 100dvh;
   box-sizing: border-box;

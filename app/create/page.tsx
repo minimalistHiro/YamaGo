@@ -102,7 +102,7 @@ export default function CreatePage() {
 
   if (gameCreated) {
     return (
-      <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6 pt-safe-area pb-safe-area">
+      <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
         <div className="absolute inset-0 opacity-35 blur-3xl pointer-events-none" aria-hidden>
           <div className="w-80 h-80 brand-gradient rounded-full absolute -top-24 -right-10 mix-blend-screen" />
           <div className="w-[22rem] h-[22rem] brand-gradient rounded-full absolute -bottom-32 -left-10 mix-blend-screen" />
@@ -184,7 +184,7 @@ export default function CreatePage() {
   }
 
   return (
-    <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6 pt-safe-area pb-safe-area">
+    <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
       <div className="absolute inset-0 opacity-35 blur-3xl pointer-events-none" aria-hidden>
         <div className="w-[18rem] h-[18rem] brand-gradient rounded-full absolute -top-24 -left-14 mix-blend-screen" />
         <div className="w-[20rem] h-[20rem] brand-gradient rounded-full absolute -bottom-20 -right-24 mix-blend-screen" />
