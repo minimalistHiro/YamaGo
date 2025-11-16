@@ -129,7 +129,7 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center pt-safe-area pb-safe-area">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
           <p className="text-gray-600">読み込み中...</p>
@@ -140,7 +140,7 @@ export default function AdminPage() {
 
   if (error) {
     return (
-      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center p-4 pt-safe-area pb-safe-area">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-4">エラー</h2>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -157,7 +157,7 @@ export default function AdminPage() {
 
   if (!game) {
     return (
-      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center pt-safe-area pb-safe-area">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
           <p className="text-gray-600">ゲームデータを読み込み中...</p>
@@ -168,7 +168,7 @@ export default function AdminPage() {
 
   if (!isOwner) {
     return (
-      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center p-4 pt-safe-area pb-safe-area">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-4">アクセス拒否</h2>
           <p className="text-gray-600 mb-4">このページはゲーム作成者のみアクセス可能です</p>

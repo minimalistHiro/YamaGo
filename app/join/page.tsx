@@ -183,7 +183,7 @@ export default function JoinPage() {
   };
 
   return (
-    <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6">
+    <SafeArea className="min-h-screen bg-app relative overflow-hidden flex items-center justify-center p-6 pt-safe-area pb-safe-area">
       <div className="absolute inset-0 opacity-40 blur-3xl pointer-events-none" aria-hidden>
         <div className="w-72 h-72 brand-gradient rounded-full absolute -top-24 -left-10 mix-blend-screen" />
         <div className="w-80 h-80 brand-gradient rounded-full absolute -bottom-16 -right-20 mix-blend-screen" />
