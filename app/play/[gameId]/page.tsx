@@ -573,8 +573,7 @@ export default function PlayPage() {
   // Keep MapView mounted to persist camera and location between tab switches
 
   return (
-    <SafeArea className="min-h-screen">
-      <div className="h-screen flex flex-col">
+    <SafeArea className="min-h-screen flex flex-col" style={{ paddingBottom: 0 }}>
       {/* Background Location Provider */}
       <BackgroundLocationProvider
         userId={user?.uid || ''}
@@ -820,7 +819,6 @@ export default function PlayPage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-      </div>
     </SafeArea>
   );
 }
