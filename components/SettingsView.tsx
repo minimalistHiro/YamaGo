@@ -284,14 +284,17 @@ export default function SettingsView({ gameId, currentUser, onGameExit, onPinEdi
   }
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col">
+    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
       {/* Header - 固定表示 */}
-      <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+      <div
+        className="bg-white border-b border-gray-200 p-4 flex-shrink-0 sticky z-10"
+        style={{ top: 'var(--safe-area-top)' }}
+      >
         <h2 className="text-lg font-semibold text-gray-800">設定</h2>
       </div>
 
       {/* 設定コンテンツ部分 - スクロール可能 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4 space-y-6 pb-20">
         {/* Player Info */}
         <div className="bg-white rounded-lg p-4 shadow-sm">
