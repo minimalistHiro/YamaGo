@@ -504,7 +504,7 @@ export default function PlayPage() {
 
   if (isLoading) {
     return (
-      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center pt-safe-area pb-safe-area">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
           <p className="text-gray-600">読み込み中...</p>
@@ -515,7 +515,7 @@ export default function PlayPage() {
 
   if (error) {
     return (
-      <SafeArea className="min-h-screen bg-gray-100 flex items中心 justify-center p-4">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center p-4 pt-safe-area pb-safe-area">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-4">エラー</h2>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -532,7 +532,7 @@ export default function PlayPage() {
 
   if (!game || !currentPlayer) {
     return (
-      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <SafeArea className="min-h-screen bg-gray-100 flex items-center justify-center pt-safe-area pb-safe-area">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
           <p className="text-gray-600">ゲームデータを読み込み中...</p>
@@ -573,7 +573,7 @@ export default function PlayPage() {
   // Keep MapView mounted to persist camera and location between tab switches
 
   return (
-    <SafeArea className="min-h-screen flex flex-col" style={{ paddingBottom: 0 }}>
+    <SafeArea className="min-h-screen flex flex-col pt-safe-area pb-safe-area">
       {/* Background Location Provider */}
       <BackgroundLocationProvider
         userId={user?.uid || ''}
