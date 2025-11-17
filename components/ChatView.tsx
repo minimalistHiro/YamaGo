@@ -156,8 +156,8 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   // Show loading state while fetching player role
   if (playerRole === null) {
     return (
-      <div className="flex flex-col h-[100dvh] bg-app items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyber-green"></div>
+      <div className="flex h-full flex-col items-center justify-center bg-[rgba(3,22,27,0.94)] text-app">
+        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-cyber-green"></div>
         <p className="mt-4 text-muted uppercase tracking-[0.3em]">チャットを読み込み中...</p>
       </div>
     );
@@ -168,10 +168,6 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
     return null;
   }
 
-  const headerTheme =
-    playerRole === 'oni'
-      ? 'bg-gradient-to-r from-cyber-pink/95 via-cyber-purple/90 to-cyber-pink/85 border-cyber-pink/50 shadow-[0_6px_24px_rgba(138,31,189,0.35)]'
-      : 'bg-gradient-to-r from-cyber-green/95 via-cyber-glow/90 to-cyber-green/90 border-cyber-green/55 shadow-[0_6px_24px_rgba(34,181,155,0.35)]';
   const sendButtonClass = playerRole === 'oni' ? 'btn-accent' : 'btn-primary';
   const myBubbleTheme =
     playerRole === 'oni'
@@ -181,17 +177,7 @@ export default function ChatView({ gameId, currentUser }: ChatViewProps) {
   const systemBubbleTheme = 'bg-[rgba(138,31,189,0.18)] border border-cyber-purple/35 text-cyber-glow shadow-[0_0_16px_rgba(138,31,189,0.35)]';
 
   return (
-    <main className="flex flex-col h-full min-h-0 overflow-hidden bg-[rgba(3,22,27,0.94)] text-app">
-      {/* Fixed Header */}
-      <header
-        className={`sticky z-20 px-4 py-4 border-b text-white uppercase tracking-[0.35em] ${headerTheme}`}
-        style={{ top: 'var(--safe-area-top)' }}
-      >
-        <h1 className="text-lg font-semibold">
-          {playerRole === 'oni' ? '鬼チャット' : '逃走者チャット'}
-        </h1>
-      </header>
-
+    <main className="flex h-full min-h-0 flex-col overflow-hidden bg-[rgba(3,22,27,0.94)] text-app">
       {/* Scrollable Messages Container */}
       <section
         id="messages"

@@ -21,6 +21,7 @@ import BottomTabNavigation, { TabType } from '@/components/BottomTabNavigation';
 import ChatView from '@/components/ChatView';
 import SettingsView from '@/components/SettingsView';
 import BackgroundLocationProvider from '@/components/BackgroundLocationProvider';
+import GameLayout from '@/components/GameLayout';
 import { useGameStore } from '@/lib/store/gameStore';
 import SafeArea from '@/components/SafeArea';
 import type { Player, PinStatus } from '@/lib/game';
@@ -570,11 +571,90 @@ export default function PlayPage() {
     router.push('/join');
   };
 
+  const headerTitle = (() => {
+    if (activeTab === 'chat') {
+      return currentPlayer.role === 'oni' ? '鬼チャット' : '逃走者チャット';
+    }
+    if (activeTab === 'settings') {
+      return 'ゲーム設定';
+    }
+    return 'ゲームマップ';
+  })();
+
+  const headerSubtitle = (() => {
+    if (activeTab === 'chat') {
+      return currentPlayer.role === 'oni' ? 'ONI CHANNEL' : 'RUNNER CHANNEL';
+    }
+    if (activeTab === 'settings') {
+      return 'PLAYER MANAGEMENT';
+    }
+    if (game.status === 'running') return 'GAME IN PROGRESS';
+    if (game.status === 'countdown') return 'COUNTDOWN';
+    if (game.status === 'ended') return 'GAME FINISHED';
+    return 'READY';
+  })();
+
+  const headerClassName = (() => {
+    if (activeTab === 'chat') {
+      return currentPlayer.role === 'oni'
+        ? 'bg-gradient-to-r from-cyber-pink/90 via-cyber-purple/85 to-cyber-pink/80 border-cyber-pink/50 shadow-[0_12px_30px_rgba(138,31,189,0.45)]'
+        : 'bg-gradient-to-r from-cyber-green/90 via-cyber-glow/85 to-cyber-green/80 border-cyber-green/50 shadow-[0_12px_30px_rgba(34,181,155,0.45)]';
+    }
+    if (activeTab === 'settings') {
+      return 'bg-[rgba(6,18,27,0.95)] border-cyber-green/35 shadow-[0_12px_30px_rgba(3,22,27,0.6)]';
+    }
+    return 'bg-[rgba(3,22,27,0.95)] border-cyber-green/40 shadow-[0_12px_30px_rgba(3,22,27,0.65)]';
+  })();
+
+  const header = (
+    <div className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 ${headerClassName}`}>
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.35em] text-muted">{headerSubtitle}</p>
+        <h1 className="text-xl font-semibold text-app drop-shadow-[0_0_12px_rgba(95,251,241,0.3)]">{headerTitle}</h1>
+      </div>
+      <div className="text-right text-[10px] uppercase tracking-[0.35em] text-muted">
+        <p className="text-sm font-semibold text-app">{currentPlayer.nickname}</p>
+        <p className="text-xs text-muted">{currentPlayer.role === 'oni' ? '鬼' : '逃走者'}</p>
+        <p className="font-mono tracking-[0.3em] text-app">{gameId}</p>
+      </div>
+    </div>
+  );
+
+  const footer = (
+    <div className="flex flex-col gap-2">
+      {activeTab === 'map' && (
+        <div className="bg-white border-t border-gray-200 p-2">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center space-x-2">
+              {(() => {
+                const myState = user?.uid ? (playersById[user.uid]?.state || currentPlayer.state) : currentPlayer.state;
+                const dotColor = currentPlayer.role === 'oni' ? 'bg-red-500' : (myState && myState !== 'active' ? 'bg-gray-400' : 'bg-green-500');
+                const roleLabel = currentPlayer.role === 'oni' ? '鬼' : (myState && myState !== 'active' ? '逃走者（捕獲済み）' : '逃走者');
+                return (
+                  <>
+                    <div className={`h-3 w-3 rounded-full ${dotColor}`}></div>
+                    <span className="font-medium">{currentPlayer.nickname}</span>
+                    <span className="text-gray-500">({roleLabel})</span>
+                  </>
+                );
+              })()}
+            </div>
+            
+            <div className="text-gray-500">
+              精度: {user && locations[user.uid] ? `${Math.round(locations[user.uid].accM)}m` : 'N/A'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <BottomTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+    </div>
+  );
+
   // Keep MapView mounted to persist camera and location between tab switches
 
   return (
-    <SafeArea className="min-h-screen flex flex-col pt-safe-area pb-safe-area">
-      {/* Background Location Provider */}
+    <GameLayout header={header} footer={footer} contentClassName="overflow-hidden">
       <BackgroundLocationProvider
         userId={user?.uid || ''}
         role={currentPlayer?.role || null}
@@ -582,10 +662,8 @@ export default function PlayPage() {
         gameStatus={game?.status || 'waiting'}
       />
       
-      {/* Main Content */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        {/* Map tab - always mounted, toggle visibility */}
-        <div className={activeTab === 'map' ? 'flex-1 relative h-full' : 'hidden'}>
+      <div className="flex h-full min-h-0 flex-col">
+        <div className={`${activeTab === 'map' ? 'flex-1' : 'hidden'} relative min-h-0`}>
           {!isEditingPins && (
             <MapView
               onLocationUpdate={handleLocationUpdate}
@@ -761,64 +839,34 @@ export default function PlayPage() {
           )}
         </div>
 
-        {/* Chat tab */}
         {activeTab === 'chat' && (
-          <ChatView
-            gameId={gameId}
-            currentUser={{
-              uid: user?.uid || '',
-              nickname: currentPlayer.nickname
-            }}
-          />
+          <div className="flex-1 min-h-0">
+            <ChatView
+              gameId={gameId}
+              currentUser={{
+                uid: user?.uid || '',
+                nickname: currentPlayer.nickname
+              }}
+            />
+          </div>
         )}
 
-        {/* Settings tab */}
         {activeTab === 'settings' && (
-          <SettingsView
-            gameId={gameId}
-            currentUser={{
-              uid: user?.uid || '',
-              nickname: currentPlayer.nickname,
-              role: currentPlayer.role,
-              avatarUrl: currentPlayer.avatarUrl
-            }}
-            onGameExit={handleGameExit}
-            onPinEditModeChange={setIsEditingPins}
-          />
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <SettingsView
+              gameId={gameId}
+              currentUser={{
+                uid: user?.uid || '',
+                nickname: currentPlayer.nickname,
+                role: currentPlayer.role,
+                avatarUrl: currentPlayer.avatarUrl
+              }}
+              onGameExit={handleGameExit}
+              onPinEditModeChange={setIsEditingPins}
+            />
+          </div>
         )}
       </div>
-
-      {/* Status Bar (only show on map tab) */}
-      {activeTab === 'map' && (
-        <div className="bg-white border-t border-gray-200 p-2">
-          <div className="flex justify-between items-center text-sm">
-            <div className="flex items-center space-x-2">
-              {(() => {
-                const myState = user?.uid ? (playersById[user.uid]?.state || currentPlayer.state) : currentPlayer.state;
-                const dotColor = currentPlayer.role === 'oni' ? 'bg-red-500' : (myState && myState !== 'active' ? 'bg-gray-400' : 'bg-green-500');
-                const roleLabel = currentPlayer.role === 'oni' ? '鬼' : (myState && myState !== 'active' ? '逃走者（捕獲済み）' : '逃走者');
-                return (
-                  <>
-                    <div className={`w-3 h-3 rounded-full ${dotColor}`}></div>
-                    <span className="font-medium">{currentPlayer.nickname}</span>
-                    <span className="text-gray-500">({roleLabel})</span>
-                  </>
-                );
-              })()}
-            </div>
-            
-            <div className="text-gray-500">
-              精度: {user && locations[user.uid] ? `${Math.round(locations[user.uid].accM)}m` : 'N/A'}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Tab Navigation */}
-      <BottomTabNavigation
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-    </SafeArea>
+    </GameLayout>
   );
 }
