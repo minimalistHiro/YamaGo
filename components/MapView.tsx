@@ -1551,6 +1551,22 @@ export default function MapView({
 
   return (
     <div className="relative w-full h-full min-h-[200px]">
+      {!pinEditingMode && (
+        <div
+          className="absolute z-40 flex items-center gap-2 rounded-xl bg-[rgba(3,22,27,0.9)] border border-cyber-green/40 px-3 py-2 shadow-[0_10px_24px_rgba(3,22,27,0.45)]"
+          style={{
+            top: 'calc(var(--safe-area-top) + 1rem)',
+            left: 'calc(var(--safe-area-left) + 1rem)',
+          }}
+        >
+          <span className="text-xl">
+            {currentUserRole === 'oni' ? '👹' : '🏃'}
+          </span>
+          <span className="text-xs font-semibold tracking-[0.25em] text-primary uppercase">
+            {currentUserRole === 'oni' ? '鬼' : '逃走者'}
+          </span>
+        </div>
+      )}
       <div ref={mapContainer} className="w-full h-full min-h-[400px]" />
       
       {!isMapLoaded && (
