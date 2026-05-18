@@ -5,6 +5,15 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if true;
     }
+
+    // Users collection
+    match /users/{uid} {
+      // 読み取り: 認証済みユーザー全員
+      allow read: if request.auth != null;
+      // 書き込み: 本人のみ（作成・更新・削除すべて本人限定）
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Games collection
     match /games/{gameId} {
       allow read: if true; // Anyone can read game data
